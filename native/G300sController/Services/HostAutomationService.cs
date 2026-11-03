@@ -360,552 +360,95 @@ public sealed class HostAutomationService : IDisposable
 
     private void RunFlickerFreeLightingLoop(CancellationToken token)
     {
-        Win32.timeBeginPeriod(1);
         var sw = Stopwatch.StartNew();
-
         int lastSentMask = -1;
-        long lastSampleMs = -100;
 
-        // Smoothed Ambilight HSV/RGB state with hysteresis
-        double smoothR = 0.0, smoothG = 0.85, smoothB = 1.0;
-        (int R, int G, int B) currentAmbiHwColor = (0, 1, 1);
-        long lastAmbiSwitchMs = 0;
-
-        // Game state telemetry variables
-        double barrelHeat = 0.0;
-        double damageAlertLevel = 0.0;
-        double flashbangLevel = 0.0;
-        double reloadProgress = 0.0;
-        double abilityPulse = 0.0;
-        double smoothAudioPeak = 0.0;
-        bool wasLmbDown = false;
-
-        // Gray-code 6-color wheel where every adjacent pair shares 1 continuously lit LED channel
-        (int R, int G, int B)[] grayWheel =
+        // 6-color hardware spectrum wheel in Gray-code order (each step shares an active channel)
+        (int R, int G, int B)[] rainbowWheel =
         [
             (1, 0, 0), // Kırmızı
-            (1, 1, 0), // Sarı     (R ortak)
-            (0, 1, 0), // Yeşil    (G ortak)
-            (0, 1, 1), // Turkuaz  (G ortak)
-            (0, 0, 1), // Mavi     (B ortak)
-            (1, 0, 1)  // Macenta  (B/R ortak)
+            (1, 1, 0), // Kehribar Sarı
+            (0, 1, 0), // Zümrüt Yeşili
+            (0, 1, 1), // Turkuaz (Cyan)
+            (0, 0, 1), // Kobalt Mavi
+            (1, 0, 1)  // Eflatun (Macenta)
         ];
 
-        try
+        while (!token.IsCancellationRequested)
         {
-            while (!token.IsCancellationRequested)
+            double elapsedSec = sw.Elapsed.TotalSeconds;
+            (int R, int G, int B) stateA = RgbBaseColor;
+
+            switch (ActiveRgbEffect)
             {
-                double elapsedSec = sw.Elapsed.TotalSeconds;
-                long elapsedMs = sw.ElapsedMilliseconds;
-
-                (int R, int G, int B) stateA = RgbBaseColor;
-                (int R, int G, int B) stateB = RgbBaseColor;
-                bool isBridging = false;
-
-                switch (ActiveRgbEffect)
+                case "spectrum":
+                case "cycle":
                 {
-                    case "breathing":
-                    {
-                        var ladder = BuildContinuousAnodeLadder(RgbBaseColor, RgbSecondaryColor);
-                        double periodSec = Math.Max(1.0, RgbSpeedMs / 1000.0);
-                        double wave = (1.0 - Math.Cos(2.0 * Math.PI * elapsedSec / periodSec)) * 0.5;
+                    double periodSec = Math.Max(1.6, RgbSpeedMs / 1000.0 * 2.0);
+                    double pos = ((elapsedSec / periodSec) % 1.0) * rainbowWheel.Length;
+                    int idxA = (int)Math.Floor(pos) % rainbowWheel.Length;
+                    int idxB = (idxA + 1) % rainbowWheel.Length;
+                    double frac = pos - Math.Floor(pos);
 
-                        // Map wave [0..1] onto the 4 continuous-anode ladder states [0..3]
-                        double scaled = wave * (ladder.Length - 1);
-                        int idxA = Math.Clamp((int)Math.Floor(scaled), 0, ladder.Length - 1);
-                        int idxB = Math.Clamp(idxA + 1, 0, ladder.Length - 1);
-                        double frac = scaled - idxA;
+                    stateA = rainbowWheel[idxA];
+                    var stateB = rainbowWheel[idxB];
 
-                        stateA = ladder[idxA];
-                        stateB = ladder[idxB];
-
-                        // Only use 166.7 Hz 1:1 bridge in the center 30% transition zone when both states share an ON bit
-                        bool sharesCommonLed = ((stateA.R & stateB.R) | (stateA.G & stateB.G) | (stateA.B & stateB.B)) != 0;
-                        if (UseHighFreqBridge && stateA != stateB && sharesCommonLed && frac is > 0.35 and < 0.65)
-                        {
-                            isBridging = true;
-                        }
-                        else if (frac >= 0.5)
-                        {
-                            stateA = stateB;
-                        }
-
-                        var c24A = MapBitTo24(stateA.R, stateA.G, stateA.B);
-                        var c24B = MapBitTo24(stateB.R, stateB.G, stateB.B);
-                        LivePreviewColor = (
-                            (byte)(c24A.R + (c24B.R - c24A.R) * frac),
-                            (byte)(c24A.G + (c24B.G - c24A.G) * frac),
-                            (byte)(c24A.B + (c24B.B - c24A.B) * frac)
-                        );
-                        LiveTelemetryLevel = 0.25 + wave * 0.75;
-                        LiveTelemetryText = $"Yumuşak Geçiş · Yoğunluk %{(int)Math.Round((0.25 + wave * 0.75) * 100)}";
-                        break;
-                    }
-
-                    case "spectrum":
-                    case "cycle":
-                    {
-                        double periodSec = Math.Max(1.6, RgbSpeedMs / 1000.0 * 2.2);
-                        double pos = ((elapsedSec / periodSec) % 1.0) * grayWheel.Length;
-                        int idxA = (int)Math.Floor(pos) % grayWheel.Length;
-                        int idxB = (idxA + 1) % grayWheel.Length;
-                        double frac = pos - Math.Floor(pos);
-
-                        stateA = grayWheel[idxA];
-                        stateB = grayWheel[idxB];
-
-                        if (UseHighFreqBridge && frac is > 0.36 and < 0.64)
-                        {
-                            isBridging = true;
-                        }
-                        else if (frac >= 0.5)
-                        {
-                            stateA = stateB;
-                        }
-
-                        var c24A = MapBitTo24(stateA.R, stateA.G, stateA.B);
-                        var c24B = MapBitTo24(stateB.R, stateB.G, stateB.B);
-                        LivePreviewColor = (
-                            (byte)(c24A.R + (c24B.R - c24A.R) * frac),
-                            (byte)(c24A.G + (c24B.G - c24A.G) * frac),
-                            (byte)(c24A.B + (c24B.B - c24A.B) * frac)
-                        );
-                        LiveTelemetryLevel = pos / grayWheel.Length;
-                        LiveTelemetryText = $"Spektrum Dalgası · {(int)(pos / grayWheel.Length * 360)}°";
-                        break;
-                    }
-
-                    case "ambilight":
-                    {
-                        if (elapsedMs - lastSampleMs >= 45)
-                        {
-                            lastSampleMs = elapsedMs;
-                            var sample = SampleScreenZone(AmbilightZone);
-                            const double alpha = 0.22;
-                            smoothR += (sample.R - smoothR) * alpha;
-                            smoothG += (sample.G - smoothG) * alpha;
-                            smoothB += (sample.B - smoothB) * alpha;
-                            LiveScenePalette = sample.Palette;
-
-                            // Classify to 3-bit hardware color with 180ms minimum hold hysteresis to prevent boundary flicker
-                            if (elapsedMs - lastAmbiSwitchMs >= 180)
-                            {
-                                var candidate = ClassifyRgbToHardwareColor(smoothR, smoothG, smoothB, currentAmbiHwColor);
-                                if (candidate != currentAmbiHwColor)
-                                {
-                                    currentAmbiHwColor = candidate;
-                                    lastAmbiSwitchMs = elapsedMs;
-                                }
-                            }
-                        }
-
-                        stateA = currentAmbiHwColor;
-                        var hwUi = MapBitTo24(stateA.R, stateA.G, stateA.B);
-                        byte rawHexR = (byte)Math.Clamp((int)(smoothR * 255), 0, 255);
-                        byte rawHexG = (byte)Math.Clamp((int)(smoothG * 255), 0, 255);
-                        byte rawHexB = (byte)Math.Clamp((int)(smoothB * 255), 0, 255);
-
-                        LivePreviewColor = (
-                            (byte)Math.Clamp((int)(rawHexR * 0.45 + hwUi.R * 0.55), 28, 255),
-                            (byte)Math.Clamp((int)(rawHexG * 0.45 + hwUi.G * 0.55), 28, 255),
-                            (byte)Math.Clamp((int)(rawHexB * 0.45 + hwUi.B * 0.55), 36, 255)
-                        );
-                        LiveTelemetryLevel = Math.Max(0.25, Math.Max(smoothR, Math.Max(smoothG, smoothB)));
-                        string zoneTr = AmbilightZone switch
-                        {
-                            "crosshair" => "Merkez Nişangah",
-                            "hud" => "Alt HUD Barı",
-                            "cinema" => "Sinematik Kenar",
-                            _ => "Tam Ekran"
-                        };
-                        string hwName = G300sProtocol.GetLedColorName(stateA.R, stateA.G, stateA.B);
-                        LiveTelemetryText = $"Ortam ({zoneTr}): #{rawHexR:X2}{rawHexG:X2}{rawHexB:X2} → {hwName}";
-                        break;
-                    }
-
-                    case "game_combat":
-                    {
-                        if (elapsedMs - lastSampleMs >= 25)
-                        {
-                            double dt = Math.Max(0.01, (elapsedMs - lastSampleMs) / 1000.0);
-                            lastSampleMs = elapsedMs;
-
-                            bool lmbDown = (Win32.GetAsyncKeyState(0x01) & 0x8000) != 0;
-                            bool rmbDown = (Win32.GetAsyncKeyState(0x02) & 0x8000) != 0;
-                            bool rKeyDown = (Win32.GetAsyncKeyState('R') & 0x8000) != 0;
-                            bool abilityDown = ((Win32.GetAsyncKeyState('Q') & 0x8000) != 0)
-                                || ((Win32.GetAsyncKeyState('E') & 0x8000) != 0)
-                                || ((Win32.GetAsyncKeyState('G') & 0x8000) != 0);
-
-                            if (lmbDown)
-                            {
-                                barrelHeat = Math.Min(1.0, barrelHeat + dt * 0.70);
-                                if (!wasLmbDown) barrelHeat = Math.Min(1.0, barrelHeat + 0.12);
-                            }
-                            else
-                            {
-                                barrelHeat = Math.Max(0.0, barrelHeat - dt * 0.42);
-                            }
-                            wasLmbDown = lmbDown;
-
-                            if (rKeyDown && reloadProgress <= 0.01)
-                            {
-                                reloadProgress = 1.0;
-                            }
-                            if (reloadProgress > 0.0)
-                            {
-                                reloadProgress = Math.Max(0.0, reloadProgress - dt * 0.65);
-                            }
-
-                            if (abilityDown)
-                            {
-                                abilityPulse = 1.0;
-                            }
-                            else
-                            {
-                                abilityPulse = Math.Max(0.0, abilityPulse - dt * 2.5);
-                            }
-
-                            // Sample screen for red damage vignette & white flashbang every ~75ms
-                            if ((elapsedMs / 25) % 3 == 0)
-                            {
-                                var sample = SampleScreenZone("full");
-                                LiveScenePalette = sample.Palette;
-                                damageAlertLevel = sample.DamageVignette > damageAlertLevel
-                                    ? sample.DamageVignette
-                                    : Math.Max(0.0, damageAlertLevel - 0.10);
-                                flashbangLevel = sample.WhiteoutLevel > flashbangLevel
-                                    ? sample.WhiteoutLevel
-                                    : Math.Max(0.0, flashbangLevel - 0.15);
-                            }
-
-                            // Choose solid hardware state based on game priority hierarchy
-                            if (flashbangLevel > 0.82)
-                            {
-                                stateA = (1, 1, 1); // Whiteout / Flashbang
-                                LiveTelemetryLevel = 1.0;
-                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Flashbang / Yüksek Parlama!";
-                            }
-                            else if (damageAlertLevel > 0.36)
-                            {
-                                stateA = (1, 0, 0); // Crimson Red Alert
-                                LiveTelemetryLevel = damageAlertLevel;
-                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Kritik Hasar / Düşük Can Uyarısı!";
-                            }
-                            else if (reloadProgress > 0.05)
-                            {
-                                stateA = reloadProgress > 0.5 ? (1, 1, 0) : (0, 1, 0); // Amber -> Green Ready
-                                LiveTelemetryLevel = 1.0 - reloadProgress;
-                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Şarjör Yenileniyor (%{(int)((1.0 - reloadProgress) * 100)})";
-                            }
-                            else if (abilityPulse > 0.2)
-                            {
-                                stateA = (1, 0, 1); // Magenta Tactical Ability
-                                LiveTelemetryLevel = abilityPulse;
-                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Taktik Yetenek Tetiklendi";
-                            }
-                            else if (barrelHeat > 0.08)
-                            {
-                                stateA = barrelHeat switch
-                                {
-                                    < 0.35 => (0, 1, 0), // Yeşil
-                                    < 0.68 => (1, 1, 0), // Kehribar Sarı
-                                    < 0.90 => (1, 0, 0), // Kırmızı
-                                    _ => (1, 1, 1)       // Aşırı Isınma Beyaz/Kırmızı
-                                };
-                                LiveTelemetryLevel = barrelHeat;
-                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Çatışma · Namlu Isısı %{(int)(barrelHeat * 100)}";
-                            }
-                            else if (rmbDown)
-                            {
-                                stateA = (0, 0, 1); // Deep Cobalt Sniper Focus
-                                LiveTelemetryLevel = 0.6;
-                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Keskin Nişancı / Dürbün Odak (ADS)";
-                            }
-                            else
-                            {
-                                stateA = RgbBaseColor;
-                                LiveTelemetryLevel = 0.25;
-                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Taktik Bekleme · Durum İzleniyor";
-                            }
-
-                            LivePreviewColor = MapBitTo24(stateA.R, stateA.G, stateA.B);
-                        }
-                        break;
-                    }
-
-                    case "audio_reactive":
-                    {
-                        if (elapsedMs - lastSampleMs >= 25)
-                        {
-                            lastSampleMs = elapsedMs;
-                            double rawPeak = SampleSystemAudioPeak();
-                            smoothAudioPeak = rawPeak > smoothAudioPeak
-                                ? smoothAudioPeak + (rawPeak - smoothAudioPeak) * 0.65
-                                : smoothAudioPeak * 0.85;
-                        }
-
-                        var ladder = BuildContinuousAnodeLadder(RgbBaseColor, RgbSecondaryColor);
-                        double level = Math.Clamp(smoothAudioPeak * 1.4, 0.0, 1.0);
-                        int idx = Math.Clamp((int)Math.Floor(level * ladder.Length), 0, ladder.Length - 1);
-                        stateA = level > 0.82 ? (1, 0, 0) : ladder[idx];
-
-                        LivePreviewColor = MapBitTo24(stateA.R, stateA.G, stateA.B);
-                        LiveTelemetryLevel = level;
-                        LiveTelemetryText = $"Ses & Patlama Şiddeti: %{(int)Math.Round(level * 100)}";
-                        break;
-                    }
+                    var c24A = MapBitTo24(stateA.R, stateA.G, stateA.B);
+                    var c24B = MapBitTo24(stateB.R, stateB.G, stateB.B);
+                    LivePreviewColor = (
+                        (byte)(c24A.R + (c24B.R - c24A.R) * frac),
+                        (byte)(c24A.G + (c24B.G - c24A.G) * frac),
+                        (byte)(c24A.B + (c24B.B - c24A.B) * frac)
+                    );
+                    LiveTelemetryLevel = pos / rainbowWheel.Length;
+                    string colorName = G300sProtocol.GetLedColorName(stateA.R, stateA.G, stateA.B);
+                    LiveTelemetryText = $"Gökkuşağı Döngüsü · {colorName}";
+                    break;
                 }
 
-                // Send to physical hardware without flicker
-                if (isBridging && _device.IsConnected)
+                case "color_transition":
+                case "breathing":
                 {
-                    // Short 18ms burst of 166.7 Hz 1:1 USB-clocked alternating bridge (where shared LED stays 100% ON)
-                    for (int k = 0; k < 6 && !token.IsCancellationRequested; k++)
-                    {
-                        var c = (k & 1) == 0 ? stateA : stateB;
-                        int m = (c.R != 0 ? 1 : 0) | ((c.G != 0 ? 1 : 0) << 1) | ((c.B != 0 ? 1 : 0) << 2);
-                        try
-                        {
-                            _device.SetLiveLed(c.R, c.G, c.B);
-                            lastSentMask = m;
-                        }
-                        catch
-                        {
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    int mask = (stateA.R != 0 ? 1 : 0) | ((stateA.G != 0 ? 1 : 0) << 1) | ((stateA.B != 0 ? 1 : 0) << 2);
-                    if (_device.IsConnected && mask != lastSentMask)
-                    {
-                        try
-                        {
-                            _device.SetLiveLed(stateA.R, stateA.G, stateA.B);
-                            lastSentMask = mask;
-                        }
-                        catch
-                        {
-                            // Ignore transient HID error
-                        }
-                    }
-                    Thread.Sleep(18);
-                }
-            }
-        }
-        finally
-        {
-            Win32.timeEndPeriod(1);
-        }
-    }
+                    var ladder = BuildContinuousAnodeLadder(RgbBaseColor, RgbSecondaryColor);
+                    double periodSec = Math.Max(1.2, RgbSpeedMs / 1000.0 * 1.6);
+                    double wave = (1.0 - Math.Cos(2.0 * Math.PI * elapsedSec / periodSec)) * 0.5;
 
-    /// <summary>
-    /// Maps normalized linear RGB (0..1) to the closest 3-bit hardware color with Schmitt-trigger hysteresis
-    /// so the physical LED never flickers when the game scene sits near a color threshold.
-    /// </summary>
-    private static (int R, int G, int B) ClassifyRgbToHardwareColor(
-        double r,
-        double g,
-        double b,
-        (int R, int G, int B) current)
-    {
-        double max = Math.Max(r, Math.Max(g, b));
-        double min = Math.Min(r, Math.Min(g, b));
-        double sat = max > 0.05 ? (max - min) / max : 0.0;
+                    double scaled = wave * (ladder.Length - 1);
+                    int idxA = Math.Clamp((int)Math.Floor(scaled + 0.5), 0, ladder.Length - 1);
+                    int idxPrev = Math.Clamp((int)Math.Floor(scaled), 0, ladder.Length - 1);
+                    int idxNext = Math.Clamp(idxPrev + 1, 0, ladder.Length - 1);
+                    double frac = scaled - idxPrev;
 
-        if (max < 0.12) return (0, 0, 1); // Very dark scene -> Deep Cobalt ambient
-        if (sat < 0.22 && max > 0.72) return (1, 1, 1); // Bright low-saturation scene -> Pure White
-
-        // Normalize by max channel and apply hysteresis threshold around 0.58
-        double nr = r / max;
-        double ng = g / max;
-        double nb = b / max;
-
-        double threshR = current.R != 0 ? 0.48 : 0.62;
-        double threshG = current.G != 0 ? 0.48 : 0.62;
-        double threshB = current.B != 0 ? 0.48 : 0.62;
-
-        int bitR = nr >= threshR ? 1 : 0;
-        int bitG = ng >= threshG ? 1 : 0;
-        int bitB = nb >= threshB ? 1 : 0;
-
-        if (bitR == 0 && bitG == 0 && bitB == 0)
-        {
-            if (nr >= ng && nr >= nb) bitR = 1;
-            else if (ng >= nr && ng >= nb) bitG = 1;
-            else bitB = 1;
-        }
-
-        return (bitR, bitG, bitB);
-    }
-
-    private sealed record ScreenZoneSample(
-        double R,
-        double G,
-        double B,
-        double DamageVignette,
-        double WhiteoutLevel,
-        (byte R, byte G, byte B)[] Palette);
-
-    private static ScreenZoneSample SampleScreenZone(string zoneMode)
-    {
-        const int sampleW = 24;
-        const int sampleH = 24;
-
-        IntPtr hdcScreen = Win32.GetDC(IntPtr.Zero);
-        if (hdcScreen == IntPtr.Zero)
-        {
-            return new ScreenZoneSample(0.0, 0.8, 1.0, 0.0, 0.0, [(0, 212, 255), (41, 121, 255), (224, 64, 251)]);
-        }
-
-        IntPtr hdcMem = Win32.CreateCompatibleDC(hdcScreen);
-        IntPtr hBitmap = Win32.CreateCompatibleBitmap(hdcScreen, sampleW, sampleH);
-        IntPtr hOld = Win32.SelectObject(hdcMem, hBitmap);
-
-        try
-        {
-            int scrW = Win32.GetSystemMetrics(0);
-            int scrH = Win32.GetSystemMetrics(1);
-
-            int srcX = 0, srcY = 0, srcW = scrW, srcH = scrH;
-            if (zoneMode == "crosshair")
-            {
-                srcW = (int)(scrW * 0.36);
-                srcH = (int)(scrH * 0.36);
-                srcX = (scrW - srcW) / 2;
-                srcY = (scrH - srcH) / 2;
-            }
-            else if (zoneMode == "hud")
-            {
-                srcW = (int)(scrW * 0.70);
-                srcH = (int)(scrH * 0.24);
-                srcX = (scrW - srcW) / 2;
-                srcY = scrH - srcH;
-            }
-
-            Win32.SetStretchBltMode(hdcMem, 3);
-            Win32.StretchBlt(hdcMem, 0, 0, sampleW, sampleH, hdcScreen, srcX, srcY, srcW, srcH, 0x00CC0020);
-
-            var bmi = new Win32.BITMAPINFOHEADER
-            {
-                biSize = (uint)Marshal.SizeOf<Win32.BITMAPINFOHEADER>(),
-                biWidth = sampleW,
-                biHeight = -sampleH,
-                biPlanes = 1,
-                biBitCount = 32,
-                biCompression = 0
-            };
-
-            byte[] pixels = new byte[sampleW * sampleH * 4];
-            Win32.GetDIBits(hdcMem, hBitmap, 0, sampleH, pixels, ref bmi, 0);
-
-            double sumR = 0.0, sumG = 0.0, sumB = 0.0, weightSum = 0.001;
-            double edgeRedSum = 0.0;
-            double whiteSum = 0.0;
-            int edgeCount = 0;
-
-            // 3 regional buckets (Left/Top, Center, Right/Bottom) for live palette bar
-            double[] bucketR = new double[3];
-            double[] bucketG = new double[3];
-            double[] bucketB = new double[3];
-            double[] bucketW = [0.001, 0.001, 0.001];
-
-            for (int y = 0; y < sampleH; y++)
-            {
-                for (int x = 0; x < sampleW; x++)
-                {
-                    if (zoneMode == "cinema" && x > 4 && x < sampleW - 5 && y > 4 && y < sampleH - 5)
-                        continue;
-
-                    int idx = (y * sampleW + x) * 4;
-                    double b = pixels[idx + 0] / 255.0;
-                    double g = pixels[idx + 1] / 255.0;
-                    double r = pixels[idx + 2] / 255.0;
-
-                    double max = Math.Max(r, Math.Max(g, b));
-                    double min = Math.Min(r, Math.Min(g, b));
-                    double sat = max > 0.05 ? (max - min) / max : 0.0;
-
-                    double weight = 0.2 + sat * sat * 2.8 + max * 0.5;
-                    sumR += r * weight;
-                    sumG += g * weight;
-                    sumB += b * weight;
-                    weightSum += weight;
-
-                    int bIdx = (x * 3) / sampleW;
-                    bucketR[bIdx] += r * weight;
-                    bucketG[bIdx] += g * weight;
-                    bucketB[bIdx] += b * weight;
-                    bucketW[bIdx] += weight;
-
-                    if (min > 0.85) whiteSum += 1.0;
-
-                    if (x <= 2 || x >= sampleW - 3 || y <= 2 || y >= sampleH - 3)
-                    {
-                        edgeCount++;
-                        if (r > 0.45 && r > (g + b) * 1.35)
-                        {
-                            edgeRedSum += (r - Math.Max(g, b));
-                        }
-                    }
+                    stateA = ladder[idxA];
+                    var c24A = MapBitTo24(ladder[idxPrev].R, ladder[idxPrev].G, ladder[idxPrev].B);
+                    var c24B = MapBitTo24(ladder[idxNext].R, ladder[idxNext].G, ladder[idxNext].B);
+                    LivePreviewColor = (
+                        (byte)(c24A.R + (c24B.R - c24A.R) * frac),
+                        (byte)(c24A.G + (c24B.G - c24A.G) * frac),
+                        (byte)(c24A.B + (c24B.B - c24A.B) * frac)
+                    );
+                    LiveTelemetryLevel = 0.15 + wave * 0.85;
+                    string colorName = G300sProtocol.GetLedColorName(stateA.R, stateA.G, stateA.B);
+                    LiveTelemetryText = $"Renk Geçişi · {colorName}";
+                    break;
                 }
             }
 
-            double avgR = sumR / weightSum;
-            double avgG = sumG / weightSum;
-            double avgB = sumB / weightSum;
-
-            double maxC = Math.Max(avgR, Math.Max(avgG, avgB));
-            if (maxC > 0.025)
+            int mask = (stateA.R != 0 ? 1 : 0) | ((stateA.G != 0 ? 1 : 0) << 1) | ((stateA.B != 0 ? 1 : 0) << 2);
+            if (_device.IsConnected && mask != lastSentMask)
             {
-                avgR /= maxC;
-                avgG /= maxC;
-                avgB /= maxC;
+                try
+                {
+                    _device.SetLiveLed(stateA.R, stateA.G, stateA.B);
+                    lastSentMask = mask;
+                }
+                catch
+                {
+                    // Ignore transient HID error
+                }
             }
 
-            var palette = new (byte R, byte G, byte B)[3];
-            for (int i = 0; i < 3; i++)
-            {
-                double pr = bucketR[i] / bucketW[i];
-                double pg = bucketG[i] / bucketW[i];
-                double pb = bucketB[i] / bucketW[i];
-                double pm = Math.Max(pr, Math.Max(pg, pb));
-                if (pm > 0.025) { pr /= pm; pg /= pm; pb /= pm; }
-                palette[i] = (
-                    (byte)Math.Clamp((int)(pr * 255), 40, 255),
-                    (byte)Math.Clamp((int)(pg * 255), 40, 255),
-                    (byte)Math.Clamp((int)(pb * 255), 48, 255)
-                );
-            }
-
-            double damageRatio = edgeCount > 0 ? Math.Clamp(edgeRedSum / (edgeCount * 0.26), 0.0, 1.0) : 0.0;
-            double whiteRatio = Math.Clamp(whiteSum / (sampleW * sampleH), 0.0, 1.0);
-            return new ScreenZoneSample(avgR, avgG, avgB, damageRatio, whiteRatio, palette);
-        }
-        catch
-        {
-            return new ScreenZoneSample(0.0, 0.8, 1.0, 0.0, 0.0, [(0, 212, 255), (41, 121, 255), (224, 64, 251)]);
-        }
-        finally
-        {
-            Win32.SelectObject(hdcMem, hOld);
-            Win32.DeleteObject(hBitmap);
-            Win32.DeleteDC(hdcMem);
-            Win32.ReleaseDC(IntPtr.Zero, hdcScreen);
-        }
-    }
-
-    private static double SampleSystemAudioPeak()
-    {
-        try
-        {
-            return CoreAudioMeter.GetMasterPeak();
-        }
-        catch
-        {
-            return 0.0;
+            Thread.Sleep(25);
         }
     }
 

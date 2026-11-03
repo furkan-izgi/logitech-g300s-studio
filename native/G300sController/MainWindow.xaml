@@ -515,7 +515,7 @@
                                 <StackPanel Grid.Row="0">
                                     <TextBlock Text="Canlı Önizleme"
                                                FontFamily="{StaticResource FontDisplay}" FontSize="16" FontWeight="SemiBold" />
-                                    <TextBlock Text="Sabit anotlu titremesiz geçiş ve canlı oyun senkronizasyonu"
+                                    <TextBlock Text="Seçili aydınlatma modunun ve geçişlerinin gerçek zamanlı görünümü"
                                                TextWrapping="Wrap"
                                                FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                                 </StackPanel>
@@ -539,7 +539,7 @@
                                     </Canvas>
                                 </Viewbox>
 
-                                <!-- Live Game & Scene Palette Telemetry Box -->
+                                <!-- Live Color & Cycle Telemetry Box -->
                                 <Border Grid.Row="2" Background="{StaticResource BrushBgSurface2}"
                                         CornerRadius="10" Padding="16,14">
                                     <StackPanel>
@@ -555,13 +555,6 @@
                                                        HorizontalAlignment="Right" VerticalAlignment="Center" />
                                         </Grid>
 
-                                        <!-- 3-Zone Scene Palette Strip (shows live dominant game colors) -->
-                                        <UniformGrid Columns="3" Height="6" Margin="0,0,0,8">
-                                            <Border x:Name="PaletteSwatch0" CornerRadius="3,0,0,3" Background="#00D4FF" Margin="0,0,2,0" />
-                                            <Border x:Name="PaletteSwatch1" Background="#2979FF" Margin="1,0,1,0" />
-                                            <Border x:Name="PaletteSwatch2" CornerRadius="0,3,3,0" Background="#E040FB" Margin="2,0,0,0" />
-                                        </UniformGrid>
-
                                         <Border Height="4" CornerRadius="2" Background="{StaticResource BrushBgCanvas}" ClipToBounds="True">
                                             <Border x:Name="LiveTelemetryProgressFill" HorizontalAlignment="Left" Width="200"
                                                     CornerRadius="2" Background="{StaticResource BrushActiveWhite}" />
@@ -571,7 +564,7 @@
                             </Grid>
                         </Border>
 
-                        <!-- Right: Clean Lighting Mode List & Comprehensive Game/Ambient Settings -->
+                        <!-- Right: Clean Lighting Mode List & Color Transition Settings -->
                         <Border Grid.Column="1" Style="{StaticResource StudioCardBorder}" Padding="24,22">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -581,46 +574,18 @@
                                 </Grid.RowDefinitions>
 
                                 <StackPanel Grid.Row="0" Margin="0,0,0,16">
-                                    <TextBlock Text="Aydınlatma &amp; Oyun Senkronizasyonu"
+                                    <TextBlock Text="Aydınlatma &amp; Renk Geçişleri"
                                                FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" />
-                                    <TextBlock Text="Çalışma modunu, ekran örnekleme bölgesini ve geçiş davranışını yapılandırın"
+                                    <TextBlock Text="Sabit profil rengi, gökkuşağı döngüsü veya renk geçişi ayarlarını yapılandırın"
                                                FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                                 </StackPanel>
 
-                                <!-- Clean Borderless List of 6 Modes (No AI-slop cards!) -->
+                                <!-- Clean Borderless List of 3 Modes -->
                                 <StackPanel x:Name="LightingModesList" Grid.Row="1" />
 
                                 <!-- Bottom Configuration Controls -->
                                 <Border Grid.Row="2" Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="18,16" Margin="0,12,0,0">
                                     <StackPanel>
-                                        <!-- Screen Ambilight Zone Selector + Smooth Bridge Toggle -->
-                                        <Grid Margin="0,0,0,16">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <TextBlock Text="Ekran Bölgesi:" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                                <Border Background="{StaticResource BrushBgSurface1}" CornerRadius="8" Padding="2">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <Button x:Name="ZoneBtnFull" Content="Tam Ekran" Tag="full" Click="AmbilightZone_Click" Style="{StaticResource ToolbarActionButton}" Height="26" Padding="10,0" BorderThickness="0" Margin="0,0,2,0" />
-                                                        <Button x:Name="ZoneBtnCrosshair" Content="Nişangah" Tag="crosshair" Click="AmbilightZone_Click" Style="{StaticResource ToolbarActionButton}" Height="26" Padding="10,0" BorderThickness="0" Margin="0,0,2,0" />
-                                                        <Button x:Name="ZoneBtnHud" Content="Alt HUD" Tag="hud" Click="AmbilightZone_Click" Style="{StaticResource ToolbarActionButton}" Height="26" Padding="10,0" BorderThickness="0" Margin="0,0,2,0" />
-                                                        <Button x:Name="ZoneBtnCinema" Content="Kenarlar" Tag="cinema" Click="AmbilightZone_Click" Style="{StaticResource ToolbarActionButton}" Height="26" Padding="10,0" BorderThickness="0" />
-                                                    </StackPanel>
-                                                </Border>
-                                            </StackPanel>
-
-                                            <CheckBox x:Name="SmoothBridgeToggle" Grid.Column="1"
-                                                      Style="{StaticResource PillToggleSwitch}"
-                                                      Content="Ara Ton Köprüsü"
-                                                      IsChecked="True"
-                                                      Checked="SmoothBridgeToggle_Changed"
-                                                      Unchecked="SmoothBridgeToggle_Changed"
-                                                      ToolTip="Kapalıyken %100 saf donanım renk adımları (0 PWM) kullanır; açıkken ortak anotlu ara geçiş uygular." />
-                                        </Grid>
-
                                         <!-- Primary & Secondary Color Swatches -->
                                         <Grid Margin="0,0,0,14">
                                             <Grid.ColumnDefinitions>
