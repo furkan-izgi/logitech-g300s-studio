@@ -81,6 +81,7 @@ public partial class MainWindow : Window
     private readonly HostAutomationService _automation;
     private readonly SystemTrayService _tray = new();
     private readonly OsdNotificationService _osd = new();
+    private readonly CrosshairOverlayService _crosshair = new();
     private readonly DispatcherTimer _livePreviewTimer;
     private CancellationTokenSource? _rateTestCts;
     private CancellationTokenSource? _hotplugDebounceCts;
@@ -130,8 +131,10 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        _suppressUiEvents = true;
         _automation = new HostAutomationService(_device);
         InitializeComponent();
+        _suppressUiEvents = false;
 
         _device.HardwareEventReceived += OnHardwareEventReceived;
         _automation.AutoProfileSwitched += OnAutoProfileSwitched;
@@ -192,6 +195,10 @@ public partial class MainWindow : Window
         _tray.OsdToggleRequested += () => Dispatcher.Invoke(() =>
         {
             OsdToggle.IsChecked = !(OsdToggle.IsChecked == true);
+        });
+        _tray.CrosshairToggleRequested += () => Dispatcher.Invoke(() =>
+        {
+            CrosshairToggle.IsChecked = !(CrosshairToggle.IsChecked == true);
         });
         _tray.DeviceChangeDetected += OnUsbDeviceChangeDetected;
         _tray.ExitRequested += () =>
@@ -1351,7 +1358,10 @@ public partial class MainWindow : Window
             prof.DpiStages,
             prof.PollingRateHz,
             _automation.ActiveRgbEffect,
-            _automation.OsdNotificationsEnabled);
+            _automation.OsdNotificationsEnabled,
+            _crosshair.IsEnabled);
+
+        RefreshHexInspectorUi(prof);
 
         if (_selectedButtonIndex >= 0)
         {
@@ -1362,6 +1372,94 @@ public partial class MainWindow : Window
             RenderDpiGraph();
         }
         _suppressUiEvents = false;
+    }
+
+    private void RefreshHexInspectorUi(G300sProfile prof)
+    {
+        if (HexInspectorTitleText is null) return;
+        byte[] raw = prof.ToRawReport();
+        if (raw.Length < 35) return;
+
+        HexInspectorTitleText.Text = $"Donanım & EEPROM Hex Müfettişi (0x{raw[0]:X2} · Profil {_activeProfileIndex + 1} · 35 Bayt)";
+
+        var hdrSb = new StringBuilder("HDR [00..07]: ");
+        for (int i = 0; i < 8; i++)
+        {
+            hdrSb.Append($"{raw[i]:X2} ");
+        }
+        hdrSb.Append($"(LED:{prof.ColorName}, {prof.PollingRateHz}Hz, Def:K{prof.DefaultDpiStage + 1})");
+        HexDumpHeaderBytesText.Text = hdrSb.ToString();
+
+        var btnSb = new StringBuilder("BTN [08..34]: ");
+        for (int b = 0; b < 9; b++)
+        {
+            int off = 8 + b * 3;
+            btnSb.Append($"G{b + 1}:{raw[off]:X2} {raw[off + 1]:X2} {raw[off + 2]:X2}");
+            if (b < 8) btnSb.Append(" | ");
+        }
+        HexDumpButtonBytesText.Text = btnSb.ToString();
+    }
+
+    private void CopyHexDump_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < 3; i++)
+            {
+                byte[] raw = _profiles[i].ToRawReport();
+                string hex = string.Join(" ", raw.Select(b => $"{b:X2}"));
+                sb.AppendLine($"Profil {i + 1} (0x{raw[0]:X2}): {hex}");
+            }
+            Clipboard.SetText(sb.ToString().TrimEnd());
+            StatusFooterText.Text = "Tüm 3 profilin (0xF3–0xF5) 35-bayt EEPROM hex dökümü panoya kopyalandı.";
+            _osd.ShowNotification("EEPROM Hex Kopyalandı", "0xF3, 0xF4, 0xF5 (3×35 Bayt) panoda", "#00D4FF");
+        }
+        catch (Exception ex)
+        {
+            StatusFooterText.Text = $"Pano kopyalama hatası: {ex.Message}";
+        }
+    }
+
+    private void CrosshairToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        UpdateCrosshairState();
+    }
+
+    private void CrosshairStyleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        UpdateCrosshairState();
+    }
+
+    private void CrosshairColorCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        UpdateCrosshairState();
+    }
+
+    private void UpdateCrosshairState()
+    {
+        if (_suppressUiEvents || CrosshairToggle is null || _crosshair is null || _profiles is null || _tray is null || _automation is null || StatusFooterText is null) return;
+        bool visible = CrosshairToggle.IsChecked == true;
+        string style = (CrosshairStyleCombo?.SelectedItem as ComboBoxItem)?.Tag as string ?? "cross";
+        string colorHex = (CrosshairColorCombo?.SelectedItem as ComboBoxItem)?.Tag as string ?? "#00E676";
+
+        _crosshair.Configure(visible, style, colorHex);
+        var prof = _profiles[_activeProfileIndex];
+        _tray.UpdateTrayState(
+            _activeProfileIndex,
+            _activeDpiStageIndex,
+            prof.DpiStages,
+            prof.PollingRateHz,
+            _automation.ActiveRgbEffect,
+            _automation.OsdNotificationsEnabled,
+            _crosshair.IsEnabled);
+
+        StatusFooterText.Text = visible
+            ? "Oyun içi ekran nişangahı (Crosshair) etkinleştirildi."
+            : "Oyun içi ekran nişangahı kapatıldı.";
     }
 
     private void DeselectButton()
@@ -2550,6 +2648,7 @@ public partial class MainWindow : Window
         _rateTestCts?.Cancel();
         _rateTestCts?.Dispose();
         _livePreviewTimer.Stop();
+        _crosshair.Dispose();
         _osd.Dispose();
         _tray.Dispose();
         _automation.Dispose();

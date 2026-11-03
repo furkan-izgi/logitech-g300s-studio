@@ -491,29 +491,54 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <!-- Header + Live Polling Rate Tester + Polling Rate Segmented Pill -->
+                        <!-- Header + Crosshair Overlay + Live Polling Rate Tester + Polling Rate Segmented Pill -->
                         <Grid Grid.Row="0" Margin="0,0,0,20">
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="Sensör Hassasiyeti"
                                            FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold" />
-                                <TextBlock Text="4 yerleşik DPI kademesini grafik üzerinden sürükleyerek veya alt kademelerden ayarlayın"
-                                           FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
+                                <TextBlock Text="4 yerleşik DPI kademesini grafikten veya alt kartlardan ayarlayın"
+                                           FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <!-- Click-Through In-Game Crosshair Overlay -->
+                                <Border Background="{StaticResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                        CornerRadius="9" Padding="10,4" Margin="0,0,10,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <CheckBox x:Name="CrosshairToggle" Style="{StaticResource PillToggleSwitch}"
+                                                  Content="Nişangah"
+                                                  Checked="CrosshairToggle_Changed" Unchecked="CrosshairToggle_Changed"
+                                                  VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <ComboBox x:Name="CrosshairStyleCombo" Width="98" Height="24" FontSize="11.5" Margin="0,0,6,0"
+                                                  SelectionChanged="CrosshairStyleCombo_SelectionChanged">
+                                            <ComboBoxItem Content="Taktik Artı" Tag="cross" IsSelected="True" />
+                                            <ComboBoxItem Content="Merkez Nokta" Tag="dot" />
+                                            <ComboBoxItem Content="Daire &amp; Nokta" Tag="circle" />
+                                            <ComboBoxItem Content="T-Nişangah" Tag="tcross" />
+                                        </ComboBox>
+                                        <ComboBox x:Name="CrosshairColorCombo" Width="82" Height="24" FontSize="11.5"
+                                                  SelectionChanged="CrosshairColorCombo_SelectionChanged">
+                                            <ComboBoxItem Content="Yeşil" Tag="#00E676" IsSelected="True" />
+                                            <ComboBoxItem Content="Turkuaz" Tag="#00D4FF" />
+                                            <ComboBoxItem Content="Kırmızı" Tag="#FF2D46" />
+                                            <ComboBoxItem Content="Sarı" Tag="#FFC400" />
+                                            <ComboBoxItem Content="Beyaz" Tag="#FAFAFA" />
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- Live Polling Rate & Jitter Tester -->
                                 <Border Background="{StaticResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
-                                        CornerRadius="9" Padding="12,4" Margin="0,0,16,0" VerticalAlignment="Center">
+                                        CornerRadius="9" Padding="10,4" Margin="0,0,10,0" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock x:Name="LiveRateReadoutText" Text="Ölçüm: Hazır"
                                                    FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
-                                                   VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                   VerticalAlignment="Center" Margin="0,0,8,0" />
                                         <Button x:Name="ToggleRateTestBtn" Content="Hz Testi Başlat" Click="ToggleRateTestBtn_Click"
                                                 Style="{StaticResource ToolbarActionButton}" Height="24" Padding="10,0" FontSize="11.5" />
                                     </StackPanel>
                                 </Border>
 
-                                <TextBlock Text="Bildirim Hızı" FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" Margin="0,0,12,0" />
                                 <Border Background="{StaticResource BrushBgSurface1}" CornerRadius="9" Padding="3">
                                     <StackPanel Orientation="Horizontal">
                                         <Button x:Name="RateBtn125" Content="125 Hz" Tag="125" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="28" BorderThickness="0" Margin="0,0,2,0" />
@@ -706,13 +731,14 @@
                             </Grid>
                         </Border>
 
-                        <!-- Right: Foreground App Auto-Profile Switcher -->
+                        <!-- Right: Foreground App Auto-Profile Switcher + EEPROM Hex Inspector -->
                         <Border Grid.Column="1" Style="{StaticResource StudioCardBorder}" Margin="10,0,0,0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
@@ -765,7 +791,7 @@
                                     <StackPanel x:Name="AppRulesPanel" />
                                 </ScrollViewer>
 
-                                <Grid Grid.Row="3" Margin="0,14,0,0">
+                                <Grid Grid.Row="3" Margin="0,12,0,12">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="120" />
@@ -783,6 +809,35 @@
                                         <TextBlock Text="+ Ekle" />
                                     </Button>
                                 </Grid>
+
+                                <!-- Live 35-Byte EEPROM & HID Protocol Hex Inspector -->
+                                <Border Grid.Row="4" Background="{StaticResource BrushBgSurface2}"
+                                        BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                        CornerRadius="10" Padding="14,10">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock x:Name="HexInspectorTitleText"
+                                                           Text="Donanım &amp; EEPROM Hex Müfettişi (0xF3 · 35 Bayt)"
+                                                           FontFamily="{StaticResource FontDisplay}" FontSize="12.5" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource BrushTextPrimary}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <Button Click="CopyHexDump_Click" Style="{StaticResource ToolbarActionButton}"
+                                                    Height="24" Padding="10,0" FontSize="11" HorizontalAlignment="Right"
+                                                    ToolTip="Tüm 3 profilin (0xF3–0xF5) ham 35-bayt EEPROM hex dökümünü panoya kopyalar">
+                                                <TextBlock Text="Hex Kopyala" />
+                                            </Button>
+                                        </Grid>
+                                        <TextBlock x:Name="HexDumpHeaderBytesText"
+                                                   Text="HDR [00..07]: F3 05 00 84 08 0C 14 40"
+                                                   FontFamily="Consolas" FontSize="11"
+                                                   Foreground="{StaticResource BrushAccentCyan}" Margin="0,0,0,3" />
+                                        <TextBlock x:Name="HexDumpButtonBytesText"
+                                                   Text="BTN [08..34]: 01 01 00 | 01 02 00 | 01 04 00 | 01 08 00 | 01 10 00 | 0B 00 00 | 0A 00 00 | 0D 00 00 | 0C 00 00"
+                                                   FontFamily="Consolas" FontSize="10.5" TextWrapping="Wrap"
+                                                   Foreground="{StaticResource BrushTextSecondary}" />
+                                    </StackPanel>
+                                </Border>
                             </Grid>
                         </Border>
                     </Grid>
