@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
@@ -40,32 +42,50 @@ public partial class MainWindow : Window
 
     private static readonly ButtonVisualMeta[] ButtonMetaList =
     [
-        new(0, "G1", "Primary Left Click",       59,  33, 323, 141,   8, 232, true),
-        new(1, "G2", "Primary Right Click",     213,   6, 441,  78, 842, 142, false),
-        new(2, "G3", "Middle Wheel Click",      241,  39, 313,  78,   8,  34, true),
-        new(3, "G4", "Left Index Rear (G4)",    140, 117, 216, 161,   8, 166, true),
-        new(4, "G5", "Left Index Front (G5)",    66,  97, 128, 134,   8,  98, true),
-        new(5, "G6", "Right Ring Rear (G6)",    425,  14, 498,  53, 842,  80, false),
-        new(6, "G7", "Right Ring Front (G7)",   344, -10, 405,  30, 842,  18, false),
-        new(7, "G8", "Center Rear / Mode (G8)", 390,  59, 452, 111, 842, 266, false),
-        new(8, "G9", "Center Front / DPI (G9)", 353,  59, 406,  97, 842, 204, false)
+        new(0, "G1", "Sol Tık (G1)",             59,  33, 323, 141,  12, 240, true),
+        new(1, "G2", "Sağ Tık (G2)",            213,   6, 441,  78, 836, 146, false),
+        new(2, "G3", "Orta Tekerlek (G3)",      241,  39, 313,  78,  12,  36, true),
+        new(3, "G4", "Sol Arka (G4)",           140, 117, 216, 161,  12, 172, true),
+        new(4, "G5", "Sol Ön (G5)",              66,  97, 128, 134,  12, 104, true),
+        new(5, "G6", "Sağ Arka (G6)",           425,  14, 498,  53, 836,  82, false),
+        new(6, "G7", "Sağ Ön (G7)",             344, -10, 405,  30, 836,  18, false),
+        new(7, "G8", "Orta Arka / Mod (G8)",    390,  59, 452, 111, 836, 274, false),
+        new(8, "G9", "Orta Ön / DPI (G9)",      353,  59, 406,  97, 836, 210, false)
     ];
 
     private static readonly (string Name, int R, int G, int B, string Hex)[] PaletteSwatches =
     [
-        ("Stealth Off",   0, 0, 0, "#262C36"),
-        ("Crimson Red",   1, 0, 0, "#FF334B"),
-        ("Solar Amber",   1, 1, 0, "#FFB800"),
-        ("Venom Green",   0, 1, 0, "#00E676"),
+        ("Kapalı",        0, 0, 0, "#242A36"),
+        ("Kırmızı",       1, 0, 0, "#FF2D46"),
+        ("Kehribar Sarı", 1, 1, 0, "#FFC400"),
+        ("Zümrüt Yeşil",  0, 1, 0, "#00E676"),
         ("Logitech Cyan", 0, 1, 1, "#00D4FF"),
-        ("Cobalt Blue",   0, 0, 1, "#2979FF"),
+        ("Kobalt Mavi",   0, 0, 1, "#2979FF"),
         ("Hyper Magenta", 1, 0, 1, "#E040FB"),
-        ("Pure White",    1, 1, 1, "#F0F4F8")
+        ("Saf Beyaz",     1, 1, 1, "#F4F8FF")
+    ];
+
+    private sealed record LightingModeMeta(
+        string Key,
+        string IconGlyph,
+        string Title,
+        string Description,
+        string BadgeText);
+
+    private static readonly LightingModeMeta[] LightingModes =
+    [
+        new("none",           "\uE793", "Sabit Donanım Rengi",            "Yerleşik profil rengini 0% CPU kullanımıyla doğrudan donanımda tutar.", "0% CPU"),
+        new("breathing",      "\uE945", "Yumuşak Nefes Alma (ΔΣ PWM)",    "333 Hz ΔΣ modülasyonu ile kademesiz parlaklık azalıp artma ve çift renk geçişi.", "Yumuşak Geçiş"),
+        new("spectrum",       "\uE771", "Akıcı Spektrum Dalgası",         "Kesintisiz 360° RGB gökkuşağı ara renk sentezi ve yumuşak dalga geçişi.", "24-Bit ΔΣ"),
+        new("ambilight",      "\uE7F4", "Oyun & Ekran Ana Rengi",         "Oyundaki sahne ve ortam renklerini gerçek zamanlı yakalayıp fareye yansıtır.", "Ambilight"),
+        new("game_combat",    "\uE7C8", "Oyun Durumu: Çatışma & Can",     "Ateş ettikçe namlu ısınması (Mavi→Sarı→Kırmızı) ve düşük can kalp atışı uyarısı.", "Tepkisel"),
+        new("audio_reactive", "\uE767", "Oyun Sesi & Patlama Tepkisi",    "Silah sesleri, patlamalar ve müzik baslarına göre anlık parlaklık darbesi.", "CoreAudio")
     ];
 
     private readonly G300sHidDevice _device = new();
     private readonly HostAutomationService _automation;
     private readonly SystemTrayService _tray = new();
+    private readonly DispatcherTimer _livePreviewTimer;
 
     private readonly G300sProfile[] _profiles =
     [
@@ -85,15 +105,24 @@ public partial class MainWindow : Window
     private readonly Ellipse[] _anchorDots = new Ellipse[9];
 
     private readonly Border[] _ledSwatchBorders = new Border[8];
+    private readonly Border[] _secondarySwatchBorders = new Border[8];
+    private readonly Border[] _lightingModeBorders = new Border[6];
+
     private readonly Slider[] _dpiSliders = new Slider[4];
     private readonly TextBlock[] _dpiValueLabels = new TextBlock[4];
     private readonly Button[] _dpiActivateButtons = new Button[4];
     private readonly Button[] _dpiDefaultButtons = new Button[4];
 
+    private int _activeViewIndex;
+    private int _activeDrawerCategory;
     private int _activeProfileIndex;
     private int _activeDpiStageIndex = 1;
     private int _selectedButtonIndex;
     private int _hoveredButtonIndex = -1;
+    private int _draggingDpiStageIndex = -1;
+    private (int R, int G, int B) _secondaryBreathColor = (0, 0, 0);
+    private (byte R, byte G, byte B) _lastRenderedSwooshColor = (0, 0, 0);
+
     private bool _isRecordingKey;
     private bool _suppressUiEvents;
     private bool _hasUnsavedChanges;
@@ -101,16 +130,35 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        _automation = new HostAutomationService(_device);
         InitializeComponent();
 
-        _automation = new HostAutomationService(_device);
         _device.HardwareEventReceived += OnHardwareEventReceived;
         _automation.AutoProfileSwitched += OnAutoProfileSwitched;
         _automation.MacroKeyTriggered += OnMacroKeyTriggered;
 
+        _livePreviewTimer = new DispatcherTimer(DispatcherPriority.Render)
+        {
+            Interval = TimeSpan.FromMilliseconds(38)
+        };
+        _livePreviewTimer.Tick += LivePreviewTimer_Tick;
+
+        SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
     }
+
+    private void MainWindow_SourceInitialized(object? sender, EventArgs e)
+    {
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        int dark = 1;
+        DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int)); // DWMWA_USE_IMMERSIVE_DARK_MODE
+        int round = 2; // DWMWCP_ROUND
+        DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int)); // DWMWA_WINDOW_CORNER_PREFERENCE
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
@@ -118,7 +166,7 @@ public partial class MainWindow : Window
         LoadVisualAssets(assetsDir);
         BuildOverlayCallouts();
         BuildDpiStagesUi();
-        BuildLedSwatchesUi();
+        BuildLightingStudioUi();
         BuildDaemonWorkspaceUi();
 
         string iconPath = Path.Combine(assetsDir, "g300s.ico");
@@ -133,24 +181,37 @@ public partial class MainWindow : Window
 
         _automation.StartHookAndWatcher();
         ConnectAndReadHardware();
-        UpdateWorkspaceTabVisuals(0);
+        SwitchMainView(0);
+        SwitchDrawerCategory(0);
+        _livePreviewTimer.Start();
 
-        // Support automated visual verification screenshot if requested via CLI
+        // Automated multi-view visual verification screenshot mode
         string[] args = Environment.GetCommandLineArgs();
         int ssIdx = Array.IndexOf(args, "--verify-screenshot");
         if (ssIdx >= 0 && ssIdx + 1 < args.Length)
         {
             string outPath = args[ssIdx + 1];
-            await Task.Delay(650);
+            string dir = Path.GetDirectoryName(outPath) ?? "";
+            string baseName = Path.GetFileNameWithoutExtension(outPath);
+            string ext = Path.GetExtension(outPath);
+
+            await Task.Delay(550);
             CaptureWindowScreenshot(outPath);
 
-            UpdateWorkspaceTabVisuals(1);
-            await Task.Delay(300);
-            string ext = Path.GetExtension(outPath);
-            string tab2Path = Path.Combine(
-                Path.GetDirectoryName(outPath) ?? "",
-                $"{Path.GetFileNameWithoutExtension(outPath)}_tab2{ext}");
-            CaptureWindowScreenshot(tab2Path);
+            SwitchMainView(1);
+            await Task.Delay(250);
+            RenderDpiGraph();
+            await Task.Delay(150);
+            CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_sensor{ext}"));
+
+            SwitchMainView(2);
+            SelectLightingMode("breathing");
+            await Task.Delay(1100);
+            CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_lighting{ext}"));
+
+            SwitchMainView(3);
+            await Task.Delay(250);
+            CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_automation{ext}"));
 
             _isExiting = true;
             Application.Current.Shutdown(0);
@@ -159,9 +220,16 @@ public partial class MainWindow : Window
 
     private void LoadVisualAssets(string assetsDir)
     {
-        MouseBaseImage.Source = LoadPng(Path.Combine(assetsDir, "G300sDevice_logitech.png"));
+        var baseBmp = LoadPng(Path.Combine(assetsDir, "G300sDevice_logitech.png"));
+        MouseBaseImage.Source = baseBmp;
+        LightingPreviewBaseImage.Source = baseBmp;
+
         _rawSwooshBitmap = LoadPng(Path.Combine(assetsDir, "G300sDevice_swoosh.png"));
-        MouseSwooshTextureImage.Source = LoadPng(Path.Combine(assetsDir, "G300sDevice_swoosh_texture.png"));
+
+        var texBmp = LoadPng(Path.Combine(assetsDir, "G300sDevice_swoosh_texture.png"));
+        MouseSwooshTextureImage.Source = texBmp;
+        LightingPreviewTextureImage.Source = texBmp;
+
         MouseAmbientGlowImage.Source = LoadPng(Path.Combine(assetsDir, "pulseglow_G300s_home_buttons.png"));
 
         for (int i = 0; i < 9; i++)
@@ -211,22 +279,13 @@ public partial class MainWindow : Window
         return mask;
     }
 
-    private void UpdateTintedSwoosh(int rBit, int gBit, int bBit)
+    private void UpdateTintedSwoosh24Bit(byte r, byte g, byte b)
     {
         if (_rawSwooshBitmap is null) return;
+        if (_lastRenderedSwooshColor.R == r && _lastRenderedSwooshColor.G == g && _lastRenderedSwooshColor.B == b)
+            return;
 
-        Color targetColor = (rBit != 0 ? 1 : 0, gBit != 0 ? 1 : 0, bBit != 0 ? 1 : 0) switch
-        {
-            (0, 0, 0) => Color.FromRgb(22, 26, 32),
-            (1, 0, 0) => Color.FromRgb(255, 45, 65),
-            (1, 1, 0) => Color.FromRgb(255, 195, 0),
-            (0, 1, 0) => Color.FromRgb(0, 235, 110),
-            (0, 1, 1) => Color.FromRgb(0, 215, 255),
-            (0, 0, 1) => Color.FromRgb(45, 125, 255),
-            (1, 0, 1) => Color.FromRgb(230, 60, 255),
-            (1, 1, 1) => Color.FromRgb(245, 250, 255),
-            _ => Color.FromRgb(0, 215, 255)
-        };
+        _lastRenderedSwooshColor = (r, g, b);
 
         var bgra = new FormatConvertedBitmap(_rawSwooshBitmap, PixelFormats.Bgra32, null, 0);
         int w = bgra.PixelWidth;
@@ -236,16 +295,40 @@ public partial class MainWindow : Window
 
         for (int i = 0; i < pixels.Length; i += 4)
         {
-            byte lum = pixels[i + 2]; // Red channel intensity
-            pixels[i + 0] = (byte)(lum * targetColor.B / 255);
-            pixels[i + 1] = (byte)(lum * targetColor.G / 255);
-            pixels[i + 2] = (byte)(lum * targetColor.R / 255);
+            byte lum = pixels[i + 2];
+            pixels[i + 0] = (byte)(lum * b / 255);
+            pixels[i + 1] = (byte)(lum * g / 255);
+            pixels[i + 2] = (byte)(lum * r / 255);
         }
 
         var wb = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
         wb.WritePixels(new Int32Rect(0, 0, w, h), pixels, w * 4, 0);
         wb.Freeze();
+
         MouseSwooshImage.Source = wb;
+        LightingPreviewSwooshImage.Source = wb;
+
+        Color glowCol = Color.FromArgb(42, r, g, b);
+        SpotlightStop0.Color = glowCol;
+        LightingPreviewGlowStop.Color = Color.FromArgb(64, r, g, b);
+    }
+
+    private void LivePreviewTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_automation.ActiveRgbEffect != "none")
+        {
+            var (r, g, b) = _automation.LivePreviewColor;
+            UpdateTintedSwoosh24Bit(r, g, b);
+
+            if (_activeViewIndex == 2)
+            {
+                var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+                LiveColorPreviewOrb.Background = brush;
+                LiveTelemetryProgressFill.Background = brush;
+                LiveTelemetryProgressFill.Width = Math.Clamp(_automation.LiveTelemetryLevel * 380.0, 12.0, 380.0);
+                LiveTelemetryTitleText.Text = _automation.LiveTelemetryText;
+            }
+        }
     }
 
     private void BuildOverlayCallouts()
@@ -258,11 +341,11 @@ public partial class MainWindow : Window
             double anchorX = MouseOffsetX + meta.CenterX;
             double anchorY = MouseOffsetY + meta.CenterY;
 
-            double cardW = 190.0;
-            double cardH = 48.0;
+            double cardW = 192.0;
+            double cardH = 44.0;
             double attachX = meta.IsLeftSide ? meta.CardX + cardW : meta.CardX;
             double attachY = meta.CardY + cardH / 2.0;
-            double elbowX = meta.IsLeftSide ? attachX + 26.0 : attachX - 26.0;
+            double elbowX = meta.IsLeftSide ? attachX + 24.0 : attachX - 24.0;
 
             var line = new Polyline
             {
@@ -272,7 +355,7 @@ public partial class MainWindow : Window
                     new Point(elbowX, attachY),
                     new Point(attachX, attachY)
                 ],
-                Stroke = new SolidColorBrush(Color.FromArgb(140, 100, 116, 139)),
+                Stroke = new SolidColorBrush(Color.FromArgb(110, 148, 163, 184)),
                 StrokeThickness = 1.5,
                 IsHitTestVisible = false
             };
@@ -284,7 +367,7 @@ public partial class MainWindow : Window
                 Width = 7,
                 Height = 7,
                 Fill = new SolidColorBrush(Color.FromRgb(0, 200, 255)),
-                Stroke = new SolidColorBrush(Color.FromRgb(11, 13, 16)),
+                Stroke = new SolidColorBrush(Color.FromRgb(8, 9, 13)),
                 StrokeThickness = 1.5,
                 IsHitTestVisible = false
             };
@@ -293,16 +376,16 @@ public partial class MainWindow : Window
             _anchorDots[idx] = dot;
             OverlayCalloutsCanvas.Children.Add(dot);
 
-            // Callout Pill Card
+            // Sleek Floating Pill Callout
             var card = new Border
             {
                 Width = cardW,
                 Height = cardH,
-                CornerRadius = new CornerRadius(5),
-                Background = (Brush)FindResource("BrushBgSurface2"),
+                CornerRadius = new CornerRadius(10),
+                Background = new SolidColorBrush(Color.FromArgb(225, 17, 20, 28)),
                 BorderBrush = (Brush)FindResource("BrushBorderSubtle"),
                 BorderThickness = new Thickness(1),
-                Padding = new Thickness(10, 6, 10, 6),
+                Padding = new Thickness(10, 5, 12, 5),
                 Cursor = Cursors.Hand,
                 Tag = idx
             };
@@ -316,17 +399,15 @@ public partial class MainWindow : Window
             var badge = new Border
             {
                 Width = 28,
-                Height = 28,
-                CornerRadius = new CornerRadius(4),
+                Height = 26,
+                CornerRadius = new CornerRadius(6),
                 Background = (Brush)FindResource("BrushBgElevated"),
-                BorderBrush = (Brush)FindResource("BrushBorderStrong"),
-                BorderThickness = new Thickness(1),
-                Margin = new Thickness(0, 0, 9, 0),
+                Margin = new Thickness(0, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 Child = new TextBlock
                 {
                     Text = meta.CodeLabel,
-                    FontFamily = (FontFamily)FindResource("FontMono"),
+                    FontFamily = (FontFamily)FindResource("FontDisplay"),
                     FontSize = 11.5,
                     FontWeight = FontWeights.Bold,
                     Foreground = (Brush)FindResource("BrushAccentCyan"),
@@ -348,12 +429,11 @@ public partial class MainWindow : Window
             var actionLbl = new TextBlock
             {
                 Text = "Left Click",
-                FontFamily = (FontFamily)FindResource("FontMono"),
+                FontFamily = (FontFamily)FindResource("FontDisplay"),
                 FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("BrushTextPrimary"),
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(0, 1, 0, 0)
+                TextTrimming = TextTrimming.CharacterEllipsis
             };
             _calloutActionTexts[idx] = actionLbl;
             textStack.Children.Add(nameLbl);
@@ -379,75 +459,79 @@ public partial class MainWindow : Window
     {
         DpiStagesContainer.Children.Clear();
 
+        string[] stageColors = ["#38BDF8", "#00E676", "#FBBF24", "#F43F5E"];
+
         for (int i = 0; i < 4; i++)
         {
             int stageIdx = i;
-            var rowBorder = new Border
+            var card = new Border
             {
-                Background = (Brush)FindResource("BrushBgSurface2"),
-                BorderBrush = (Brush)FindResource("BrushBorderSubtle"),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(7, 4, 7, 4),
-                Margin = new Thickness(0, 0, 0, i < 3 ? 5 : 0)
+                Style = (Style)FindResource("StudioCardBorder"),
+                Padding = new Thickness(16, 14, 16, 14),
+                Margin = new Thickness(i == 0 ? 0 : 6, 0, i == 3 ? 0 : 6, 0)
             };
 
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(74) });
+            var stack = new StackPanel();
 
-            // Activate Stage Button
+            // Top row: Stage badge + Boot Default Star
+            var topGrid = new Grid { Margin = new Thickness(0, 0, 0, 10) };
             var actBtn = new Button
             {
-                Content = $"S{stageIdx + 1}",
+                Content = $"Kademe {stageIdx + 1}",
                 Style = (Style)FindResource("ToolbarActionButton"),
-                Width = 32,
-                Height = 24,
-                Padding = new Thickness(0),
-                FontFamily = (FontFamily)FindResource("FontMono"),
-                FontSize = 11,
-                FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 5, 0),
-                ToolTip = $"Switch active hardware DPI to Stage {stageIdx + 1} immediately (0xF0)"
+                Height = 28,
+                Padding = new Thickness(12, 0, 12, 0),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                ToolTip = "Bu DPI kademesini donanımda anında etkinleştir"
             };
             actBtn.Click += (_, _) => ActivateDpiStage(stageIdx);
             _dpiActivateButtons[stageIdx] = actBtn;
-            Grid.SetColumn(actBtn, 0);
-            grid.Children.Add(actBtn);
+            topGrid.Children.Add(actBtn);
 
-            // Default Boot Star Button
             var defBtn = new Button
             {
-                Content = "★",
+                Content = "★ Varsayılan",
                 Style = (Style)FindResource("ToolbarActionButton"),
-                Width = 24,
-                Height = 24,
-                Padding = new Thickness(0),
-                FontSize = 11.5,
-                Margin = new Thickness(0, 0, 8, 0),
-                ToolTip = $"Set Stage {stageIdx + 1} as the profile boot default DPI"
+                Height = 28,
+                Padding = new Thickness(10, 0, 10, 0),
+                FontSize = 11,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                ToolTip = "Fare ilk açıldığında bu DPI kademesiyle başlasın"
             };
             defBtn.Click += (_, _) => SetDefaultDpiStage(stageIdx);
             _dpiDefaultButtons[stageIdx] = defBtn;
-            Grid.SetColumn(defBtn, 1);
-            grid.Children.Add(defBtn);
+            topGrid.Children.Add(defBtn);
+            stack.Children.Add(topGrid);
 
-            // Minus Step Button
+            // Big DPI Value Readout
+            var valText = new TextBlock
+            {
+                Text = "1000 DPI",
+                FontFamily = (FontFamily)FindResource("FontDisplay"),
+                FontSize = 22,
+                FontWeight = FontWeights.Bold,
+                Foreground = (SolidColorBrush)new BrushConverter().ConvertFromString(stageColors[i])!,
+                Margin = new Thickness(0, 2, 0, 10)
+            };
+            _dpiValueLabels[stageIdx] = valText;
+            stack.Children.Add(valText);
+
+            // Slider + Step Controls
+            var ctrlGrid = new Grid();
+            ctrlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            ctrlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            ctrlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
             var minusBtn = new Button
             {
                 Content = "−",
                 Style = (Style)FindResource("StepIconButton"),
-                Margin = new Thickness(0, 0, 6, 0)
+                Margin = new Thickness(0, 0, 8, 0)
             };
             minusBtn.Click += (_, _) => StepDpiStage(stageIdx, -250);
-            Grid.SetColumn(minusBtn, 2);
-            grid.Children.Add(minusBtn);
+            Grid.SetColumn(minusBtn, 0);
+            ctrlGrid.Children.Add(minusBtn);
 
-            // Slider
             var slider = new Slider
             {
                 Minimum = 250,
@@ -460,73 +544,340 @@ public partial class MainWindow : Window
             };
             slider.ValueChanged += (_, ev) => OnDpiSliderValueChanged(stageIdx, (int)ev.NewValue);
             _dpiSliders[stageIdx] = slider;
-            Grid.SetColumn(slider, 3);
-            grid.Children.Add(slider);
+            Grid.SetColumn(slider, 1);
+            ctrlGrid.Children.Add(slider);
 
-            // Plus Step Button
             var plusBtn = new Button
             {
                 Content = "+",
                 Style = (Style)FindResource("StepIconButton"),
-                Margin = new Thickness(6, 0, 6, 0)
+                Margin = new Thickness(8, 0, 0, 0)
             };
             plusBtn.Click += (_, _) => StepDpiStage(stageIdx, 250);
-            Grid.SetColumn(plusBtn, 4);
-            grid.Children.Add(plusBtn);
+            Grid.SetColumn(plusBtn, 2);
+            ctrlGrid.Children.Add(plusBtn);
 
-            // Numeric Readout
-            var valText = new TextBlock
-            {
-                Text = "1000 DPI",
-                FontFamily = (FontFamily)FindResource("FontMono"),
-                FontSize = 11.5,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = (Brush)FindResource("BrushTextPrimary"),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            _dpiValueLabels[stageIdx] = valText;
-            Grid.SetColumn(valText, 5);
-            grid.Children.Add(valText);
-
-            rowBorder.Child = grid;
-            DpiStagesContainer.Children.Add(rowBorder);
+            stack.Children.Add(ctrlGrid);
+            card.Child = stack;
+            DpiStagesContainer.Children.Add(card);
         }
     }
 
-    private void BuildLedSwatchesUi()
+    private void RenderDpiGraph()
     {
+        DpiGraphCanvas.Children.Clear();
+        double w = DpiGraphCanvas.ActualWidth;
+        double h = DpiGraphCanvas.ActualHeight;
+        if (w < 100 || h < 80) return;
+
+        double padLeft = 58;
+        double padRight = 36;
+        double padTop = 24;
+        double padBottom = 34;
+        double plotW = w - padLeft - padRight;
+        double plotH = h - padTop - padBottom;
+
+        // Horizontal grid lines (250, 750, 1250, 1750, 2250, 2500)
+        int[] gridDpis = [250, 750, 1250, 1750, 2250, 2500];
+        foreach (int gd in gridDpis)
+        {
+            double gy = padTop + plotH * (1.0 - (gd - 250.0) / 2250.0);
+            var line = new Line
+            {
+                X1 = padLeft,
+                Y1 = gy,
+                X2 = w - padRight,
+                Y2 = gy,
+                Stroke = new SolidColorBrush(Color.FromArgb(24, 255, 255, 255)),
+                StrokeThickness = 1
+            };
+            DpiGraphCanvas.Children.Add(line);
+
+            var lbl = new TextBlock
+            {
+                Text = $"{gd}",
+                FontFamily = (FontFamily)FindResource("FontMono"),
+                FontSize = 10.5,
+                Foreground = (Brush)FindResource("BrushTextMuted")
+            };
+            Canvas.SetLeft(lbl, 8);
+            Canvas.SetTop(lbl, gy - 8);
+            DpiGraphCanvas.Children.Add(lbl);
+        }
+
+        var prof = _profiles[_activeProfileIndex];
+        string[] stageColors = ["#38BDF8", "#00E676", "#FBBF24", "#F43F5E"];
+        Point[] pts = new Point[4];
+
+        for (int i = 0; i < 4; i++)
+        {
+            double x = padLeft + plotW * ((i + 0.5) / 4.0);
+            double norm = (prof.DpiStages[i] - 250.0) / 2250.0;
+            double y = padTop + plotH * (1.0 - norm);
+            pts[i] = new Point(x, y);
+
+            // Illuminated vertical bar
+            var barColor = (Color)ColorConverter.ConvertFromString(stageColors[i]);
+            var bar = new Border
+            {
+                Width = 44,
+                Height = Math.Max(6, (padTop + plotH) - y),
+                CornerRadius = new CornerRadius(6, 6, 2, 2),
+                Background = new LinearGradientBrush(
+                    Color.FromArgb((byte)(i == _activeDpiStageIndex ? 120 : 55), barColor.R, barColor.G, barColor.B),
+                    Color.FromArgb(8, barColor.R, barColor.G, barColor.B),
+                    90.0),
+                BorderBrush = new SolidColorBrush(Color.FromArgb((byte)(i == _activeDpiStageIndex ? 220 : 90), barColor.R, barColor.G, barColor.B)),
+                BorderThickness = new Thickness(1, 2, 1, 0),
+                IsHitTestVisible = false
+            };
+            Canvas.SetLeft(bar, x - 22);
+            Canvas.SetTop(bar, y);
+            DpiGraphCanvas.Children.Add(bar);
+
+            // Stage X-axis label
+            var xLbl = new TextBlock
+            {
+                Text = $"Kademe {i + 1}" + (prof.DefaultDpiStage == i ? " ★" : ""),
+                FontFamily = (FontFamily)FindResource("FontDisplay"),
+                FontSize = 11.5,
+                FontWeight = i == _activeDpiStageIndex ? FontWeights.Bold : FontWeights.Medium,
+                Foreground = i == _activeDpiStageIndex ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary")
+            };
+            Canvas.SetLeft(xLbl, x - 30);
+            Canvas.SetTop(xLbl, padTop + plotH + 10);
+            DpiGraphCanvas.Children.Add(xLbl);
+        }
+
+        // Smooth connecting polyline
+        var curve = new Polyline
+        {
+            Points = new PointCollection(pts),
+            Stroke = new SolidColorBrush(Color.FromArgb(140, 0, 200, 255)),
+            StrokeThickness = 2.5,
+            IsHitTestVisible = false
+        };
+        DpiGraphCanvas.Children.Add(curve);
+
+        // Draggable stage nodes
+        for (int i = 0; i < 4; i++)
+        {
+            var barColor = (Color)ColorConverter.ConvertFromString(stageColors[i]);
+            var node = new Ellipse
+            {
+                Width = 18,
+                Height = 18,
+                Fill = new SolidColorBrush(barColor),
+                Stroke = new SolidColorBrush(Color.FromRgb(10, 12, 18)),
+                StrokeThickness = 3,
+                Cursor = Cursors.SizeNS
+            };
+            Canvas.SetLeft(node, pts[i].X - 9);
+            Canvas.SetTop(node, pts[i].Y - 9);
+            DpiGraphCanvas.Children.Add(node);
+
+            var topTag = new Border
+            {
+                Background = (Brush)FindResource("BrushBgElevated"),
+                BorderBrush = new SolidColorBrush(barColor),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(5),
+                Padding = new Thickness(7, 2, 7, 2),
+                IsHitTestVisible = false,
+                Child = new TextBlock
+                {
+                    Text = $"{prof.DpiStages[i]} DPI",
+                    FontFamily = (FontFamily)FindResource("FontMono"),
+                    FontSize = 11,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = Brushes.White
+                }
+            };
+            Canvas.SetLeft(topTag, pts[i].X - 32);
+            Canvas.SetTop(topTag, Math.Max(2, pts[i].Y - 32));
+            DpiGraphCanvas.Children.Add(topTag);
+        }
+    }
+
+    private void DpiGraphCanvas_SizeChanged(object sender, SizeChangedEventArgs e) => RenderDpiGraph();
+
+    private void DpiGraphCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        Point pt = e.GetPosition(DpiGraphCanvas);
+        double w = DpiGraphCanvas.ActualWidth;
+        double padLeft = 58, padRight = 36;
+        double plotW = w - padLeft - padRight;
+        if (plotW <= 0) return;
+
+        int closest = (int)Math.Clamp(Math.Floor((pt.X - padLeft) / (plotW / 4.0)), 0, 3);
+        _draggingDpiStageIndex = closest;
+        DpiGraphCanvas.CaptureMouse();
+        UpdateDraggedDpiFromPoint(pt);
+    }
+
+    private void DpiGraphCanvas_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_draggingDpiStageIndex < 0) return;
+        UpdateDraggedDpiFromPoint(e.GetPosition(DpiGraphCanvas));
+    }
+
+    private void DpiGraphCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_draggingDpiStageIndex >= 0)
+        {
+            _draggingDpiStageIndex = -1;
+            DpiGraphCanvas.ReleaseMouseCapture();
+        }
+    }
+
+    private void UpdateDraggedDpiFromPoint(Point pt)
+    {
+        double h = DpiGraphCanvas.ActualHeight;
+        double padTop = 24, padBottom = 34;
+        double plotH = h - padTop - padBottom;
+        if (plotH <= 10) return;
+
+        double norm = Math.Clamp(1.0 - (pt.Y - padTop) / plotH, 0.0, 1.0);
+        int rawDpi = (int)Math.Round((250.0 + norm * 2250.0) / 250.0) * 250;
+        rawDpi = Math.Clamp(rawDpi, 250, 2500);
+
+        var prof = _profiles[_activeProfileIndex];
+        if (prof.DpiStages[_draggingDpiStageIndex] != rawDpi)
+        {
+            prof.SetDpiStage(_draggingDpiStageIndex, rawDpi);
+            MarkModified($"Kademe {_draggingDpiStageIndex + 1} hassasiyeti {rawDpi} DPI olarak ayarlandı.");
+            RefreshCurrentProfileToUi();
+        }
+    }
+
+    private void BuildLightingStudioUi()
+    {
+        LightingModesGrid.Children.Clear();
+
+        for (int i = 0; i < LightingModes.Length; i++)
+        {
+            var mode = LightingModes[i];
+            int idx = i;
+
+            var card = new Border
+            {
+                Style = (Style)FindResource("StudioCardBorder"),
+                Padding = new Thickness(16, 14, 16, 14),
+                Margin = new Thickness(idx % 2 == 0 ? 0 : 6, 0, idx % 2 == 0 ? 6 : 0, 10),
+                Cursor = Cursors.Hand
+            };
+
+            var stack = new StackPanel();
+            var topGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+
+            var iconStack = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            var iconBorder = new Border
+            {
+                Width = 30,
+                Height = 30,
+                CornerRadius = new CornerRadius(8),
+                Background = (Brush)FindResource("BrushBgSurface2"),
+                Margin = new Thickness(0, 0, 10, 0),
+                Child = new TextBlock
+                {
+                    Text = mode.IconGlyph,
+                    FontFamily = (FontFamily)FindResource("FontIcons"),
+                    FontSize = 14,
+                    Foreground = (Brush)FindResource("BrushAccentCyan"),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+            iconStack.Children.Add(iconBorder);
+            iconStack.Children.Add(new TextBlock
+            {
+                Text = mode.Title,
+                FontFamily = (FontFamily)FindResource("FontDisplay"),
+                FontSize = 13.5,
+                FontWeight = FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            topGrid.Children.Add(iconStack);
+
+            var badge = new Border
+            {
+                CornerRadius = new CornerRadius(6),
+                Background = (Brush)FindResource("BrushBgSurface2"),
+                Padding = new Thickness(7, 2, 7, 2),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock
+                {
+                    Text = mode.BadgeText,
+                    FontFamily = (FontFamily)FindResource("FontMono"),
+                    FontSize = 10,
+                    Foreground = (Brush)FindResource("BrushAccentCyan")
+                }
+            };
+            topGrid.Children.Add(badge);
+            stack.Children.Add(topGrid);
+
+            stack.Children.Add(new TextBlock
+            {
+                Text = mode.Description,
+                FontSize = 11.5,
+                Foreground = (Brush)FindResource("BrushTextSecondary"),
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            card.Child = stack;
+            card.MouseLeftButtonDown += (_, _) => SelectLightingMode(mode.Key);
+            _lightingModeBorders[idx] = card;
+            LightingModesGrid.Children.Add(card);
+        }
+
+        // Primary color orbs
         LedSwatchesGrid.Children.Clear();
+        SecondaryLedSwatchesGrid.Children.Clear();
 
         for (int i = 0; i < PaletteSwatches.Length; i++)
         {
             var sw = PaletteSwatches[i];
             int idx = i;
 
-            var outer = new Border
-            {
-                CornerRadius = new CornerRadius(5),
-                BorderThickness = new Thickness(2),
-                BorderBrush = Brushes.Transparent,
-                Padding = new Thickness(2),
-                Margin = new Thickness(2, 0, 2, 0),
-                Cursor = Cursors.Hand,
-                ToolTip = $"{sw.Name} (R={sw.R}, G={sw.G}, B={sw.B})"
-            };
+            var primaryOrb = CreateColorOrb(sw.Hex, $"{sw.Name} (Ana Renk)", () => SelectLedColor(sw.R, sw.G, sw.B));
+            _ledSwatchBorders[idx] = primaryOrb;
+            LedSwatchesGrid.Children.Add(primaryOrb);
 
-            var inner = new Border
-            {
-                CornerRadius = new CornerRadius(3),
-                Background = (SolidColorBrush)new BrushConverter().ConvertFromString(sw.Hex)!,
-                BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
-                BorderThickness = new Thickness(1)
-            };
-
-            outer.Child = inner;
-            outer.MouseLeftButtonDown += (_, _) => SelectLedColor(sw.R, sw.G, sw.B);
-            _ledSwatchBorders[idx] = outer;
-            LedSwatchesGrid.Children.Add(outer);
+            var secOrb = CreateColorOrb(sw.Hex, $"{sw.Name} (İkincil Nefes Alma Rengi)", () => SelectSecondaryLedColor(sw.R, sw.G, sw.B));
+            _secondarySwatchBorders[idx] = secOrb;
+            SecondaryLedSwatchesGrid.Children.Add(secOrb);
         }
+
+        UpdateLightingModeSelectionVisuals("none");
+        UpdateSecondarySwatchVisuals();
+    }
+
+    private static Border CreateColorOrb(string hex, string tooltip, Action onClick)
+    {
+        var outer = new Border
+        {
+            Width = 32,
+            Height = 32,
+            CornerRadius = new CornerRadius(16),
+            BorderThickness = new Thickness(2),
+            BorderBrush = Brushes.Transparent,
+            Padding = new Thickness(2),
+            Cursor = Cursors.Hand,
+            ToolTip = tooltip
+        };
+
+        var inner = new Border
+        {
+            CornerRadius = new CornerRadius(13),
+            Background = (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!,
+            BorderBrush = new SolidColorBrush(Color.FromArgb(65, 255, 255, 255)),
+            BorderThickness = new Thickness(1)
+        };
+
+        outer.Child = inner;
+        outer.MouseLeftButtonDown += (_, _) => onClick();
+        return outer;
     }
 
     private void BuildDaemonWorkspaceUi()
@@ -548,20 +899,20 @@ public partial class MainWindow : Window
                 Background = (Brush)FindResource("BrushBgSurface2"),
                 BorderBrush = (Brush)FindResource("BrushBorderSubtle"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(5),
+                CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(12, 10, 12, 10),
                 Margin = new Thickness(0, 0, 0, 8)
             };
 
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(95) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(178) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(175) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             var badge = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             badge.Children.Add(new TextBlock
             {
-                Text = $"MACRO {i + 1}",
+                Text = $"MAKRO {i + 1}",
                 FontFamily = (FontFamily)FindResource("FontDisplay"),
                 FontSize = 11.5,
                 FontWeight = FontWeights.Bold,
@@ -569,7 +920,7 @@ public partial class MainWindow : Window
             });
             badge.Children.Add(new TextBlock
             {
-                Text = $"Trigger: {k.ToUpperInvariant()}",
+                Text = $"Tetik: {k.ToUpperInvariant()}",
                 FontFamily = (FontFamily)FindResource("FontMono"),
                 FontSize = 10,
                 Foreground = (Brush)FindResource("BrushTextMuted")
@@ -578,9 +929,9 @@ public partial class MainWindow : Window
             grid.Children.Add(badge);
 
             var modeCombo = new ComboBox { Height = 32, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
-            modeCombo.Items.Add(new ComboBoxItem { Content = "Text String", Tag = "text" });
-            modeCombo.Items.Add(new ComboBoxItem { Content = "Rapid-Fire Click", Tag = "rapid_fire" });
-            modeCombo.Items.Add(new ComboBoxItem { Content = "Key Shortcut", Tag = "shortcut" });
+            modeCombo.Items.Add(new ComboBoxItem { Content = "Metin Dizisi", Tag = "text" });
+            modeCombo.Items.Add(new ComboBoxItem { Content = "Rapid-Fire Tıklama", Tag = "rapid_fire" });
+            modeCombo.Items.Add(new ComboBoxItem { Content = "Klavye Kısayolu", Tag = "shortcut" });
             modeCombo.SelectedIndex = item.Mode switch { "rapid_fire" => 1, "shortcut" => 2, _ => 0 };
             Grid.SetColumn(modeCombo, 1);
             grid.Children.Add(modeCombo);
@@ -589,55 +940,81 @@ public partial class MainWindow : Window
             {
                 Height = 32,
                 VerticalContentAlignment = VerticalAlignment.Center,
+                Padding = new Thickness(8, 0, 8, 0),
                 FontFamily = (FontFamily)FindResource("FontMono"),
                 FontSize = 11.5,
-                Padding = new Thickness(8, 0, 8, 0),
-                Text = item.Mode == "rapid_fire" ? $"{item.Cps} CPS ({item.MouseButton})" : item.TextPayload
+                Text = FormatMacroParamText(item)
             };
             Grid.SetColumn(paramBox, 2);
             grid.Children.Add(paramBox);
 
             modeCombo.SelectionChanged += (_, _) =>
             {
-                if (modeCombo.SelectedItem is ComboBoxItem cbi && cbi.Tag is string m)
+                if (modeCombo.SelectedItem is ComboBoxItem { Tag: string m })
                 {
                     item.Mode = m;
-                    paramBox.Text = m == "rapid_fire" ? $"{item.Cps}" : item.TextPayload;
+                    paramBox.Text = FormatMacroParamText(item);
                 }
             };
 
-            paramBox.TextChanged += (_, _) =>
-            {
-                if (item.Mode == "rapid_fire")
-                {
-                    string digits = new string(paramBox.Text.Where(char.IsDigit).ToArray());
-                    if (int.TryParse(digits, out int cps)) item.Cps = Math.Clamp(cps, 1, 50);
-                }
-                else
-                {
-                    item.TextPayload = paramBox.Text;
-                }
-            };
+            paramBox.TextChanged += (_, _) => ParseMacroParamText(item, paramBox.Text);
 
             card.Child = grid;
             MacroItemsPanel.Children.Add(card);
         }
 
+        _suppressUiEvents = true;
+        AutoSwitchToggle.IsChecked = _automation.AutoProfileSwitchEnabled;
+        DefaultSlotCombo.SelectedIndex = Math.Clamp(_automation.DefaultProfileIndex, 0, 2);
+        _suppressUiEvents = false;
+
         RefreshAppRulesListUi();
+    }
+
+    private static string FormatMacroParamText(MacroBindingItem item) => item.Mode switch
+    {
+        "rapid_fire" => $"{item.Cps} CPS ({item.MouseButton})",
+        "shortcut" => item.ShortcutKeys,
+        _ => item.TextPayload
+    };
+
+    private static void ParseMacroParamText(MacroBindingItem item, string raw)
+    {
+        if (item.Mode == "rapid_fire")
+        {
+            string digits = new(raw.Where(char.IsDigit).ToArray());
+            if (int.TryParse(digits, out int cps))
+            {
+                item.Cps = Math.Clamp(cps, 1, 50);
+            }
+            item.MouseButton = raw.Contains("right", StringComparison.OrdinalIgnoreCase) ? "right" : "left";
+        }
+        else if (item.Mode == "shortcut")
+        {
+            item.ShortcutKeys = raw.Trim();
+        }
+        else
+        {
+            item.TextPayload = raw;
+        }
     }
 
     private void RefreshAppRulesListUi()
     {
         AppRulesPanel.Children.Clear();
-        foreach (var rule in _automation.AppRules.ToList())
+
+        for (int i = 0; i < _automation.AppRules.Count; i++)
         {
+            int ruleIdx = i;
+            var rule = _automation.AppRules[i];
+
             var row = new Border
             {
                 Background = (Brush)FindResource("BrushBgSurface2"),
                 BorderBrush = (Brush)FindResource("BrushBorderSubtle"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(12, 8, 12, 8),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(12, 9, 12, 9),
                 Margin = new Thickness(0, 0, 0, 6)
             };
 
@@ -660,16 +1037,16 @@ public partial class MainWindow : Window
 
             var slotBadge = new Border
             {
+                CornerRadius = new CornerRadius(6),
                 Background = (Brush)FindResource("BrushAccentCyanSubtle"),
                 BorderBrush = (Brush)FindResource("BrushAccentCyanBorder"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(8, 2, 8, 2),
-                Margin = new Thickness(0, 0, 10, 0),
+                Padding = new Thickness(9, 3, 9, 3),
+                Margin = new Thickness(8, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 Child = new TextBlock
                 {
-                    Text = $"SLOT {rule.ProfileIndex + 1}",
+                    Text = $"PROFİL {rule.ProfileIndex + 1}",
                     FontFamily = (FontFamily)FindResource("FontMono"),
                     FontSize = 10.5,
                     FontWeight = FontWeights.Bold,
@@ -681,15 +1058,15 @@ public partial class MainWindow : Window
 
             var delBtn = new Button
             {
-                Content = "Remove",
+                Content = "Sil",
                 Style = (Style)FindResource("ToolbarActionButton"),
-                Height = 24,
-                Padding = new Thickness(8, 0, 8, 0),
+                Height = 26,
+                Padding = new Thickness(10, 0, 10, 0),
                 FontSize = 11
             };
             delBtn.Click += (_, _) =>
             {
-                _automation.AppRules.Remove(rule);
+                _automation.AppRules.RemoveAt(ruleIdx);
                 _automation.SaveConfig();
                 RefreshAppRulesListUi();
             };
@@ -719,19 +1096,19 @@ public partial class MainWindow : Window
                     _profiles[i] = _device.GetProfile(i);
                 }
 
-                SetConnectionStatusUi(true, "CONNECTED");
-                StatusFooterText.Text = $"Synchronized with Logitech G300s hardware · Active Slot {_activeProfileIndex + 1}, Stage {_activeDpiStageIndex + 1}.";
+                SetConnectionStatusUi(true, "Bağlı");
+                StatusFooterText.Text = $"Logitech G300s donanımı ile senkronize edildi · Aktif Profil {_activeProfileIndex + 1}, Kademe {_activeDpiStageIndex + 1}.";
             }
             else
             {
-                SetConnectionStatusUi(false, "OFFLINE PREVIEW");
-                StatusFooterText.Text = "Logitech G300s not detected on USB · Running in offline studio editor mode.";
+                SetConnectionStatusUi(false, "Çevrimdışı");
+                StatusFooterText.Text = "Logitech G300s USB üzerinde algılanmadı · Çevrimdışı stüdyo modunda çalışıyor.";
             }
         }
         catch (Exception ex)
         {
-            SetConnectionStatusUi(false, "IO ERROR");
-            StatusFooterText.Text = $"Hardware read error: {ex.Message}";
+            SetConnectionStatusUi(false, "G/Ç Hatası");
+            StatusFooterText.Text = $"Donanım okuma hatası: {ex.Message}";
         }
 
         _hasUnsavedChanges = false;
@@ -743,20 +1120,7 @@ public partial class MainWindow : Window
     private void SetConnectionStatusUi(bool online, string label)
     {
         ConnectionStatusText.Text = label;
-        if (online)
-        {
-            ConnectionBadge.Background = (Brush)FindResource("BrushSuccessSubtle");
-            ConnectionBadge.BorderBrush = new SolidColorBrush(Color.FromArgb(80, 16, 185, 129));
-            ConnectionDot.Fill = (Brush)FindResource("BrushSuccess");
-            ConnectionStatusText.Foreground = (Brush)FindResource("BrushSuccess");
-        }
-        else
-        {
-            ConnectionBadge.Background = (Brush)FindResource("BrushWarningSubtle");
-            ConnectionBadge.BorderBrush = new SolidColorBrush(Color.FromArgb(80, 245, 158, 11));
-            ConnectionDot.Fill = (Brush)FindResource("BrushWarning");
-            ConnectionStatusText.Foreground = (Brush)FindResource("BrushWarning");
-        }
+        ConnectionDot.Fill = online ? (Brush)FindResource("BrushSuccess") : (Brush)FindResource("BrushWarning");
     }
 
     private void SelectProfileSlot(int slotIndex, bool sendToHardware)
@@ -769,152 +1133,172 @@ public partial class MainWindow : Window
             try
             {
                 _device.SetActiveProfile(_activeProfileIndex);
-                StatusFooterText.Text = $"Switched active hardware profile to Slot {_activeProfileIndex + 1}.";
+                if (_automation.ActiveRgbEffect == "none")
+                {
+                    _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB);
+                }
+                _device.SetLiveRate(prof.PollingRateHz);
+                StatusFooterText.Text = $"Aktif donanım profili Profil {_activeProfileIndex + 1} ({prof.ColorName}) olarak değiştirildi.";
             }
             catch (Exception ex)
             {
-                StatusFooterText.Text = $"Failed to switch profile: {ex.Message}";
+                StatusFooterText.Text = $"Profil değiştirme hatası: {ex.Message}";
             }
         }
 
+        _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (prof.LedR, prof.LedG, prof.LedB), _secondaryBreathColor);
         RefreshSlotHeaderVisuals();
         RefreshCurrentProfileToUi();
     }
 
     private void RefreshSlotHeaderVisuals()
     {
-        SlotDot0.Fill = (SolidColorBrush)new BrushConverter().ConvertFromString(_profiles[0].ColorHex)!;
-        SlotDot1.Fill = (SolidColorBrush)new BrushConverter().ConvertFromString(_profiles[1].ColorHex)!;
-        SlotDot2.Fill = (SolidColorBrush)new BrushConverter().ConvertFromString(_profiles[2].ColorHex)!;
-
         Button[] slotBtns = [SlotBtn0, SlotBtn1, SlotBtn2];
+        Ellipse[] slotDots = [SlotDot0, SlotDot1, SlotDot2];
+
         for (int i = 0; i < 3; i++)
         {
-            bool active = i == _activeProfileIndex;
-            slotBtns[i].Background = active ? (Brush)FindResource("BrushBgElevated") : Brushes.Transparent;
-            slotBtns[i].Foreground = active ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
-        }
+            var p = _profiles[i];
+            slotDots[i].Fill = (SolidColorBrush)new BrushConverter().ConvertFromString(p.ColorHex)!;
 
-        StageActiveSlotLabel.Text = $"SLOT {_activeProfileIndex + 1} · {_profiles[_activeProfileIndex].ColorName.ToUpperInvariant()}";
+            if (i == _activeProfileIndex)
+            {
+                slotBtns[i].Background = (Brush)FindResource("BrushAccentCyanSubtle");
+                slotBtns[i].Foreground = (Brush)FindResource("BrushAccentCyan");
+            }
+            else
+            {
+                slotBtns[i].Background = Brushes.Transparent;
+                slotBtns[i].Foreground = (Brush)FindResource("BrushTextSecondary");
+            }
+        }
     }
 
     private void RefreshCurrentProfileToUi()
     {
         _suppressUiEvents = true;
-        try
+        var prof = _profiles[_activeProfileIndex];
+
+        StageActiveSlotLabel.Text = $"Profil {_activeProfileIndex + 1} · {prof.ColorName}";
+        ActiveColorLabel.Text = prof.ColorName;
+
+        if (_automation.ActiveRgbEffect == "none")
         {
-            var prof = _profiles[_activeProfileIndex];
-
-            // 1. Update 3D Mouse LED Swoosh & Swatches
-            UpdateTintedSwoosh(prof.LedR, prof.LedG, prof.LedB);
-            ActiveColorLabel.Text = prof.ColorName;
-            ActiveColorLabel.Foreground = (SolidColorBrush)new BrushConverter().ConvertFromString(prof.ColorHex)!;
-
-            for (int i = 0; i < PaletteSwatches.Length; i++)
-            {
-                var sw = PaletteSwatches[i];
-                bool match = sw.R == prof.LedR && sw.G == prof.LedG && sw.B == prof.LedB;
-                _ledSwatchBorders[i].BorderBrush = match ? (Brush)FindResource("BrushAccentCyan") : Brushes.Transparent;
-            }
-
-            // 2. Update Callout Cards
-            for (int i = 0; i < 9; i++)
-            {
-                _calloutActionTexts[i].Text = G300sProtocol.GetFriendlyActionTitle(prof.Buttons[i]);
-            }
-
-            // 3. Update Polling Rate Segmented Buttons
-            Button[] rateBtns = [RateBtn125, RateBtn250, RateBtn500, RateBtn1000];
-            int[] rates = [125, 250, 500, 1000];
-            for (int i = 0; i < 4; i++)
-            {
-                bool activeRate = prof.PollingRateHz == rates[i];
-                rateBtns[i].Background = activeRate ? (Brush)FindResource("BrushAccentCyanSubtle") : (Brush)FindResource("BrushBgSurface2");
-                rateBtns[i].BorderBrush = activeRate ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushBorderSubtle");
-                rateBtns[i].Foreground = activeRate ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
-            }
-
-            // 4. Update 4 DPI Stages
-            for (int i = 0; i < 4; i++)
-            {
-                int dpi = prof.DpiStages[i];
-                _dpiSliders[i].Value = dpi;
-                _dpiValueLabels[i].Text = $"{dpi} DPI";
-
-                bool isDefault = i == prof.DefaultDpiStage;
-                _dpiDefaultButtons[i].Foreground = isDefault ? (Brush)FindResource("BrushWarning") : (Brush)FindResource("BrushTextMuted");
-                _dpiDefaultButtons[i].BorderBrush = isDefault ? (Brush)FindResource("BrushWarning") : (Brush)FindResource("BrushBorderSubtle");
-
-                bool isActiveStage = i == _activeDpiStageIndex;
-                _dpiActivateButtons[i].Background = isActiveStage ? (Brush)FindResource("BrushAccentCyanSubtle") : (Brush)FindResource("BrushBgSurface2");
-                _dpiActivateButtons[i].BorderBrush = isActiveStage ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushBorderSubtle");
-                _dpiActivateButtons[i].Foreground = isActiveStage ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
-            }
-
-            // 5. Update Telemetry Strip & Hex Preview
-            int activeDpiVal = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
-            TelemetryDpiText.Text = $"{activeDpiVal} DPI (STAGE {_activeDpiStageIndex + 1})";
-            double intervalMs = 1000.0 / prof.PollingRateHz;
-            TelemetryRateText.Text = $"{prof.PollingRateHz} Hz ({intervalMs:0.0} ms)";
-
-            byte[] raw = prof.ToRawReport();
-            string hexHead = BitConverter.ToString(raw, 0, 14).Replace("-", " ");
-            RawHexPreviewText.Text = $"0x{raw[0]:X2}: {hexHead} ... (35B)";
-
-            _tray.UpdateActiveProfile(_activeProfileIndex, activeDpiVal, prof.PollingRateHz);
-            RefreshInspectorCard();
+            var col = (Color)ColorConverter.ConvertFromString(prof.ColorHex);
+            UpdateTintedSwoosh24Bit(col.R, col.G, col.B);
+            LiveColorPreviewOrb.Background = new SolidColorBrush(col);
+            LiveTelemetryProgressFill.Background = new SolidColorBrush(col);
+            LiveTelemetryProgressFill.Width = 380;
+            LiveTelemetryTitleText.Text = $"Donanım Sabit Rengi ({prof.ColorName})";
         }
-        finally
+
+        // Update 9 Callout Pills
+        for (int i = 0; i < 9; i++)
         {
-            _suppressUiEvents = false;
+            string spec = prof.Buttons[i];
+            _calloutActionTexts[i].Text = G300sProtocol.GetFriendlyActionTitle(spec);
         }
+
+        // Polling Rate buttons
+        Button[] rateBtns = [RateBtn125, RateBtn250, RateBtn500, RateBtn1000];
+        int[] rates = [125, 250, 500, 1000];
+        for (int i = 0; i < 4; i++)
+        {
+            bool active = prof.PollingRateHz == rates[i];
+            rateBtns[i].Background = active ? (Brush)FindResource("BrushAccentCyanSubtle") : (Brush)FindResource("BrushBgSurface2");
+            rateBtns[i].BorderBrush = active ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushBorderSubtle");
+            rateBtns[i].Foreground = active ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextPrimary");
+        }
+
+        // DPI Stage Cards
+        for (int i = 0; i < 4; i++)
+        {
+            int dpiVal = prof.DpiStages[i];
+            _dpiSliders[i].Value = dpiVal;
+            _dpiValueLabels[i].Text = $"{dpiVal} DPI";
+
+            bool isCurrentStage = i == _activeDpiStageIndex;
+            _dpiActivateButtons[i].Background = isCurrentStage ? (Brush)FindResource("BrushAccentCyanSubtle") : (Brush)FindResource("BrushBgSurface2");
+            _dpiActivateButtons[i].BorderBrush = isCurrentStage ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushBorderSubtle");
+            _dpiActivateButtons[i].Foreground = isCurrentStage ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
+
+            bool isDefault = i == prof.DefaultDpiStage;
+            _dpiDefaultButtons[i].Background = isDefault ? (Brush)FindResource("BrushWarningSubtle") : (Brush)FindResource("BrushBgSurface2");
+            _dpiDefaultButtons[i].BorderBrush = isDefault ? (Brush)FindResource("BrushWarning") : (Brush)FindResource("BrushBorderSubtle");
+            _dpiDefaultButtons[i].Foreground = isDefault ? (Brush)FindResource("BrushWarning") : (Brush)FindResource("BrushTextMuted");
+        }
+
+        // Primary Swatches
+        for (int i = 0; i < PaletteSwatches.Length; i++)
+        {
+            var sw = PaletteSwatches[i];
+            bool selected = prof.LedR == sw.R && prof.LedG == sw.G && prof.LedB == sw.B;
+            _ledSwatchBorders[i].BorderBrush = selected ? (Brush)FindResource("BrushAccentCyan") : Brushes.Transparent;
+        }
+
+        // Top Header Telemetry
+        int activeDpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
+        TelemetryDpiText.Text = $"{activeDpi} DPI (S{_activeDpiStageIndex + 1})";
+        TelemetryRateText.Text = $"{prof.PollingRateHz} Hz";
+
+        RefreshSelectedButtonInspectorUi();
+        if (_activeViewIndex == 1)
+        {
+            RenderDpiGraph();
+        }
+        _suppressUiEvents = false;
     }
 
-    private void SelectButtonForEditing(int buttonIndex)
+    private void SelectButtonForEditing(int btnIndex)
     {
-        _selectedButtonIndex = Math.Clamp(buttonIndex, 0, 8);
+        _selectedButtonIndex = Math.Clamp(btnIndex, 0, 8);
         StopKeyRecording();
 
         var meta = ButtonMetaList[_selectedButtonIndex];
-        if (_pulseGlowBitmaps[_selectedButtonIndex] is { } pgBmp)
+        var glowBmp = _pulseGlowBitmaps[_selectedButtonIndex];
+        var hiBmp = _highlightBitmaps[_selectedButtonIndex];
+
+        if (glowBmp is not null)
         {
-            SelectedButtonGlowImage.Source = pgBmp;
-            SelectedButtonGlowImage.Width = pgBmp.PixelWidth;
-            SelectedButtonGlowImage.Height = pgBmp.PixelHeight;
             Canvas.SetLeft(SelectedButtonGlowImage, MouseOffsetX + meta.RelX);
             Canvas.SetTop(SelectedButtonGlowImage, MouseOffsetY + meta.RelY);
+            SelectedButtonGlowImage.Width = glowBmp.PixelWidth;
+            SelectedButtonGlowImage.Height = glowBmp.PixelHeight;
+            SelectedButtonGlowImage.Source = glowBmp;
             SelectedButtonGlowImage.Visibility = Visibility.Visible;
         }
 
-        if (_highlightBitmaps[_selectedButtonIndex] is { } hlBmp)
+        if (hiBmp is not null)
         {
-            SelectedButtonHighlightImage.Source = hlBmp;
-            SelectedButtonHighlightImage.Width = hlBmp.PixelWidth;
-            SelectedButtonHighlightImage.Height = hlBmp.PixelHeight;
             Canvas.SetLeft(SelectedButtonHighlightImage, MouseOffsetX + meta.RelX);
             Canvas.SetTop(SelectedButtonHighlightImage, MouseOffsetY + meta.RelY);
+            SelectedButtonHighlightImage.Width = hiBmp.PixelWidth;
+            SelectedButtonHighlightImage.Height = hiBmp.PixelHeight;
+            SelectedButtonHighlightImage.Source = hiBmp;
             SelectedButtonHighlightImage.Visibility = Visibility.Visible;
         }
 
-        UpdateCalloutHighlights();
-        RefreshInspectorCard();
+        UpdateCalloutHighlightVisuals();
+        RefreshSelectedButtonInspectorUi();
     }
 
-    private void SetHoveredButton(int buttonIndex)
+    private void SetHoveredButton(int btnIndex)
     {
-        if (_hoveredButtonIndex == buttonIndex) return;
-        _hoveredButtonIndex = buttonIndex;
+        if (_hoveredButtonIndex == btnIndex) return;
+        _hoveredButtonIndex = btnIndex;
 
-        if (buttonIndex is >= 0 and < 9 && buttonIndex != _selectedButtonIndex)
+        if (_hoveredButtonIndex >= 0 && _hoveredButtonIndex != _selectedButtonIndex)
         {
-            var meta = ButtonMetaList[buttonIndex];
-            if (_pulseGlowBitmaps[buttonIndex] is { } pgBmp)
+            var meta = ButtonMetaList[_hoveredButtonIndex];
+            var glowBmp = _pulseGlowBitmaps[_hoveredButtonIndex];
+            if (glowBmp is not null)
             {
-                HoveredButtonGlowImage.Source = pgBmp;
-                HoveredButtonGlowImage.Width = pgBmp.PixelWidth;
-                HoveredButtonGlowImage.Height = pgBmp.PixelHeight;
                 Canvas.SetLeft(HoveredButtonGlowImage, MouseOffsetX + meta.RelX);
                 Canvas.SetTop(HoveredButtonGlowImage, MouseOffsetY + meta.RelY);
+                HoveredButtonGlowImage.Width = glowBmp.PixelWidth;
+                HoveredButtonGlowImage.Height = glowBmp.PixelHeight;
+                HoveredButtonGlowImage.Source = glowBmp;
+                HoveredButtonGlowImage.Opacity = 0.72;
                 HoveredButtonGlowImage.Visibility = Visibility.Visible;
             }
         }
@@ -923,10 +1307,10 @@ public partial class MainWindow : Window
             HoveredButtonGlowImage.Visibility = Visibility.Collapsed;
         }
 
-        UpdateCalloutHighlights();
+        UpdateCalloutHighlightVisuals();
     }
 
-    private void UpdateCalloutHighlights()
+    private void UpdateCalloutHighlightVisuals()
     {
         for (int i = 0; i < 9; i++)
         {
@@ -935,45 +1319,41 @@ public partial class MainWindow : Window
 
             if (isSelected)
             {
-                _calloutBorders[i].Background = (Brush)FindResource("BrushAccentCyanSubtle");
+                _calloutBorders[i].Background = new SolidColorBrush(Color.FromArgb(245, 18, 36, 52));
                 _calloutBorders[i].BorderBrush = (Brush)FindResource("BrushAccentCyan");
                 _leaderLines[i].Stroke = (Brush)FindResource("BrushAccentCyan");
-                _leaderLines[i].StrokeThickness = 2.0;
-                _anchorDots[i].Width = 9;
-                _anchorDots[i].Height = 9;
+                _leaderLines[i].StrokeThickness = 2.2;
+                _anchorDots[i].Fill = (Brush)FindResource("BrushAccentCyan");
             }
             else if (isHovered)
             {
                 _calloutBorders[i].Background = (Brush)FindResource("BrushBgElevated");
                 _calloutBorders[i].BorderBrush = (Brush)FindResource("BrushBorderStrong");
-                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(220, 0, 200, 255));
+                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(210, 56, 189, 248));
                 _leaderLines[i].StrokeThickness = 1.8;
-                _anchorDots[i].Width = 7;
-                _anchorDots[i].Height = 7;
+                _anchorDots[i].Fill = (Brush)FindResource("BrushAccentCyanHover");
             }
             else
             {
-                _calloutBorders[i].Background = (Brush)FindResource("BrushBgSurface2");
+                _calloutBorders[i].Background = new SolidColorBrush(Color.FromArgb(225, 17, 20, 28));
                 _calloutBorders[i].BorderBrush = (Brush)FindResource("BrushBorderSubtle");
-                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(120, 100, 116, 139));
+                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(100, 148, 163, 184));
                 _leaderLines[i].StrokeThickness = 1.4;
-                _anchorDots[i].Width = 7;
-                _anchorDots[i].Height = 7;
+                _anchorDots[i].Fill = new SolidColorBrush(Color.FromRgb(0, 180, 230));
             }
         }
     }
 
-    private void RefreshInspectorCard()
+    private void RefreshSelectedButtonInspectorUi()
     {
         var meta = ButtonMetaList[_selectedButtonIndex];
         var prof = _profiles[_activeProfileIndex];
-        string actionSpec = prof.Buttons[_selectedButtonIndex];
+        string spec = prof.Buttons[_selectedButtonIndex];
 
         InspectorBtnNumberText.Text = meta.CodeLabel;
         InspectorBtnTitleText.Text = meta.FullTitle;
-        var (code, mod, key) = G300sProtocol.EncodeButtonAction(actionSpec);
-        InspectorBtnSubText.Text = $"Button Index {_selectedButtonIndex} · Raw Bytes [{code:X2} {mod:X2} {key:X2}]";
-        InspectorCurrentActionText.Text = G300sProtocol.GetFriendlyActionTitle(actionSpec);
+        InspectorBtnSubText.Text = $"Profil {_activeProfileIndex + 1} Ataması";
+        InspectorCurrentActionText.Text = G300sProtocol.GetFriendlyActionTitle(spec);
     }
 
     private void MouseStageCanvas_MouseMove(object sender, MouseEventArgs e)
@@ -1002,8 +1382,7 @@ public partial class MainWindow : Window
 
     private int HitTestMouseButton(double mouseX, double mouseY)
     {
-        // Check smaller auxiliary buttons (G3..G9) before large primary buttons (G1, G2)
-        int[] checkOrder = [2, 3, 4, 5, 6, 7, 8, 0, 1];
+        int[] checkOrder = [8, 7, 6, 5, 4, 3, 2, 1, 0];
         foreach (int idx in checkOrder)
         {
             var meta = ButtonMetaList[idx];
@@ -1021,11 +1400,66 @@ public partial class MainWindow : Window
         return -1;
     }
 
+    private void NavRail_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string t } && int.TryParse(t, out int viewIdx))
+        {
+            SwitchMainView(viewIdx);
+        }
+    }
+
+    private void SwitchMainView(int viewIdx)
+    {
+        _activeViewIndex = Math.Clamp(viewIdx, 0, 3);
+        ViewAssignmentsGrid.Visibility = _activeViewIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ViewSensitivityGrid.Visibility = _activeViewIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        ViewLightingGrid.Visibility = _activeViewIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+        ViewAutomationGrid.Visibility = _activeViewIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
+
+        Button[] navBtns = [NavBtnAssignments, NavBtnSensitivity, NavBtnLighting, NavBtnAutomation];
+        for (int i = 0; i < navBtns.Length; i++)
+        {
+            bool active = i == _activeViewIndex;
+            navBtns[i].Background = active ? (Brush)FindResource("BrushAccentCyanSubtle") : Brushes.Transparent;
+            navBtns[i].BorderBrush = active ? (Brush)FindResource("BrushAccentCyanBorder") : Brushes.Transparent;
+            navBtns[i].Foreground = active ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
+        }
+
+        if (_activeViewIndex == 1)
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, RenderDpiGraph);
+        }
+    }
+
+    private void DrawerCategoryTab_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string t } && int.TryParse(t, out int catIdx))
+        {
+            SwitchDrawerCategory(catIdx);
+        }
+    }
+
+    private void SwitchDrawerCategory(int catIdx)
+    {
+        _activeDrawerCategory = Math.Clamp(catIdx, 0, 2);
+        DrawerPanelMouse.Visibility = _activeDrawerCategory == 0 ? Visibility.Visible : Visibility.Collapsed;
+        DrawerPanelDpi.Visibility = _activeDrawerCategory == 1 ? Visibility.Visible : Visibility.Collapsed;
+        DrawerPanelKey.Visibility = _activeDrawerCategory == 2 ? Visibility.Visible : Visibility.Collapsed;
+
+        Button[] tabs = [DrawerTabMouseBtn, DrawerTabDpiBtn, DrawerTabKeyBtn];
+        for (int i = 0; i < tabs.Length; i++)
+        {
+            bool active = i == _activeDrawerCategory;
+            tabs[i].Background = active ? (Brush)FindResource("BrushAccentCyanSubtle") : Brushes.Transparent;
+            tabs[i].Foreground = active ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
+        }
+    }
+
     private void AssignActionToSelectedButton(string actionSpec)
     {
         var prof = _profiles[_activeProfileIndex];
         prof.SetButtonAction(_selectedButtonIndex, actionSpec);
-        MarkModified($"Assigned '{G300sProtocol.GetFriendlyActionTitle(actionSpec)}' to {ButtonMetaList[_selectedButtonIndex].CodeLabel}.");
+        MarkModified($"{ButtonMetaList[_selectedButtonIndex].CodeLabel} tuşuna '{G300sProtocol.GetFriendlyActionTitle(actionSpec)}' atandı.");
         RefreshCurrentProfileToUi();
     }
 
@@ -1056,21 +1490,18 @@ public partial class MainWindow : Window
         }
 
         _isRecordingKey = true;
-        RecordKeyBtnText.Text = "Listening... Press any key or combo (Esc to cancel)";
+        RecordKeyBtnText.Text = "Dinleniyor... Bir tuşa basın (İptal: Esc)";
         RecordKeyBtn.BorderBrush = (Brush)FindResource("BrushAccentCyan");
         RecordKeyBtn.Focus();
     }
 
-    private void RecordKeyBtn_LostFocus(object sender, RoutedEventArgs e)
-    {
-        StopKeyRecording();
-    }
+    private void RecordKeyBtn_LostFocus(object sender, RoutedEventArgs e) => StopKeyRecording();
 
     private void StopKeyRecording()
     {
         if (!_isRecordingKey) return;
         _isRecordingKey = false;
-        RecordKeyBtnText.Text = "Record Keypress (Ctrl+C, F13...)";
+        RecordKeyBtnText.Text = "Tuş Kaydetmek İçin Tıklayın...";
         RecordKeyBtn.BorderBrush = (Brush)FindResource("BrushBorderSubtle");
     }
 
@@ -1081,7 +1512,6 @@ public partial class MainWindow : Window
 
         Key key = e.Key == Key.System ? e.SystemKey : e.Key;
 
-        // Ignore lone modifier presses while waiting for main key
         if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift
             or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin)
         {
@@ -1097,7 +1527,7 @@ public partial class MainWindow : Window
         string? hidName = G300sProtocol.MapWpfKeyToHidName(key);
         if (hidName is null)
         {
-            StatusFooterText.Text = $"Unsupported HID key '{key}'. Try standard alphanumeric, F1-F24, or navigation keys.";
+            StatusFooterText.Text = $"Desteklenmeyen tuş '{key}'. Standart harf/rakam veya F1-F24 deneyin.";
             StopKeyRecording();
             return;
         }
@@ -1124,17 +1554,10 @@ public partial class MainWindow : Window
 
         if (_device.IsConnected)
         {
-            try
-            {
-                _device.SetLiveRate(hz);
-            }
-            catch
-            {
-                // Ignore live rate error
-            }
+            try { _device.SetLiveRate(hz); } catch { /* ignore */ }
         }
 
-        MarkModified($"Set Slot {_activeProfileIndex + 1} polling rate to {hz} Hz (live 0xF2 applied).");
+        MarkModified($"Profil {_activeProfileIndex + 1} bildirim hızı {hz} Hz olarak ayarlandı.");
         RefreshCurrentProfileToUi();
     }
 
@@ -1143,7 +1566,7 @@ public partial class MainWindow : Window
         if (_suppressUiEvents) return;
         var prof = _profiles[_activeProfileIndex];
         prof.SetDpiStage(stageIdx, newValue);
-        MarkModified($"Updated Stage {stageIdx + 1} sensitivity to {prof.DpiStages[stageIdx]} DPI.");
+        MarkModified($"Kademe {stageIdx + 1} hassasiyeti {prof.DpiStages[stageIdx]} DPI yapıldı.");
         RefreshCurrentProfileToUi();
     }
 
@@ -1152,7 +1575,7 @@ public partial class MainWindow : Window
         var prof = _profiles[_activeProfileIndex];
         int next = Math.Clamp(prof.DpiStages[stageIdx] + delta, 250, 2500);
         prof.SetDpiStage(stageIdx, next);
-        MarkModified($"Adjusted Stage {stageIdx + 1} sensitivity to {next} DPI.");
+        MarkModified($"Kademe {stageIdx + 1} hassasiyeti {next} DPI yapıldı.");
         RefreshCurrentProfileToUi();
     }
 
@@ -1164,11 +1587,11 @@ public partial class MainWindow : Window
             try
             {
                 _device.SetActiveDpiStage(_activeDpiStageIndex);
-                StatusFooterText.Text = $"Switched active hardware sensitivity to Stage {_activeDpiStageIndex + 1} ({_profiles[_activeProfileIndex].DpiStages[_activeDpiStageIndex]} DPI).";
+                StatusFooterText.Text = $"Donanım hassasiyeti Kademe {_activeDpiStageIndex + 1} ({_profiles[_activeProfileIndex].DpiStages[_activeDpiStageIndex]} DPI) olarak etkinleştirildi.";
             }
             catch (Exception ex)
             {
-                StatusFooterText.Text = $"Failed to switch DPI stage: {ex.Message}";
+                StatusFooterText.Text = $"DPI kademesi değiştirilemedi: {ex.Message}";
             }
         }
         RefreshCurrentProfileToUi();
@@ -1178,7 +1601,7 @@ public partial class MainWindow : Window
     {
         var prof = _profiles[_activeProfileIndex];
         prof.DefaultDpiStage = stageIdx;
-        MarkModified($"Set Stage {stageIdx + 1} ({prof.DpiStages[stageIdx]} DPI) as boot default for Slot {_activeProfileIndex + 1}.");
+        MarkModified($"Kademe {stageIdx + 1} ({prof.DpiStages[stageIdx]} DPI) açılış varsayılanı olarak işaretlendi.");
         RefreshCurrentProfileToUi();
     }
 
@@ -1187,49 +1610,88 @@ public partial class MainWindow : Window
         var prof = _profiles[_activeProfileIndex];
         prof.SetLed(r, g, b);
 
+        _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (r, g, b), _secondaryBreathColor);
+
         if (_device.IsConnected && _automation.ActiveRgbEffect == "none")
         {
-            try
-            {
-                _device.SetLiveLed(r, g, b);
-            }
-            catch
-            {
-                // Ignore transient error
-            }
+            try { _device.SetLiveLed(r, g, b); } catch { /* ignore */ }
         }
 
-        MarkModified($"Set Slot {_activeProfileIndex + 1} illumination to {prof.ColorName} (live 0xF1 preview applied).");
+        MarkModified($"Profil {_activeProfileIndex + 1} ana rengi {prof.ColorName} olarak seçildi.");
         RefreshSlotHeaderVisuals();
         RefreshCurrentProfileToUi();
     }
 
-    private void RgbEffectCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void SelectSecondaryLedColor(int r, int g, int b)
     {
-        if (_suppressUiEvents || _automation is null) return;
-        if (RgbEffectCombo.SelectedItem is ComboBoxItem { Tag: string effect })
-        {
-            var prof = _profiles[_activeProfileIndex];
-            _automation.SetRgbEffect(effect, 350, (prof.LedR, prof.LedG, prof.LedB));
+        _secondaryBreathColor = (r, g, b);
+        var prof = _profiles[_activeProfileIndex];
+        _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (prof.LedR, prof.LedG, prof.LedB), _secondaryBreathColor);
+        UpdateSecondarySwatchVisuals();
+        StatusFooterText.Text = "Nefes alma ikincil geçiş rengi güncellendi.";
+    }
 
-            if (effect == "none" && _device.IsConnected)
-            {
-                try { _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB); } catch { /* ignore */ }
-            }
-            StatusFooterText.Text = $"Live RAM lighting mode set to '{effect}'.";
+    private void UpdateSecondarySwatchVisuals()
+    {
+        for (int i = 0; i < PaletteSwatches.Length; i++)
+        {
+            var sw = PaletteSwatches[i];
+            bool selected = _secondaryBreathColor.R == sw.R && _secondaryBreathColor.G == sw.G && _secondaryBreathColor.B == sw.B;
+            _secondarySwatchBorders[i].BorderBrush = selected ? (Brush)FindResource("BrushAccentCyan") : Brushes.Transparent;
         }
+    }
+
+    private void SelectLightingMode(string effectKey)
+    {
+        var prof = _profiles[_activeProfileIndex];
+        int speedMs = (int)BreathSpeedSlider.Value;
+        _automation.SetRgbEffect(effectKey, speedMs, (prof.LedR, prof.LedG, prof.LedB), _secondaryBreathColor);
+
+        if (effectKey == "none" && _device.IsConnected)
+        {
+            try { _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB); } catch { /* ignore */ }
+        }
+
+        UpdateLightingModeSelectionVisuals(effectKey);
+        RefreshCurrentProfileToUi();
+        StatusFooterText.Text = $"Işıklandırma modu '{effectKey}' olarak etkinleştirildi.";
+    }
+
+    private void UpdateLightingModeSelectionVisuals(string activeKey)
+    {
+        for (int i = 0; i < LightingModes.Length; i++)
+        {
+            bool active = string.Equals(LightingModes[i].Key, activeKey, StringComparison.OrdinalIgnoreCase);
+            _lightingModeBorders[i].Background = active
+                ? new SolidColorBrush(Color.FromArgb(245, 18, 36, 52))
+                : (Brush)FindResource("BrushBgSurface1");
+            _lightingModeBorders[i].BorderBrush = active
+                ? (Brush)FindResource("BrushAccentCyan")
+                : (Brush)FindResource("BrushBorderSubtle");
+        }
+    }
+
+    private void BreathSpeedSlider_ValueChanged(object sender, RoutedEventArgs e)
+    {
+        if (BreathSpeedValueText is null) return;
+        double ms = BreathSpeedSlider.Value;
+        BreathSpeedValueText.Text = $"{ms / 1000.0:0.0} sn";
+
+        if (_suppressUiEvents || _automation is null) return;
+        var prof = _profiles[_activeProfileIndex];
+        _automation.UpdateRgbParameters((int)ms, (prof.LedR, prof.LedG, prof.LedB), _secondaryBreathColor);
     }
 
     private void MarkModified(string message)
     {
         _hasUnsavedChanges = true;
-        StatusFooterText.Text = $"{message} (Unsaved changes in editor — click 'Flash to Memory' to persist)";
+        StatusFooterText.Text = $"{message} (Kalıcı olması için 'Belleğe Kaydet' butonuna tıklayın)";
         UpdateDirtyStateVisuals();
     }
 
     private void UpdateDirtyStateVisuals()
     {
-        FlashSaveBtnText.Text = _hasUnsavedChanges ? "Flash to Memory ●" : "Flash to Memory";
+        FlashSaveBtnText.Text = _hasUnsavedChanges ? "Belleğe Kaydet ●" : "Belleğe Kaydet";
     }
 
     private async void SaveToHardware_Click(object sender, RoutedEventArgs e)
@@ -1238,16 +1700,16 @@ public partial class MainWindow : Window
         {
             MessageBox.Show(
                 this,
-                "Logitech G300s is not connected via USB. Connect the mouse and click 'Read Device'.",
-                "Hardware Offline",
+                "Logitech G300s USB üzerinden bağlı değil.",
+                "Donanım Çevrimdışı",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
         }
 
         FlashSaveBtn.IsEnabled = false;
-        FlashSaveBtnText.Text = "Flashing EEPROM...";
-        StatusFooterText.Text = "Checking 0xF0 busy lock and writing 35-byte profile blocks to onboard flash...";
+        FlashSaveBtnText.Text = "Yazılıyor...";
+        StatusFooterText.Text = "0xF0 meşgul kilidi kontrol ediliyor ve 3 profil yerleşik EEPROM belleğe yazılıyor...";
 
         try
         {
@@ -1259,18 +1721,21 @@ public partial class MainWindow : Window
                 }
                 _device.SetActiveProfile(_activeProfileIndex);
                 var p = _profiles[_activeProfileIndex];
-                _device.SetLiveLed(p.LedR, p.LedG, p.LedB);
+                if (_automation.ActiveRgbEffect == "none")
+                {
+                    _device.SetLiveLed(p.LedR, p.LedG, p.LedB);
+                }
                 _device.SetLiveRate(p.PollingRateHz);
             });
 
             _hasUnsavedChanges = false;
             UpdateDirtyStateVisuals();
-            StatusFooterText.Text = "All 3 onboard memory slots flashed and verified on Logitech G300s hardware.";
+            StatusFooterText.Text = "Tüm 3 yerleşik profil Logitech G300s belleğine yazıldı ve doğrulandı.";
         }
         catch (Exception ex)
         {
-            StatusFooterText.Text = $"EEPROM flash failed: {ex.Message}";
-            MessageBox.Show(this, $"Failed to write profiles to onboard flash:\n{ex.Message}", "Flash Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusFooterText.Text = $"EEPROM yazma hatası: {ex.Message}";
+            MessageBox.Show(this, $"Donanım belleğine yazılamadı:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -1279,10 +1744,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ReloadFromMouse_Click(object sender, RoutedEventArgs e)
-    {
-        ConnectAndReadHardware();
-    }
+    private void ReloadFromMouse_Click(object sender, RoutedEventArgs e) => ConnectAndReadHardware();
 
     private void ResetProfileDefaults_Click(object sender, RoutedEventArgs e)
     {
@@ -1294,9 +1756,9 @@ public partial class MainWindow : Window
         prof.SetDpiStage(2, 1500);
         prof.SetDpiStage(3, 2500);
 
-        if (_activeProfileIndex == 0) prof.SetLed(0, 1, 1);
+        if (_activeProfileIndex == 0) prof.SetLed(1, 0, 1);
         else if (_activeProfileIndex == 1) prof.SetLed(0, 1, 0);
-        else prof.SetLed(0, 0, 1);
+        else prof.SetLed(0, 1, 1);
 
         prof.SetButtonAction(0, "mouse:1");
         prof.SetButtonAction(1, "mouse:2");
@@ -1308,52 +1770,16 @@ public partial class MainWindow : Window
         prof.SetButtonAction(7, "profile-cycle");
         prof.SetButtonAction(8, "dpi-cycle");
 
-        MarkModified($"Loaded factory default layout into Slot {_activeProfileIndex + 1}.");
+        MarkModified($"Profil {_activeProfileIndex + 1} fabrika varsayılanlarına sıfırlandı.");
         RefreshSlotHeaderVisuals();
         RefreshCurrentProfileToUi();
     }
 
-    private void ExportJson_Click(object sender, RoutedEventArgs e)
+    private void SlotButton_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new SaveFileDialog
+        if (sender is Button { Tag: string t } && int.TryParse(t, out int idx))
         {
-            Title = "Export Logitech G300s Onboard Profiles",
-            Filter = "JSON Profile Snapshot (*.json)|*.json",
-            FileName = "g300s_profiles_backup.json"
-        };
-        if (dlg.ShowDialog(this) != true) return;
-
-        try
-        {
-            var root = new JsonObject
-            {
-                ["active_profile"] = _activeProfileIndex,
-                ["active_dpi_level"] = _activeDpiStageIndex
-            };
-            var arr = new JsonArray();
-            for (int i = 0; i < 3; i++)
-            {
-                var p = _profiles[i];
-                arr.Add(new JsonObject
-                {
-                    ["index"] = p.Index,
-                    ["led"] = new JsonArray(p.LedR, p.LedG, p.LedB),
-                    ["rate"] = p.PollingRateHz,
-                    ["dpis"] = new JsonArray(p.DpiStages[0], p.DpiStages[1], p.DpiStages[2], p.DpiStages[3]),
-                    ["default_dpi"] = p.DefaultDpiStage,
-                    ["raw7"] = p.Raw7,
-                    ["buttons"] = new JsonArray(p.Buttons.Select(b => (JsonNode)b).ToArray())
-                });
-            }
-            root["profiles"] = arr;
-
-            var opts = new JsonSerializerOptions { WriteIndented = true };
-            File.WriteAllText(dlg.FileName, root.ToJsonString(opts), Encoding.UTF8);
-            StatusFooterText.Text = $"Exported 3 onboard profiles to '{Path.GetFileName(dlg.FileName)}'.";
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, $"Export failed:\n{ex.Message}", "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            SelectProfileSlot(idx, sendToHardware: true);
         }
     }
 
@@ -1361,209 +1787,271 @@ public partial class MainWindow : Window
     {
         var dlg = new OpenFileDialog
         {
-            Title = "Import Logitech G300s Onboard Profiles",
-            Filter = "JSON Profile Snapshot (*.json)|*.json"
+            Title = "Logitech G300s Profil Yedeğini İçe Aktar",
+            Filter = "JSON Profil Yedeği (*.json)|*.json|Tüm Dosyalar (*.*)|*.*"
         };
+
         if (dlg.ShowDialog(this) != true) return;
 
         try
         {
-            string json = File.ReadAllText(dlg.FileName, Encoding.UTF8);
-            var root = JsonNode.Parse(json)?.AsObject();
-            if (root?["profiles"] is not JsonArray arr)
-                throw new InvalidDataException("JSON does not contain a 'profiles' array.");
-
-            for (int i = 0; i < Math.Min(3, arr.Count); i++)
+            var root = JsonNode.Parse(File.ReadAllText(dlg.FileName)) as JsonObject;
+            if (root?["profiles"] is JsonArray arr)
             {
-                if (arr[i] is not JsonObject pObj) continue;
-                var p = _profiles[i];
-                p.PollingRateHz = pObj["rate"]?.GetValue<int>() ?? 1000;
-                p.DefaultDpiStage = Math.Clamp(pObj["default_dpi"]?.GetValue<int>() ?? 1, 0, 3);
-                p.Raw7 = (byte)(pObj["raw7"]?.GetValue<int>() ?? 0x40);
-
-                if (pObj["led"] is JsonArray ledArr && ledArr.Count >= 3)
+                for (int i = 0; i < Math.Min(3, arr.Count); i++)
                 {
-                    p.SetLed(ledArr[0]!.GetValue<int>(), ledArr[1]!.GetValue<int>(), ledArr[2]!.GetValue<int>());
+                    if (arr[i] is not JsonObject pObj) continue;
+                    string? rawHex = pObj["raw_hex"]?.GetValue<string>();
+                    if (!string.IsNullOrWhiteSpace(rawHex) && rawHex.Length == 70)
+                    {
+                        byte[] raw = Convert.FromHexString(rawHex);
+                        _profiles[i] = G300sProfile.FromRawReport(raw, i);
+                    }
                 }
-                if (pObj["dpis"] is JsonArray dpiArr && dpiArr.Count >= 4)
-                {
-                    for (int s = 0; s < 4; s++) p.SetDpiStage(s, dpiArr[s]!.GetValue<int>());
-                }
-                if (pObj["buttons"] is JsonArray btnArr)
-                {
-                    for (int b = 0; b < Math.Min(9, btnArr.Count); b++)
-                        p.SetButtonAction(b, btnArr[b]?.GetValue<string>() ?? "none");
-                }
+                MarkModified($"Profiller '{Path.GetFileName(dlg.FileName)}' dosyasından yüklendi.");
+                RefreshSlotHeaderVisuals();
+                RefreshCurrentProfileToUi();
             }
-
-            MarkModified($"Imported profiles from '{Path.GetFileName(dlg.FileName)}'.");
-            RefreshSlotHeaderVisuals();
-            RefreshCurrentProfileToUi();
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Import failed:\n{ex.Message}", "Import Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, $"JSON içe aktarma hatası:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
-    private void SlotButton_Click(object sender, RoutedEventArgs e)
+    private void ExportJson_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { Tag: string tag } && int.TryParse(tag, out int idx))
+        var dlg = new SaveFileDialog
         {
-            SelectProfileSlot(idx, sendToHardware: true);
-        }
-    }
+            Title = "Logitech G300s Profil Yedeğini Dışa Aktar",
+            FileName = "g300s_profiles_backup.json",
+            Filter = "JSON Profil Yedeği (*.json)|*.json"
+        };
 
-    private void WorkspaceTab_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { Tag: string tag } && int.TryParse(tag, out int tabIdx))
+        if (dlg.ShowDialog(this) != true) return;
+
+        try
         {
-            UpdateWorkspaceTabVisuals(tabIdx);
+            var arr = new JsonArray();
+            for (int i = 0; i < 3; i++)
+            {
+                var p = _profiles[i];
+                var dpiArr = new JsonArray();
+                for (int d = 0; d < 4; d++)
+                {
+                    dpiArr.Add(new JsonObject
+                    {
+                        ["dpi"] = p.DpiStages[d],
+                        ["is_default"] = d == p.DefaultDpiStage
+                    });
+                }
+
+                var btnArr = new JsonArray();
+                for (int b = 0; b < 9; b++)
+                {
+                    btnArr.Add(p.Buttons[b]);
+                }
+
+                arr.Add(new JsonObject
+                {
+                    ["index"] = i,
+                    ["report_id"] = $"0x{0xF3 + i:X2}",
+                    ["led"] = new JsonObject
+                    {
+                        ["r"] = p.LedR,
+                        ["g"] = p.LedG,
+                        ["b"] = p.LedB,
+                        ["name"] = p.ColorName
+                    },
+                    ["report_rate_hz"] = p.PollingRateHz,
+                    ["dpi_levels"] = dpiArr,
+                    ["buttons"] = btnArr,
+                    ["raw_hex"] = Convert.ToHexString(p.ToRawReport()).ToLowerInvariant()
+                });
+            }
+
+            var root = new JsonObject
+            {
+                ["active_profile"] = _activeProfileIndex,
+                ["active_dpi_level"] = _activeDpiStageIndex,
+                ["profiles"] = arr
+            };
+
+            File.WriteAllText(dlg.FileName, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+            StatusFooterText.Text = $"3 profil '{Path.GetFileName(dlg.FileName)}' dosyasına dışa aktarıldı.";
         }
-    }
-
-    private void UpdateWorkspaceTabVisuals(int tabIdx)
-    {
-        bool isHw = tabIdx == 0;
-        HardwareWorkspaceGrid.Visibility = isHw ? Visibility.Visible : Visibility.Collapsed;
-        DaemonWorkspaceGrid.Visibility = isHw ? Visibility.Collapsed : Visibility.Visible;
-
-        TabHardwareBtn.Background = isHw ? (Brush)FindResource("BrushBgElevated") : Brushes.Transparent;
-        TabHardwareBtn.Foreground = isHw ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
-
-        TabDaemonBtn.Background = !isHw ? (Brush)FindResource("BrushBgElevated") : Brushes.Transparent;
-        TabDaemonBtn.Foreground = !isHw ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"JSON dışa aktarma hatası:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void SaveDaemonConfig_Click(object sender, RoutedEventArgs e)
     {
         _automation.SaveConfig();
-        StatusFooterText.Text = $"Saved host macro & auto-switch rules to '{_automation.ConfigFilePath}'.";
+        StatusFooterText.Text = "Makro ve otomatik profil kuralları ~/.g300s_daemon.json dosyasına kaydedildi.";
     }
 
     private void AutoSwitchToggle_Changed(object sender, RoutedEventArgs e)
     {
-        if (_automation is null) return;
+        if (_suppressUiEvents || _automation is null) return;
         _automation.AutoProfileSwitchEnabled = AutoSwitchToggle.IsChecked == true;
-        StatusFooterText.Text = _automation.AutoProfileSwitchEnabled
-            ? "Foreground application auto-profile switching enabled."
-            : "Foreground application auto-profile switching paused.";
+        _automation.SaveConfig();
     }
 
     private void DefaultSlotCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_automation is null) return;
-        if (DefaultSlotCombo.SelectedItem is ComboBoxItem { Tag: string tag } && int.TryParse(tag, out int slot))
-        {
-            _automation.DefaultProfileIndex = slot;
-            _automation.SaveConfig();
-        }
+        if (_suppressUiEvents || _automation is null) return;
+        _automation.DefaultProfileIndex = Math.Clamp(DefaultSlotCombo.SelectedIndex, 0, 2);
+        _automation.SaveConfig();
     }
 
     private void NewRuleExeCombo_DropDownOpened(object sender, EventArgs e)
     {
+        string current = NewRuleExeCombo.Text;
+        NewRuleExeCombo.Items.Clear();
+
         try
         {
-            var running = Process.GetProcesses()
-                .Where(p => p.MainWindowHandle != IntPtr.Zero && !string.IsNullOrWhiteSpace(p.ProcessName))
-                .Select(p => $"{p.ProcessName.ToLowerInvariant()}.exe")
-                .Distinct()
+            var names = Process.GetProcesses()
+                .Where(p => p.MainWindowHandle != IntPtr.Zero)
+                .Select(p =>
+                {
+                    try { return p.ProcessName + ".exe"; }
+                    catch { return null; }
+                })
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(n => n)
                 .ToList();
 
-            NewRuleExeCombo.ItemsSource = running;
+            foreach (string? n in names)
+            {
+                NewRuleExeCombo.Items.Add(n!);
+            }
         }
         catch
         {
-            // Ignore process enumeration error
+            // Ignore process enumeration errors
         }
+
+        NewRuleExeCombo.Text = current;
     }
 
     private void AddAppRule_Click(object sender, RoutedEventArgs e)
     {
         string exe = NewRuleExeCombo.Text.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(exe)) return;
-        if (!exe.EndsWith(".exe")) exe += ".exe";
+        if (string.IsNullOrEmpty(exe)) return;
+        if (!exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            exe += ".exe";
+        }
 
-        int slot = 1;
-        if (NewRuleSlotCombo.SelectedItem is ComboBoxItem { Tag: string tag } && int.TryParse(tag, out int parsed))
-            slot = parsed;
+        int slot = Math.Clamp(NewRuleSlotCombo.SelectedIndex, 0, 2);
+        var existing = _automation.AppRules.FirstOrDefault(r => string.Equals(r.ExecutableName, exe, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.ProfileIndex = slot;
+        }
+        else
+        {
+            _automation.AppRules.Add(new AppProfileRule { ExecutableName = exe, ProfileIndex = slot });
+        }
 
-        _automation.AppRules.RemoveAll(r => string.Equals(r.ExecutableName, exe, StringComparison.OrdinalIgnoreCase));
-        _automation.AppRules.Add(new AppProfileRule { ExecutableName = exe, ProfileIndex = slot });
         _automation.SaveConfig();
         RefreshAppRulesListUi();
-        StatusFooterText.Text = $"Added auto-switch rule: '{exe}' -> Slot {slot + 1}.";
+        StatusFooterText.Text = $"Otomatik geçiş kuralı eklendi: {exe} → Profil {slot + 1}.";
     }
 
-    private void OnHardwareEventReceived(HardwareButtonEvent evt)
+    private void OnHardwareEventReceived(HardwareButtonEvent ev)
     {
         Dispatcher.BeginInvoke(() =>
         {
-            string stateStr = evt.IsPressed ? "PRESSED" : "RELEASED";
-            TelemetryEventText.Text = $"[0x80] {evt.ActionName.ToUpperInvariant()} -> {stateStr}";
+            string stateLabel = ev.IsPressed ? "Basıldı" : "Bırakıldı";
+            TelemetryEventText.Text = $"Donanım Olayı: {ev.ActionName} ({stateLabel})";
 
-            // Refresh active state if hardware cycled profile or DPI
-            if (!evt.IsPressed && _device.IsConnected)
+            if (_device.IsConnected)
             {
                 try
                 {
-                    var st = _device.GetActiveState();
-                    _activeDpiStageIndex = st.DpiStageIndex;
-                    if (st.ProfileIndex != _activeProfileIndex)
+                    var state = _device.GetActiveState();
+                    if (state.ProfileIndex != _activeProfileIndex || state.DpiStageIndex != _activeDpiStageIndex)
                     {
-                        SelectProfileSlot(st.ProfileIndex, sendToHardware: false);
-                    }
-                    else
-                    {
+                        _activeProfileIndex = state.ProfileIndex;
+                        _activeDpiStageIndex = state.DpiStageIndex;
+                        RefreshSlotHeaderVisuals();
                         RefreshCurrentProfileToUi();
                     }
                 }
                 catch
                 {
-                    // Ignore
+                    // Ignore transient state poll error
                 }
             }
         });
     }
 
-    private void OnAutoProfileSwitched(int targetProfile, string exeName)
+    private void OnAutoProfileSwitched(int newSlot, string exeName)
     {
         Dispatcher.BeginInvoke(() =>
         {
-            SelectProfileSlot(targetProfile, sendToHardware: false);
-            StatusFooterText.Text = $"Auto-switched to Slot {targetProfile + 1} for active process '{exeName}'.";
+            _activeProfileIndex = newSlot;
+            RefreshSlotHeaderVisuals();
+            RefreshCurrentProfileToUi();
+            StatusFooterText.Text = $"Otomatik geçiş: '{exeName}' algılandı → Profil {newSlot + 1}";
         });
     }
 
-    private void OnMacroKeyTriggered(string keyName, bool isDown)
+    private void OnMacroKeyTriggered(string desc)
     {
         Dispatcher.BeginInvoke(() =>
         {
-            string stateStr = isDown ? "TRIGGERED" : "RELEASED";
-            TelemetryEventText.Text = $"[HOOK] {keyName.ToUpperInvariant()} -> {stateStr}";
+            TelemetryEventText.Text = $"Makro: {desc}";
         });
     }
 
     private void MinimizeToTray_Click(object sender, RoutedEventArgs e)
     {
         Hide();
+        StatusFooterText.Text = "Arka planda sistem tepsisinde (System Tray) çalışmaya devam ediyor.";
+    }
+
+    private void CaptionMinimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void CaptionMaximize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
+
+    private void CaptionClose_Click(object sender, RoutedEventArgs e)
+    {
+        _isExiting = true;
+        Close();
     }
 
     private void RestoreFromTray()
     {
-        Show();
-        WindowState = WindowState.Normal;
-        Activate();
+        Dispatcher.Invoke(() =>
+        {
+            Show();
+            if (WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+            }
+            Activate();
+        });
     }
 
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         if (!_isExiting)
         {
-            // Close button exits cleanly and disposes native hooks/tray
-            _isExiting = true;
+            e.Cancel = true;
+            Hide();
+            return;
         }
+
+        _livePreviewTimer.Stop();
         _tray.Dispose();
         _automation.Dispose();
         _device.Dispose();
@@ -1574,17 +2062,16 @@ public partial class MainWindow : Window
         try
         {
             UpdateLayout();
-            double dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
-            int width = (int)(ActualWidth * dpiScale);
-            int height = (int)(ActualHeight * dpiScale);
+            int w = (int)Math.Max(1, ActualWidth);
+            int h = (int)Math.Max(1, ActualHeight);
 
-            var rtb = new RenderTargetBitmap(width, height, 96 * dpiScale, 96 * dpiScale, PixelFormats.Pbgra32);
+            var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
             rtb.Render(this);
 
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(rtb));
 
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outputPath))!);
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             using var fs = File.Create(outputPath);
             encoder.Save(fs);
         }
