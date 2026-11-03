@@ -269,7 +269,18 @@ def main(argv: List[str] = None):
     p_daemon = subparsers.add_parser("daemon", help="Run background daemon for auto-profile, macros, and RGB")
     p_daemon.add_argument("--config", help="Custom path to daemon configuration JSON", default=None)
 
+    # gui
+    subparsers.add_parser("gui", help="Launch interactive desktop GUI application")
+
+    if not argv:
+        argv = ["gui"]
+
     parsed = parser.parse_args(argv)
+
+    if parsed.command == "gui":
+        from .gui import run_gui
+        run_gui()
+        return
 
     if parsed.command == "daemon":
         try:
