@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Logitech G300s"
-        Width="1440" Height="860"
-        MinWidth="1180" MinHeight="740"
+        Width="1420" Height="850"
+        MinWidth="1160" MinHeight="720"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BrushBgCanvas}"
         Foreground="{StaticResource BrushTextPrimary}"
@@ -31,12 +31,12 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- ==================== INTEGRATED FRAMELESS TOP BAR ==================== -->
+            <!-- ==================== INTEGRATED FRAMELESS HEADER ==================== -->
             <Border Grid.Row="0"
                     Background="{StaticResource BrushBgRail}"
                     BorderBrush="{StaticResource BrushBorderSubtle}"
                     BorderThickness="0,0,0,1"
-                    Padding="18,0,10,0">
+                    Padding="22,0,12,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -44,139 +44,113 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left: Brand Identity + Live Telemetry Pill -->
+                    <!-- Left: Clean Wordmark + Subtle Live Status -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="30" Height="30" CornerRadius="8"
-                                Background="{StaticResource BrushAccentCyanSubtle}"
-                                BorderBrush="{StaticResource BrushAccentCyanBorder}"
-                                BorderThickness="1"
-                                Margin="0,0,12,0">
-                            <TextBlock Text="G" FontFamily="{StaticResource FontDisplay}"
-                                       FontSize="16" FontWeight="Bold"
-                                       Foreground="{StaticResource BrushAccentCyan}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-
                         <TextBlock Text="G300s"
                                    FontFamily="{StaticResource FontDisplay}"
-                                   FontSize="16" FontWeight="Bold"
+                                   FontSize="16" FontWeight="SemiBold"
                                    Foreground="{StaticResource BrushTextPrimary}"
                                    VerticalAlignment="Center"
-                                   Margin="0,0,14,0" />
+                                   Margin="0,0,16,0" />
 
                         <Border x:Name="ConnectionBadge"
-                                CornerRadius="12" Padding="10,4"
+                                CornerRadius="8" Padding="10,4"
                                 Background="{StaticResource BrushBgSurface1}"
-                                BorderBrush="{StaticResource BrushBorderSubtle}"
-                                BorderThickness="1"
                                 VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
-                                <Ellipse x:Name="ConnectionDot" Width="7" Height="7" Fill="{StaticResource BrushSuccess}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                                <Ellipse x:Name="ConnectionDot" Width="6" Height="6" Fill="{StaticResource BrushSuccess}" Margin="0,0,8,0" VerticalAlignment="Center" />
                                 <TextBlock x:Name="ConnectionStatusText" Text="Bağlı"
-                                           FontSize="11.5" FontWeight="SemiBold"
+                                           FontSize="12" FontWeight="Medium"
                                            Foreground="{StaticResource BrushTextPrimary}" VerticalAlignment="Center" />
-                                <TextBlock Text="·" Foreground="{StaticResource BrushTextMuted}" Margin="7,0" VerticalAlignment="Center" />
-                                <TextBlock x:Name="TelemetryDpiText" Text="2250 DPI"
-                                           FontFamily="{StaticResource FontMono}" FontSize="11"
-                                           Foreground="{StaticResource BrushAccentCyan}" VerticalAlignment="Center" />
-                                <TextBlock Text="·" Foreground="{StaticResource BrushTextMuted}" Margin="7,0" VerticalAlignment="Center" />
+                                <TextBlock Text="·" Foreground="{StaticResource BrushTextMuted}" Margin="8,0" VerticalAlignment="Center" />
+                                <TextBlock x:Name="TelemetryDpiText" Text="2000 DPI"
+                                           FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                <TextBlock Text="·" Foreground="{StaticResource BrushTextMuted}" Margin="8,0" VerticalAlignment="Center" />
                                 <TextBlock x:Name="TelemetryRateText" Text="1000 Hz"
-                                           FontFamily="{StaticResource FontMono}" FontSize="11"
-                                           Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                           FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>
 
                         <Border x:Name="LgsWarningBadge" Visibility="Collapsed"
-                                CornerRadius="12" Padding="9,3" Margin="8,0,0,0"
+                                CornerRadius="8" Padding="9,3" Margin="8,0,0,0"
                                 Background="{StaticResource BrushWarningSubtle}"
-                                BorderBrush="#50F59E0B" BorderThickness="1"
                                 VerticalAlignment="Center"
                                 ToolTip="Logitech Gaming Software (LCore.exe) arka planda çalışıyor.">
-                            <TextBlock Text="LGS Çakışması" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource BrushWarning}" />
+                            <TextBlock Text="LGS Açık" FontSize="11.5" FontWeight="Medium" Foreground="{StaticResource BrushWarning}" />
                         </Border>
                     </StackPanel>
 
-                    <!-- Center: Floating 3-Slot Onboard Profile Pill -->
+                    <!-- Center: Segmented Onboard Profile Switcher -->
                     <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
                             Background="{StaticResource BrushBgSurface1}"
-                            BorderBrush="{StaticResource BrushBorderSubtle}"
-                            BorderThickness="1" CornerRadius="10" Padding="3"
+                            CornerRadius="9" Padding="3"
                             WindowChrome.IsHitTestVisibleInChrome="True">
                         <StackPanel Orientation="Horizontal">
                             <Button x:Name="SlotBtn0" Click="SlotButton_Click" Tag="0"
                                     Style="{StaticResource ToolbarActionButton}"
-                                    Height="30" Padding="15,0" BorderThickness="0" Margin="0,0,2,0">
+                                    Height="28" Padding="16,0" BorderThickness="0" Margin="0,0,2,0">
                                 <StackPanel Orientation="Horizontal">
-                                    <Ellipse x:Name="SlotDot0" Width="8" Height="8" Fill="#E040FB" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="Profil 1" FontFamily="{StaticResource FontDisplay}" FontSize="12" FontWeight="SemiBold" />
+                                    <Ellipse x:Name="SlotDot0" Width="7" Height="7" Fill="#E040FB" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Profil 1" FontSize="12.5" FontWeight="Medium" />
                                 </StackPanel>
                             </Button>
                             <Button x:Name="SlotBtn1" Click="SlotButton_Click" Tag="1"
                                     Style="{StaticResource ToolbarActionButton}"
-                                    Height="30" Padding="15,0" BorderThickness="0" Margin="0,0,2,0">
+                                    Height="28" Padding="16,0" BorderThickness="0" Margin="0,0,2,0">
                                 <StackPanel Orientation="Horizontal">
-                                    <Ellipse x:Name="SlotDot1" Width="8" Height="8" Fill="#00E676" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="Profil 2" FontFamily="{StaticResource FontDisplay}" FontSize="12" FontWeight="SemiBold" />
+                                    <Ellipse x:Name="SlotDot1" Width="7" Height="7" Fill="#00E676" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Profil 2" FontSize="12.5" FontWeight="Medium" />
                                 </StackPanel>
                             </Button>
                             <Button x:Name="SlotBtn2" Click="SlotButton_Click" Tag="2"
                                     Style="{StaticResource ToolbarActionButton}"
-                                    Height="30" Padding="15,0" BorderThickness="0">
+                                    Height="28" Padding="16,0" BorderThickness="0">
                                 <StackPanel Orientation="Horizontal">
-                                    <Ellipse x:Name="SlotDot2" Width="8" Height="8" Fill="#00D4FF" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="Profil 3" FontFamily="{StaticResource FontDisplay}" FontSize="12" FontWeight="SemiBold" />
+                                    <Ellipse x:Name="SlotDot2" Width="7" Height="7" Fill="#00D4FF" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Profil 3" FontSize="12.5" FontWeight="Medium" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
                     </Border>
 
-                    <!-- Right: Action Buttons & Frameless Window Controls -->
+                    <!-- Right: Clean Actions & Window Controls -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                 WindowChrome.IsHitTestVisibleInChrome="True">
-                        <Button Click="ImportJson_Click" Style="{StaticResource ToolbarActionButton}" Padding="10,0" Margin="0,0,5,0" ToolTip="Profil yedeğini JSON dosyasından içe aktar">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE896;" FontFamily="{StaticResource FontIcons}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                <TextBlock Text="İçe Aktar" />
-                            </StackPanel>
+                        <Button Click="ImportJson_Click" Style="{StaticResource ToolbarActionButton}" Padding="11,0" Margin="0,0,5,0" ToolTip="Profil yedeğini içe aktar">
+                            <TextBlock Text="İçe Aktar" />
                         </Button>
-                        <Button Click="ExportJson_Click" Style="{StaticResource ToolbarActionButton}" Padding="10,0" Margin="0,0,5,0" ToolTip="3 profili JSON olarak dışa aktar">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE898;" FontFamily="{StaticResource FontIcons}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Dışa Aktar" />
-                            </StackPanel>
+                        <Button Click="ExportJson_Click" Style="{StaticResource ToolbarActionButton}" Padding="11,0" Margin="0,0,5,0" ToolTip="Profilleri dışa aktar">
+                            <TextBlock Text="Dışa Aktar" />
                         </Button>
-                        <Button Click="ReloadFromMouse_Click" Style="{StaticResource ToolbarActionButton}" Padding="10,0" Margin="0,0,8,0" ToolTip="Fare belleğindeki mevcut profilleri yeniden oku">
-                            <TextBlock Text="&#xE72C;" FontFamily="{StaticResource FontIcons}" FontSize="13" VerticalAlignment="Center" />
+                        <Button Click="ReloadFromMouse_Click" Style="{StaticResource ToolbarActionButton}" Width="32" Padding="0" Margin="0,0,8,0" ToolTip="Fare belleğini yeniden oku">
+                            <TextBlock Text="&#xE72C;" FontFamily="{StaticResource FontIcons}" FontSize="12.5" VerticalAlignment="Center" />
                         </Button>
-                        <Button x:Name="FlashSaveBtn" Click="SaveToHardware_Click" Style="{StaticResource PrimaryAccentButton}" Margin="0,0,12,0" ToolTip="Değişiklikleri farenin yerleşik EEPROM belleğine kalıcı olarak yaz">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE74E;" FontFamily="{StaticResource FontIcons}" FontSize="12.5" Margin="0,0,7,0" VerticalAlignment="Center" />
-                                <TextBlock x:Name="FlashSaveBtnText" Text="Belleğe Kaydet" />
-                            </StackPanel>
+                        <Button x:Name="FlashSaveBtn" Click="SaveToHardware_Click" Style="{StaticResource PrimaryAccentButton}" Margin="0,0,12,0" ToolTip="Değişiklikleri farenin yerleşik belleğine kaydet">
+                            <TextBlock x:Name="FlashSaveBtnText" Text="Belleğe Kaydet" />
                         </Button>
 
-                        <Border Width="1" Height="20" Background="{StaticResource BrushBorderSubtle}" Margin="0,0,6,0" />
+                        <Border Width="1" Height="18" Background="{StaticResource BrushBorderSubtle}" Margin="0,0,6,0" />
 
-                        <Button Click="MinimizeToTray_Click" Style="{StaticResource WindowCaptionButton}" ToolTip="Sistem tepsisine (Tray) küçült">
+                        <Button Click="MinimizeToTray_Click" Style="{StaticResource WindowCaptionButton}" ToolTip="Sistem tepsisine küçült">
                             <TextBlock Text="&#xE748;" FontFamily="{StaticResource FontIcons}" FontSize="11.5" />
                         </Button>
                         <Button Click="CaptionMinimize_Click" Style="{StaticResource WindowCaptionButton}" ToolTip="Simge durumuna küçült">
-                            <TextBlock Text="&#xE921;" FontFamily="{StaticResource FontIcons}" FontSize="10.5" />
+                            <TextBlock Text="&#xE921;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
                         </Button>
                         <Button Click="CaptionMaximize_Click" Style="{StaticResource WindowCaptionButton}" ToolTip="Ekranı kapla">
-                            <TextBlock Text="&#xE922;" FontFamily="{StaticResource FontIcons}" FontSize="10.5" />
+                            <TextBlock Text="&#xE922;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
                         </Button>
                         <Button Click="CaptionClose_Click" Style="{StaticResource WindowCaptionButton}" ToolTip="Kapat">
-                            <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource FontIcons}" FontSize="10.5" />
+                            <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
                         </Button>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- ==================== BODY: LEFT NAV RAIL + ACTIVE WORKSPACE ==================== -->
+            <!-- ==================== BODY: LEFT NAV RAIL + WORKSPACE ==================== -->
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="82" />
+                    <ColumnDefinition Width="80" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -190,41 +164,40 @@
                         <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center">
                             <Button x:Name="NavBtnAssignments" Click="NavRail_Click" Tag="0" Style="{StaticResource NavRailButton}">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="&#xE962;" FontFamily="{StaticResource FontIcons}" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,5" />
-                                    <TextBlock Text="Tuşlar" FontSize="11" FontWeight="Medium" HorizontalAlignment="Center" />
+                                    <TextBlock Text="&#xE962;" FontFamily="{StaticResource FontIcons}" FontSize="17" HorizontalAlignment="Center" Margin="0,0,0,5" />
+                                    <TextBlock Text="Tuşlar" FontSize="11.5" HorizontalAlignment="Center" />
                                 </StackPanel>
                             </Button>
 
                             <Button x:Name="NavBtnSensitivity" Click="NavRail_Click" Tag="1" Style="{StaticResource NavRailButton}">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="&#xEC4A;" FontFamily="{StaticResource FontIcons}" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,5" />
-                                    <TextBlock Text="Sensör" FontSize="11" FontWeight="Medium" HorizontalAlignment="Center" />
+                                    <TextBlock Text="&#xEC4A;" FontFamily="{StaticResource FontIcons}" FontSize="17" HorizontalAlignment="Center" Margin="0,0,0,5" />
+                                    <TextBlock Text="Sensör" FontSize="11.5" HorizontalAlignment="Center" />
                                 </StackPanel>
                             </Button>
 
                             <Button x:Name="NavBtnLighting" Click="NavRail_Click" Tag="2" Style="{StaticResource NavRailButton}">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="&#xE793;" FontFamily="{StaticResource FontIcons}" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,5" />
-                                    <TextBlock Text="Işıklar" FontSize="11" FontWeight="Medium" HorizontalAlignment="Center" />
+                                    <TextBlock Text="&#xE793;" FontFamily="{StaticResource FontIcons}" FontSize="17" HorizontalAlignment="Center" Margin="0,0,0,5" />
+                                    <TextBlock Text="Işıklar" FontSize="11.5" HorizontalAlignment="Center" />
                                 </StackPanel>
                             </Button>
 
                             <Button x:Name="NavBtnAutomation" Click="NavRail_Click" Tag="3" Style="{StaticResource NavRailButton}">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="&#xE945;" FontFamily="{StaticResource FontIcons}" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,5" />
-                                    <TextBlock Text="Otomasyon" FontSize="11" FontWeight="Medium" HorizontalAlignment="Center" />
+                                    <TextBlock Text="&#xE945;" FontFamily="{StaticResource FontIcons}" FontSize="17" HorizontalAlignment="Center" Margin="0,0,0,5" />
+                                    <TextBlock Text="Otomasyon" FontSize="11.5" HorizontalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
 
-                        <!-- Reset Factory Defaults icon button at bottom of rail -->
                         <Button VerticalAlignment="Bottom" HorizontalAlignment="Center"
                                 Click="ResetProfileDefaults_Click"
                                 Style="{StaticResource NavRailButton}" Height="46" Margin="0"
                                 ToolTip="Seçili profili fabrika varsayılanlarına sıfırla">
                             <StackPanel HorizontalAlignment="Center">
-                                <TextBlock Text="&#xE777;" FontFamily="{StaticResource FontIcons}" FontSize="15" HorizontalAlignment="Center" Margin="0,0,0,3" />
-                                <TextBlock Text="Sıfırla" FontSize="10" HorizontalAlignment="Center" />
+                                <TextBlock Text="&#xE777;" FontFamily="{StaticResource FontIcons}" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,4" />
+                                <TextBlock Text="Sıfırla" FontSize="10.5" HorizontalAlignment="Center" />
                             </StackPanel>
                         </Button>
                     </Grid>
@@ -237,37 +210,36 @@
                         <RowDefinition Height="28" />
                     </Grid.RowDefinitions>
 
-                    <!-- ==================== VIEW 0: BUTTON ASSIGNMENTS (PURE HERO STAGE + CONTEXT DRAWER) ==================== -->
+                    <!-- ==================== VIEW 0: BUTTON ASSIGNMENTS (CLEAN CENTERED STAGE + COLLAPSIBLE DRAWER) ==================== -->
                     <Grid x:Name="ViewAssignmentsGrid" Grid.Row="0" Visibility="Visible">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="360" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
                         <!-- Borderless Open Dark Spotlight Stage -->
                         <Grid Grid.Column="0" ClipToBounds="True">
-                            <!-- Subtle floating slot title in top-left of open space -->
-                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="28,22,0,0" IsHitTestVisible="False">
-                                <TextBlock x:Name="StageActiveSlotLabel" Text="Profil 1 · Hyper Magenta"
+                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="32,24,0,0" IsHitTestVisible="False">
+                                <TextBlock x:Name="StageActiveSlotLabel" Text="Profil 1"
                                            FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold"
                                            Foreground="{StaticResource BrushTextPrimary}" />
-                                <TextBlock Text="Yapılandırmak istediğiniz fiziksel tuşa veya etikete tıklayın"
-                                           FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" Margin="0,3,0,0" />
+                                <TextBlock x:Name="StageSubHintText" Text="Atamasını değiştirmek istediğiniz tuşa tıklayın"
+                                           FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                             </StackPanel>
 
-                            <Viewbox Stretch="Uniform" Margin="14,32,14,10">
+                            <Viewbox Stretch="Uniform" Margin="24,36,24,14">
                                 <Canvas x:Name="MouseStageCanvas" Width="1040" Height="610"
                                         Background="Transparent"
                                         MouseMove="MouseStageCanvas_MouseMove"
                                         MouseLeave="MouseStageCanvas_MouseLeave"
                                         MouseLeftButtonDown="MouseStageCanvas_MouseLeftButtonDown">
 
-                                    <!-- Soft Radial Spotlight Backdrop -->
-                                    <Ellipse x:Name="StageSpotlightEllipse" Canvas.Left="260" Canvas.Top="40" Width="530" Height="500"
+                                    <!-- Subtle Ambient Spotlight -->
+                                    <Ellipse x:Name="StageSpotlightEllipse" Canvas.Left="270" Canvas.Top="50" Width="500" Height="480"
                                              IsHitTestVisible="False">
                                         <Ellipse.Fill>
                                             <RadialGradientBrush GradientOrigin="0.5,0.5" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-                                                <GradientStop x:Name="SpotlightStop0" Color="#2400C8FF" Offset="0.0" />
+                                                <GradientStop x:Name="SpotlightStop0" Color="#18FFFFFF" Offset="0.0" />
                                                 <GradientStop Color="#00000000" Offset="1.0" />
                                             </RadialGradientBrush>
                                         </Ellipse.Fill>
@@ -287,7 +259,7 @@
 
                                     <!-- Layer 3: Subtle Ambient Button Rim Glow (Offset X=195, Y=5) -->
                                     <Image x:Name="MouseAmbientGlowImage" Canvas.Left="195" Canvas.Top="5" Width="558" Height="265"
-                                           Opacity="0.4" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                                           Opacity="0.28" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
 
                                     <!-- Layer 4: Hovered Button Specular PulseGlow -->
                                     <Image x:Name="HoveredButtonGlowImage" Visibility="Collapsed"
@@ -299,18 +271,19 @@
                                     <Image x:Name="SelectedButtonHighlightImage" Visibility="Collapsed"
                                            RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
 
-                                    <!-- Layer 6: Sleek Floating Pill Callouts -->
+                                    <!-- Layer 6: Minimalist Borderless Text Callouts -->
                                     <Canvas x:Name="OverlayCalloutsCanvas" Width="1040" Height="610" />
                                 </Canvas>
                             </Viewbox>
                         </Grid>
 
-                        <!-- Contextual Right Drawer for Selected Button -->
-                        <Border Grid.Column="1"
+                        <!-- Collapsible Contextual Right Drawer (Hidden on startup until a button is clicked!) -->
+                        <Border x:Name="InspectorDrawerBorder" Grid.Column="1" Width="340"
+                                Visibility="Collapsed"
                                 Background="{StaticResource BrushBgRail}"
                                 BorderBrush="{StaticResource BrushBorderSubtle}"
                                 BorderThickness="1,0,0,0"
-                                Padding="20,22,20,18">
+                                Padding="22,22,22,18">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -318,41 +291,45 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
 
-                                <!-- Selected Button Header -->
-                                <StackPanel Grid.Row="0" Margin="0,0,0,18">
+                                <!-- Selected Button Header + Close Button -->
+                                <StackPanel Grid.Row="0" Margin="0,0,0,16">
                                     <Grid>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Border Width="34" Height="34" CornerRadius="8"
-                                                    Background="{StaticResource BrushAccentCyan}" Margin="0,0,12,0">
+                                            <Border Width="32" Height="32" CornerRadius="8"
+                                                    Background="{StaticResource BrushBgElevated}" Margin="0,0,12,0">
                                                 <TextBlock x:Name="InspectorBtnNumberText" Text="G1"
-                                                           FontFamily="{StaticResource FontDisplay}" FontSize="14" FontWeight="Bold"
-                                                           Foreground="#04080C" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                           FontFamily="{StaticResource FontDisplay}" FontSize="13.5" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <StackPanel VerticalAlignment="Center">
-                                                <TextBlock x:Name="InspectorBtnTitleText" Text="Sol Tık (G1)"
+                                                <TextBlock x:Name="InspectorBtnTitleText" Text="Sol Tık"
                                                            FontFamily="{StaticResource FontDisplay}" FontSize="15" FontWeight="SemiBold"
                                                            Foreground="{StaticResource BrushTextPrimary}" />
-                                                <TextBlock x:Name="InspectorBtnSubText" Text="Mevcut Atama"
-                                                           FontSize="11.5" Foreground="{StaticResource BrushTextSecondary}" />
+                                                <TextBlock x:Name="InspectorBtnSubText" Text="Tuş Ataması"
+                                                           FontSize="12" Foreground="{StaticResource BrushTextMuted}" />
                                             </StackPanel>
                                         </StackPanel>
+
+                                        <Button Click="CloseInspector_Click" Style="{StaticResource WindowCaptionButton}"
+                                                Width="28" Height="28" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                ToolTip="Seçimi kaldır">
+                                            <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
+                                        </Button>
                                     </Grid>
 
-                                    <Border Margin="0,12,0,0" CornerRadius="8" Padding="12,9"
-                                            Background="{StaticResource BrushBgSurface1}"
-                                            BorderBrush="{StaticResource BrushAccentCyanBorder}" BorderThickness="1">
+                                    <Border Margin="0,14,0,0" CornerRadius="8" Padding="14,10"
+                                            Background="{StaticResource BrushBgSurface1}">
                                         <Grid>
-                                            <TextBlock Text="Aktif Komut:" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" />
-                                            <TextBlock x:Name="InspectorCurrentActionText" Text="Left Click"
-                                                       FontFamily="{StaticResource FontDisplay}" FontSize="12.5" FontWeight="SemiBold"
-                                                       Foreground="{StaticResource BrushAccentCyan}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                            <TextBlock Text="Atanan İşlev" FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="InspectorCurrentActionText" Text="Sol Tık"
+                                                       FontFamily="{StaticResource FontDisplay}" FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                         </Grid>
                                     </Border>
                                 </StackPanel>
 
-                                <!-- Segmented Category Filter inside Drawer (No 12-button wall!) -->
+                                <!-- Segmented Category Filter -->
                                 <Border Grid.Row="1" Background="{StaticResource BrushBgSurface1}"
-                                        BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
                                         CornerRadius="8" Padding="3" Margin="0,0,0,14">
                                     <UniformGrid Columns="3">
                                         <Button x:Name="DrawerTabMouseBtn" Click="DrawerCategoryTab_Click" Tag="0"
@@ -364,176 +341,170 @@
                                     </UniformGrid>
                                 </Border>
 
-                                <!-- Category 0: Clean Mouse Function Rows -->
+                                <!-- Category 0: Mouse Functions -->
                                 <StackPanel x:Name="DrawerPanelMouse" Grid.Row="2" Visibility="Visible">
                                     <Button Tag="mouse:1" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="Sol Tık (Primary Click)" FontWeight="Medium" />
-                                            <TextBlock Text="Varsayılan" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="Sol Tık" FontSize="13" />
+                                            <TextBlock Text="Birincil" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="mouse:2" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="Sağ Tık (Secondary Click)" FontWeight="Medium" />
-                                            <TextBlock Text="Fare 2" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="Sağ Tık" FontSize="13" />
+                                            <TextBlock Text="İkincil" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="mouse:3" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="Orta Tekerlek Tık (Middle Click)" FontWeight="Medium" />
-                                            <TextBlock Text="Fare 3" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="Orta Tık (Tekerlek)" FontSize="13" />
+                                            <TextBlock Text="Fare 3" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="mouse:4" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="Geri (Back / Mouse 4)" FontWeight="Medium" />
-                                            <TextBlock Text="Gezinme" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="Geri (Fare 4)" FontSize="13" />
+                                            <TextBlock Text="Gezinme" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="mouse:5" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="İleri (Forward / Mouse 5)" FontWeight="Medium" />
-                                            <TextBlock Text="Gezinme" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="İleri (Fare 5)" FontSize="13" />
+                                            <TextBlock Text="Gezinme" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="none" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="Tuşu Devre Dışı Bırak" Foreground="{StaticResource BrushTextSecondary}" />
-                                            <TextBlock Text="Kapalı" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="Devre Dışı Bırak" FontSize="13" Foreground="{StaticResource BrushTextSecondary}" />
+                                            <TextBlock Text="Kapalı" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                 </StackPanel>
 
-                                <!-- Category 1: Clean DPI & Profile Function Rows -->
+                                <!-- Category 1: DPI & Profile Functions -->
                                 <StackPanel x:Name="DrawerPanelDpi" Grid.Row="2" Visibility="Collapsed">
                                     <Button Tag="dpi-up" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="DPI Artır (DPI Up)" FontWeight="Medium" />
-                                            <TextBlock Text="+ Kademe" FontSize="11" Foreground="{StaticResource BrushAccentCyan}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="DPI Artır" FontSize="13" />
+                                            <TextBlock Text="Üst Kademe" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="dpi-down" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="DPI Azalt (DPI Down)" FontWeight="Medium" />
-                                            <TextBlock Text="− Kademe" FontSize="11" Foreground="{StaticResource BrushAccentCyan}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="DPI Azalt" FontSize="13" />
+                                            <TextBlock Text="Alt Kademe" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="dpi-cycle" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="DPI Döngüsü (Cycle S1–S4)" FontWeight="Medium" />
-                                            <TextBlock Text="Sırayla Geç" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="DPI Döngüsü" FontSize="13" />
+                                            <TextBlock Text="Kademe 1–4" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="dpi-alternate" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="DPI Shift (Basılı Tutarken Nişan)" FontWeight="Medium" />
-                                            <TextBlock Text="Sniper" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="DPI Shift (Basılı Tutarken Nişan)" FontSize="13" />
+                                            <TextBlock Text="Geçici" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="dpi-default" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="Varsayılan DPI'a Dön" FontWeight="Medium" />
-                                            <TextBlock Text="★ Kademe" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="Varsayılan DPI" FontSize="13" />
+                                            <TextBlock Text="Başlangıç" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                     <Button Tag="profile-cycle" Click="QuickActionPreset_Click" Style="{StaticResource ActionRowButton}">
                                         <Grid>
-                                            <TextBlock Text="Profil Değiştir (Slot 1–3 Döngüsü)" FontWeight="Medium" />
-                                            <TextBlock Text="Donanım" FontSize="11" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
+                                            <TextBlock Text="Profil Değiştir" FontSize="13" />
+                                            <TextBlock Text="Profil 1–3" FontSize="12" Foreground="{StaticResource BrushTextMuted}" HorizontalAlignment="Right" />
                                         </Grid>
                                     </Button>
                                 </StackPanel>
 
-                                <!-- Category 2: Keyboard Shortcut Recorder & Host Macro Trigger -->
+                                <!-- Category 2: Keyboard Recorder & Macro Trigger -->
                                 <StackPanel x:Name="DrawerPanelKey" Grid.Row="2" Visibility="Collapsed">
-                                    <TextBlock Text="Klavye Kısayolu Kaydedici" FontSize="12.5" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                    <TextBlock Text="Aşağıdaki butona tıklayıp klavyeden istediğiniz tuşa veya kombinasyona (örn. Ctrl+Z, Alt+Tab, F5) basın:"
-                                               FontSize="11.5" Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                    <TextBlock Text="Klavye Kısayolu" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,6" />
+                                    <TextBlock Text="Aşağıdaki alana tıklayıp klavyeden atamak istediğiniz tuşa veya kombinasyona basın:"
+                                               FontSize="12" Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,0,0,12" />
 
                                     <Button x:Name="RecordKeyBtn" Click="RecordKeyBtn_Click"
                                             PreviewKeyDown="RecordKeyBtn_PreviewKeyDown"
                                             LostFocus="RecordKeyBtn_LostFocus"
-                                            Style="{StaticResource ToolbarActionButton}" Height="42" Margin="0,0,0,18">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE765;" FontFamily="{StaticResource FontIcons}" FontSize="15" Margin="0,0,9,0" VerticalAlignment="Center" Foreground="{StaticResource BrushAccentCyan}" />
-                                            <TextBlock x:Name="RecordKeyBtnText" Text="Tuş Kaydetmek İçin Tıklayın..." FontSize="12.5" FontWeight="SemiBold" />
-                                        </StackPanel>
+                                            Style="{StaticResource ToolbarActionButton}" Height="40" Margin="0,0,0,22">
+                                        <TextBlock x:Name="RecordKeyBtnText" Text="Tuş Kaydetmek İçin Tıklayın" FontSize="12.5" FontWeight="Medium" />
                                     </Button>
 
-                                    <TextBlock Text="Gelişmiş Makro Tetikleyici (F13–F18)" FontSize="12.5" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                    <TextBlock Text="Otomasyon sekmesindeki metin, çoklu kısayol veya Rapid-Fire CPS makrolarını bu tuşa bağlayın:"
-                                               FontSize="11.5" Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                    <TextBlock Text="Makro Bağlantısı" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <TextBlock Text="Otomasyon bölümündeki çoklu kısayol veya seri tıklama makrolarından birini seçin:"
+                                               FontSize="12" Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,0,0,10" />
 
-                                    <ComboBox x:Name="HostMacroPresetCombo" Height="36"
+                                    <ComboBox x:Name="HostMacroPresetCombo" Height="34"
                                               SelectionChanged="HostMacroPresetCombo_SelectionChanged">
-                                        <ComboBoxItem Content="Makro Seçin (F13–F18)..." IsSelected="True" IsEnabled="False" />
-                                        <ComboBoxItem Content="Makro 1 (F13 Tetikleyici)" Tag="key:f13" />
-                                        <ComboBoxItem Content="Makro 2 (F14 Tetikleyici)" Tag="key:f14" />
-                                        <ComboBoxItem Content="Makro 3 (F15 Tetikleyici)" Tag="key:f15" />
-                                        <ComboBoxItem Content="Makro 4 (F16 Tetikleyici)" Tag="key:f16" />
-                                        <ComboBoxItem Content="Makro 5 (F17 Tetikleyici)" Tag="key:f17" />
-                                        <ComboBoxItem Content="Makro 6 (F18 Tetikleyici)" Tag="key:f18" />
+                                        <ComboBoxItem Content="Makro Seçin..." IsSelected="True" IsEnabled="False" />
+                                        <ComboBoxItem Content="Makro 1 (F13)" Tag="key:f13" />
+                                        <ComboBoxItem Content="Makro 2 (F14)" Tag="key:f14" />
+                                        <ComboBoxItem Content="Makro 3 (F15)" Tag="key:f15" />
+                                        <ComboBoxItem Content="Makro 4 (F16)" Tag="key:f16" />
+                                        <ComboBoxItem Content="Makro 5 (F17)" Tag="key:f17" />
+                                        <ComboBoxItem Content="Makro 6 (F18)" Tag="key:f18" />
                                     </ComboBox>
                                 </StackPanel>
                             </Grid>
                         </Border>
                     </Grid>
 
-                    <!-- ==================== VIEW 1: SENSITIVITY & DPI STUDIO (DEDICATED VIEW) ==================== -->
-                    <Grid x:Name="ViewSensitivityGrid" Grid.Row="0" Visibility="Collapsed" Margin="28,22,28,16">
+                    <!-- ==================== VIEW 1: SENSITIVITY & DPI STUDIO ==================== -->
+                    <Grid x:Name="ViewSensitivityGrid" Grid.Row="0" Visibility="Collapsed" Margin="32,24,32,18">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <!-- Header + Polling Rate Bar -->
-                        <Grid Grid.Row="0" Margin="0,0,0,18">
+                        <!-- Header + Polling Rate Segmented Pill -->
+                        <Grid Grid.Row="0" Margin="0,0,0,20">
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Sensör Hassasiyeti &amp; Bildirim Hızı"
-                                           FontFamily="{StaticResource FontDisplay}" FontSize="20" FontWeight="SemiBold" />
-                                <TextBlock Text="4 yerleşik DPI kademesini grafik üzerinden sürükleyerek veya kademe kartlarından ayarlayın (250–2500 DPI)"
-                                           FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" Margin="0,3,0,0" />
+                                <TextBlock Text="Sensör Hassasiyeti"
+                                           FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold" />
+                                <TextBlock Text="4 yerleşik DPI kademesini grafik üzerinden sürükleyerek veya alt kademelerden ayarlayın"
+                                           FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                             </StackPanel>
 
-                            <Border HorizontalAlignment="Right" VerticalAlignment="Center"
-                                    Background="{StaticResource BrushBgSurface1}"
-                                    BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
-                                    CornerRadius="10" Padding="12,8">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="USB Bildirim Hızı (Polling Rate):" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,12,0" />
-                                    <Button x:Name="RateBtn125" Content="125 Hz (8 ms)" Tag="125" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="30" Margin="0,0,4,0" />
-                                    <Button x:Name="RateBtn250" Content="250 Hz (4 ms)" Tag="250" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="30" Margin="0,0,4,0" />
-                                    <Button x:Name="RateBtn500" Content="500 Hz (2 ms)" Tag="500" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="30" Margin="0,0,4,0" />
-                                    <Button x:Name="RateBtn1000" Content="1000 Hz (1 ms)" Tag="1000" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="30" />
-                                </StackPanel>
-                            </Border>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <TextBlock Text="Bildirim Hızı" FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <Border Background="{StaticResource BrushBgSurface1}" CornerRadius="9" Padding="3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="RateBtn125" Content="125 Hz" Tag="125" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="28" BorderThickness="0" Margin="0,0,2,0" />
+                                        <Button x:Name="RateBtn250" Content="250 Hz" Tag="250" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="28" BorderThickness="0" Margin="0,0,2,0" />
+                                        <Button x:Name="RateBtn500" Content="500 Hz" Tag="500" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="28" BorderThickness="0" Margin="0,0,2,0" />
+                                        <Button x:Name="RateBtn1000" Content="1000 Hz" Tag="1000" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="28" BorderThickness="0" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </Grid>
 
                         <!-- Interactive Visual DPI Graph Canvas -->
-                        <Border Grid.Row="1" Style="{StaticResource StudioCardBorder}" Padding="24,20" Margin="0,0,0,18">
-                            <Grid>
-                                <Canvas x:Name="DpiGraphCanvas" Background="Transparent"
-                                        SizeChanged="DpiGraphCanvas_SizeChanged"
-                                        MouseLeftButtonDown="DpiGraphCanvas_MouseLeftButtonDown"
-                                        MouseMove="DpiGraphCanvas_MouseMove"
-                                        MouseLeftButtonUp="DpiGraphCanvas_MouseLeftButtonUp" />
-                            </Grid>
+                        <Border Grid.Row="1" Style="{StaticResource StudioCardBorder}" Padding="26,22" Margin="0,0,0,18">
+                            <Canvas x:Name="DpiGraphCanvas" Background="Transparent"
+                                    SizeChanged="DpiGraphCanvas_SizeChanged"
+                                    MouseLeftButtonDown="DpiGraphCanvas_MouseLeftButtonDown"
+                                    MouseMove="DpiGraphCanvas_MouseMove"
+                                    MouseLeftButtonUp="DpiGraphCanvas_MouseLeftButtonUp" />
                         </Border>
 
-                        <!-- 4 DPI Stage Control Cards (Horizontal 4-Column Grid) -->
+                        <!-- 4 DPI Stage Control Cards -->
                         <UniformGrid x:Name="DpiStagesContainer" Grid.Row="2" Columns="4" />
                     </Grid>
 
-                    <!-- ==================== VIEW 2: LIGHTSYNC & GAME REACTIVE LIGHTING STUDIO ==================== -->
-                    <Grid x:Name="ViewLightingGrid" Grid.Row="0" Visibility="Collapsed" Margin="28,22,28,16">
+                    <!-- ==================== VIEW 2: LIGHTSYNC & COMPREHENSIVE GAME AMBIENT STUDIO ==================== -->
+                    <Grid x:Name="ViewLightingGrid" Grid.Row="0" Visibility="Collapsed" Margin="32,24,32,18">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="460" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- Left: Live 30 FPS 3D Mouse Illumination Preview & Telemetry -->
-                        <Border Grid.Column="0" Style="{StaticResource StudioCardBorder}" Margin="0,0,18,0" Padding="20">
+                        <!-- Left: Live 3D Mouse Preview + Real-Time Game Palette & Telemetry -->
+                        <Border Grid.Column="0" Style="{StaticResource StudioCardBorder}" Margin="0,0,20,0" Padding="22">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -542,18 +513,19 @@
                                 </Grid.RowDefinitions>
 
                                 <StackPanel Grid.Row="0">
-                                    <TextBlock Text="Canlı 3B Işıklandırma Önizlemesi"
+                                    <TextBlock Text="Canlı Önizleme"
                                                FontFamily="{StaticResource FontDisplay}" FontSize="16" FontWeight="SemiBold" />
-                                    <TextBlock Text="333 Hz ΔΣ PWM modülatörü ile 3-bit donanım üzerinde yumuşak parlaklık ve ara renk sentezi"
-                                               FontSize="12" Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                                    <TextBlock Text="Sabit anotlu titremesiz geçiş ve canlı oyun senkronizasyonu"
+                                               TextWrapping="Wrap"
+                                               FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                                 </StackPanel>
 
-                                <Viewbox Grid.Row="1" Stretch="Uniform" Margin="0,6">
+                                <Viewbox Grid.Row="1" Stretch="Uniform" Margin="0,8">
                                     <Canvas Width="849" Height="652">
-                                        <Ellipse Canvas.Left="110" Canvas.Top="60" Width="520" Height="480">
+                                        <Ellipse Canvas.Left="130" Canvas.Top="70" Width="500" Height="460">
                                             <Ellipse.Fill>
                                                 <RadialGradientBrush>
-                                                    <GradientStop x:Name="LightingPreviewGlowStop" Color="#3500C8FF" Offset="0.0" />
+                                                    <GradientStop x:Name="LightingPreviewGlowStop" Color="#28FFFFFF" Offset="0.0" />
                                                     <GradientStop Color="#00000000" Offset="1.0" />
                                                 </RadialGradientBrush>
                                             </Ellipse.Fill>
@@ -567,105 +539,136 @@
                                     </Canvas>
                                 </Viewbox>
 
-                                <!-- Live Telemetry Meter Box -->
+                                <!-- Live Game & Scene Palette Telemetry Box -->
                                 <Border Grid.Row="2" Background="{StaticResource BrushBgSurface2}"
-                                        BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
-                                        CornerRadius="8" Padding="14,12">
+                                        CornerRadius="10" Padding="16,14">
                                     <StackPanel>
-                                        <Grid Margin="0,0,0,8">
+                                        <Grid Margin="0,0,0,10">
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Border x:Name="LiveColorPreviewOrb" Width="16" Height="16" CornerRadius="8"
-                                                        Background="{StaticResource BrushAccentCyan}" Margin="0,0,9,0" />
-                                                <TextBlock x:Name="LiveTelemetryTitleText" Text="Donanım Sabit Rengi"
-                                                           FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Border x:Name="LiveColorPreviewOrb" Width="14" Height="14" CornerRadius="7"
+                                                        Background="{StaticResource BrushAccentCyan}" Margin="0,0,10,0" />
+                                                <TextBlock x:Name="LiveTelemetryTitleText" Text="Sabit Donanım Rengi"
+                                                           FontSize="12.5" FontWeight="Medium" VerticalAlignment="Center" />
                                             </StackPanel>
-                                            <TextBlock x:Name="ActiveColorLabel" Text="Logitech Cyan"
-                                                       FontFamily="{StaticResource FontMono}" FontSize="11.5"
-                                                       Foreground="{StaticResource BrushAccentCyan}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="ActiveColorLabel" Text="Turkuaz"
+                                                       FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
+                                                       HorizontalAlignment="Right" VerticalAlignment="Center" />
                                         </Grid>
 
-                                        <Border Height="7" CornerRadius="3.5" Background="{StaticResource BrushBgCanvas}" ClipToBounds="True">
-                                            <Border x:Name="LiveTelemetryProgressFill" HorizontalAlignment="Left" Width="180"
-                                                    CornerRadius="3.5" Background="{StaticResource BrushAccentCyan}" />
+                                        <!-- 3-Zone Scene Palette Strip (shows live dominant game colors) -->
+                                        <UniformGrid Columns="3" Height="6" Margin="0,0,0,8">
+                                            <Border x:Name="PaletteSwatch0" CornerRadius="3,0,0,3" Background="#00D4FF" Margin="0,0,2,0" />
+                                            <Border x:Name="PaletteSwatch1" Background="#2979FF" Margin="1,0,1,0" />
+                                            <Border x:Name="PaletteSwatch2" CornerRadius="0,3,3,0" Background="#E040FB" Margin="2,0,0,0" />
+                                        </UniformGrid>
+
+                                        <Border Height="4" CornerRadius="2" Background="{StaticResource BrushBgCanvas}" ClipToBounds="True">
+                                            <Border x:Name="LiveTelemetryProgressFill" HorizontalAlignment="Left" Width="200"
+                                                    CornerRadius="2" Background="{StaticResource BrushActiveWhite}" />
                                         </Border>
                                     </StackPanel>
                                 </Border>
                             </Grid>
                         </Border>
 
-                        <!-- Right: 6 Lighting & Game State Modes + Color & Speed Controls -->
-                        <Grid Grid.Column="1">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                        <!-- Right: Clean Lighting Mode List & Comprehensive Game/Ambient Settings -->
+                        <Border Grid.Column="1" Style="{StaticResource StudioCardBorder}" Padding="24,22">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                            <StackPanel Grid.Row="0" Margin="0,0,0,14">
-                                <TextBlock Text="Işıklandırma Modu &amp; Oyun Senkronizasyonu"
-                                           FontFamily="{StaticResource FontDisplay}" FontSize="20" FontWeight="SemiBold" />
-                                <TextBlock Text="Yumuşak nefes alma, ekran/oyun ana rengi (Ambilight), çatışma/can tepkisi veya ses/patlama senkronizasyonu seçin"
-                                           FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" Margin="0,3,0,0" />
-                            </StackPanel>
+                                <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                                    <TextBlock Text="Aydınlatma &amp; Oyun Senkronizasyonu"
+                                               FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="Çalışma modunu, ekran örnekleme bölgesini ve geçiş davranışını yapılandırın"
+                                               FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
+                                </StackPanel>
 
-                            <!-- 6 Interactive Mode Cards (2x3 Grid) -->
-                            <UniformGrid x:Name="LightingModesGrid" Grid.Row="1" Columns="2" Rows="3" Margin="0,0,0,14" />
+                                <!-- Clean Borderless List of 6 Modes (No AI-slop cards!) -->
+                                <StackPanel x:Name="LightingModesList" Grid.Row="1" />
 
-                            <!-- Color Orbs & Speed Tuning Card -->
-                            <Border Grid.Row="2" Style="{StaticResource StudioCardBorder}" Padding="18,14">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                                <!-- Bottom Configuration Controls -->
+                                <Border Grid.Row="2" Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="18,16" Margin="0,12,0,0">
+                                    <StackPanel>
+                                        <!-- Screen Ambilight Zone Selector + Smooth Bridge Toggle -->
+                                        <Grid Margin="0,0,0,16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
 
-                                    <!-- Primary & Secondary Color Orbs -->
-                                    <Grid Grid.Row="0" Margin="0,0,0,14">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Ekran Bölgesi:" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                <Border Background="{StaticResource BrushBgSurface1}" CornerRadius="8" Padding="2">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button x:Name="ZoneBtnFull" Content="Tam Ekran" Tag="full" Click="AmbilightZone_Click" Style="{StaticResource ToolbarActionButton}" Height="26" Padding="10,0" BorderThickness="0" Margin="0,0,2,0" />
+                                                        <Button x:Name="ZoneBtnCrosshair" Content="Nişangah" Tag="crosshair" Click="AmbilightZone_Click" Style="{StaticResource ToolbarActionButton}" Height="26" Padding="10,0" BorderThickness="0" Margin="0,0,2,0" />
+                                                        <Button x:Name="ZoneBtnHud" Content="Alt HUD" Tag="hud" Click="AmbilightZone_Click" Style="{StaticResource ToolbarActionButton}" Height="26" Padding="10,0" BorderThickness="0" Margin="0,0,2,0" />
+                                                        <Button x:Name="ZoneBtnCinema" Content="Kenarlar" Tag="cinema" Click="AmbilightZone_Click" Style="{StaticResource ToolbarActionButton}" Height="26" Padding="10,0" BorderThickness="0" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
 
-                                        <StackPanel Grid.Column="0">
-                                            <TextBlock Text="Ana Profil &amp; Efekt Rengi" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
-                                            <UniformGrid x:Name="LedSwatchesGrid" Columns="8" Height="34" HorizontalAlignment="Left" Width="340" />
-                                        </StackPanel>
+                                            <CheckBox x:Name="SmoothBridgeToggle" Grid.Column="1"
+                                                      Style="{StaticResource PillToggleSwitch}"
+                                                      Content="Ara Ton Köprüsü"
+                                                      IsChecked="True"
+                                                      Checked="SmoothBridgeToggle_Changed"
+                                                      Unchecked="SmoothBridgeToggle_Changed"
+                                                      ToolTip="Kapalıyken %100 saf donanım renk adımları (0 PWM) kullanır; açıkken ortak anotlu ara geçiş uygular." />
+                                        </Grid>
 
-                                        <StackPanel Grid.Column="1" Margin="24,0,0,0">
-                                            <TextBlock Text="İkincil Geçiş Rengi (Nefes Alma)" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
-                                            <UniformGrid x:Name="SecondaryLedSwatchesGrid" Columns="8" Height="34" HorizontalAlignment="Left" Width="300" />
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Primary & Secondary Color Swatches -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
 
-                                    <!-- Breathing / Wave Cycle Speed Slider -->
-                                    <Grid Grid.Row="1">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="90" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Nefes Alma / Geçiş Süresi:" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,14,0" />
-                                        <Slider x:Name="BreathSpeedSlider" Grid.Column="1" Minimum="800" Maximum="6000" Value="2400"
-                                                TickFrequency="200" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                                ValueChanged="BreathSpeedSlider_ValueChanged" />
-                                        <TextBlock x:Name="BreathSpeedValueText" Grid.Column="2" Text="2.4 sn"
-                                                   FontFamily="{StaticResource FontMono}" FontSize="12" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource BrushAccentCyan}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    </Grid>
-                                </Grid>
-                            </Border>
-                        </Grid>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Ana Renk" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
+                                                <UniformGrid x:Name="LedSwatchesGrid" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" Margin="16,0,0,0">
+                                                <TextBlock Text="İkincil Geçiş Rengi" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
+                                                <UniformGrid x:Name="SecondaryLedSwatchesGrid" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Cycle Speed Slider -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="70" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Geçiş Süresi" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                            <Slider x:Name="BreathSpeedSlider" Grid.Column="1" Minimum="1000" Maximum="6000" Value="2800"
+                                                    TickFrequency="200" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                                    ValueChanged="BreathSpeedSlider_ValueChanged" />
+                                            <TextBlock x:Name="BreathSpeedValueText" Grid.Column="2" Text="2.8 sn"
+                                                       FontSize="12.5" FontWeight="Medium"
+                                                       Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
                     </Grid>
 
                     <!-- ==================== VIEW 3: MACROS & GAME AUTO-SWITCHER ==================== -->
-                    <Grid x:Name="ViewAutomationGrid" Grid.Row="0" Visibility="Collapsed" Margin="28,22,28,16">
+                    <Grid x:Name="ViewAutomationGrid" Grid.Row="0" Visibility="Collapsed" Margin="32,24,32,18">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <!-- Left: F13..F18 Host Macro Engine -->
-                        <Border Grid.Column="0" Style="{StaticResource StudioCardBorder}" Margin="0,0,9,0">
+                        <Border Grid.Column="0" Style="{StaticResource StudioCardBorder}" Margin="0,0,10,0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -673,28 +676,25 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <StackPanel Grid.Row="0" Margin="0,0,0,14">
-                                    <TextBlock Text="Gelişmiş Makro Motoru (F13–F18)"
-                                               FontFamily="{StaticResource FontDisplay}" FontSize="17" FontWeight="SemiBold" />
-                                    <TextBlock Text="Herhangi bir fare tuşunu F13–F18'e atayarak çoklu kısayol, metin veya Rapid-Fire CPS otomatik tıklama çalıştırın."
-                                               FontSize="12" Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                                    <TextBlock Text="Makro Tanımları (F13–F18)"
+                                               FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="Fare tuşlarına atanan F13–F18 tetikleyicilerinin çalıştıracağı eylemler"
+                                               FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                                 </StackPanel>
 
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                                     <StackPanel x:Name="MacroItemsPanel" />
                                 </ScrollViewer>
 
-                                <Button Grid.Row="2" Click="SaveDaemonConfig_Click" Style="{StaticResource PrimaryAccentButton}" HorizontalAlignment="Right" Margin="0,12,0,0">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE74E;" FontFamily="{StaticResource FontIcons}" FontSize="12" Margin="0,0,7,0" VerticalAlignment="Center" />
-                                        <TextBlock Text="Makro Ayarlarını Kaydet" />
-                                    </StackPanel>
+                                <Button Grid.Row="2" Click="SaveDaemonConfig_Click" Style="{StaticResource PrimaryAccentButton}" HorizontalAlignment="Right" Margin="0,14,0,0">
+                                    <TextBlock Text="Makroları Kaydet" />
                                 </Button>
                             </Grid>
                         </Border>
 
                         <!-- Right: Foreground App Auto-Profile Switcher -->
-                        <Border Grid.Column="1" Style="{StaticResource StudioCardBorder}" Margin="9,0,0,0">
+                        <Border Grid.Column="1" Style="{StaticResource StudioCardBorder}" Margin="10,0,0,0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -703,22 +703,22 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <StackPanel Grid.Row="0" Margin="0,0,0,14">
-                                    <TextBlock Text="Oyun &amp; Uygulama Otomatik Profil Geçişi"
-                                               FontFamily="{StaticResource FontDisplay}" FontSize="17" FontWeight="SemiBold" />
-                                    <TextBlock Text="Belirlediğiniz oyun veya uygulama penceresi öne geldiğinde aktif donanım profilini anında değiştirir."
-                                               FontSize="12" Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                                    <TextBlock Text="Otomatik Oyun Profili Geçişi"
+                                               FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="Belirtilen oyun veya uygulama aktif olduğunda ilgili donanım profilini seçer"
+                                               FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                                 </StackPanel>
 
                                 <Border Grid.Row="1" Background="{StaticResource BrushBgSurface2}"
-                                        BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
-                                        CornerRadius="8" Padding="12,10" Margin="0,0,0,12">
+                                        CornerRadius="10" Padding="14,12" Margin="0,0,0,14">
                                     <Grid>
-                                        <CheckBox x:Name="AutoSwitchToggle" Content="Otomatik Oyun/Uygulama Profil Geçişini Etkinleştir"
+                                        <CheckBox x:Name="AutoSwitchToggle" Style="{StaticResource PillToggleSwitch}"
+                                                  Content="Otomatik Profil Geçişini Etkinleştir"
                                                   Checked="AutoSwitchToggle_Changed" Unchecked="AutoSwitchToggle_Changed"
-                                                  Foreground="{StaticResource BrushTextPrimary}" FontWeight="Medium" VerticalAlignment="Center" />
+                                                  VerticalAlignment="Center" />
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                            <TextBlock Text="Varsayılan:" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <TextBlock Text="Varsayılan:" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0" />
                                             <ComboBox x:Name="DefaultSlotCombo" Width="100" Height="28" SelectionChanged="DefaultSlotCombo_SelectionChanged">
                                                 <ComboBoxItem Content="Profil 1" Tag="0" IsSelected="True" />
                                                 <ComboBoxItem Content="Profil 2" Tag="1" />
@@ -732,7 +732,7 @@
                                     <StackPanel x:Name="AppRulesPanel" />
                                 </ScrollViewer>
 
-                                <Grid Grid.Row="3" Margin="0,12,0,0">
+                                <Grid Grid.Row="3" Margin="0,14,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="120" />
@@ -747,23 +747,23 @@
                                         <ComboBoxItem Content="Profil 3" Tag="2" />
                                     </ComboBox>
                                     <Button Grid.Column="2" Click="AddAppRule_Click" Style="{StaticResource ToolbarActionButton}">
-                                        <TextBlock Text="+ Kural Ekle" />
+                                        <TextBlock Text="+ Ekle" />
                                     </Button>
                                 </Grid>
                             </Grid>
                         </Border>
                     </Grid>
 
-                    <!-- MINIMAL SUBTLE STATUS FOOTER -->
-                    <Border Grid.Row="1" Padding="24,0" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="0,1,0,0">
+                    <!-- SUBTLE FOOTER -->
+                    <Border Grid.Row="1" Padding="32,0" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="0,1,0,0">
                         <Grid>
                             <TextBlock x:Name="StatusFooterText"
-                                       Text="Hazır · Logitech G300s donanımı ile senkronize edildi."
+                                       Text="Hazır"
                                        FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" />
                             <TextBlock x:Name="TelemetryEventText"
                                        Text=""
-                                       FontFamily="{StaticResource FontMono}" FontSize="11"
-                                       Foreground="{StaticResource BrushTextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                       FontSize="11.5" Foreground="{StaticResource BrushTextSecondary}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center" />
                         </Grid>
                     </Border>
                 </Grid>

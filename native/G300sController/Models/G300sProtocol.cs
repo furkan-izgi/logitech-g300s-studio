@@ -514,22 +514,22 @@ public static class G300sProtocol
 
     public static string GetFriendlyActionTitle(string spec)
     {
-        if (string.IsNullOrWhiteSpace(spec)) return "Disabled";
+        if (string.IsNullOrWhiteSpace(spec)) return "Devre Dışı";
         string s = spec.Trim().ToLowerInvariant();
         return s switch
         {
-            "none" or "off" or "disabled" => "Disabled",
-            "mouse:1" => "Left Click",
-            "mouse:2" => "Right Click",
-            "mouse:3" => "Middle Click",
-            "mouse:4" => "Back (Mouse 4)",
-            "mouse:5" => "Forward (Mouse 5)",
-            "dpi-up" => "DPI Up",
-            "dpi-down" => "DPI Down",
-            "dpi-cycle" => "DPI Cycle",
-            "profile-cycle" => "Profile Switch",
-            "dpi-alternate" => "DPI Shift (Sniper)",
-            "dpi-default" => "Default DPI",
+            "none" or "off" or "disabled" => "Devre Dışı",
+            "mouse:1" => "Sol Tık",
+            "mouse:2" => "Sağ Tık",
+            "mouse:3" => "Orta Tık",
+            "mouse:4" => "Geri (Fare 4)",
+            "mouse:5" => "İleri (Fare 5)",
+            "dpi-up" => "DPI Artır",
+            "dpi-down" => "DPI Azalt",
+            "dpi-cycle" => "DPI Döngüsü",
+            "profile-cycle" => "Profil Değiştir",
+            "dpi-alternate" => "DPI Shift (Nişan)",
+            "dpi-default" => "Varsayılan DPI",
             _ when s.StartsWith("key:") => FormatKeyDisplay(s[4..]),
             _ => spec
         };
@@ -544,12 +544,12 @@ public static class G300sProtocol
             "SHIFT" or "LSHIFT" => "Shift",
             "ALT" or "LALT" => "Alt",
             "WIN" or "LWIN" => "Win",
-            "F13" => "F13 (Macro 1)",
-            "F14" => "F14 (Macro 2)",
-            "F15" => "F15 (Macro 3)",
-            "F16" => "F16 (Macro 4)",
-            "F17" => "F17 (Macro 5)",
-            "F18" => "F18 (Macro 6)",
+            "F13" => "F13 (Makro 1)",
+            "F14" => "F14 (Makro 2)",
+            "F15" => "F15 (Makro 3)",
+            "F16" => "F16 (Makro 4)",
+            "F17" => "F17 (Makro 5)",
+            "F18" => "F18 (Makro 6)",
             var other => other
         });
         return string.Join(" + ", formatted);
@@ -557,15 +557,15 @@ public static class G300sProtocol
 
     public static string GetLedColorName(int r, int g, int b) => (r != 0 ? 1 : 0, g != 0 ? 1 : 0, b != 0 ? 1 : 0) switch
     {
-        (0, 0, 0) => "Stealth Off",
-        (1, 0, 0) => "Crimson Red",
-        (1, 1, 0) => "Solar Amber",
-        (0, 1, 0) => "Venom Green",
-        (0, 1, 1) => "Logitech Cyan",
-        (0, 0, 1) => "Cobalt Blue",
-        (1, 0, 1) => "Hyper Magenta",
-        (1, 1, 1) => "Pure White",
-        _ => "Logitech Cyan"
+        (0, 0, 0) => "Kapalı",
+        (1, 0, 0) => "Kırmızı",
+        (1, 1, 0) => "Kehribar Sarı",
+        (0, 1, 0) => "Zümrüt Yeşil",
+        (0, 1, 1) => "Turkuaz (Cyan)",
+        (0, 0, 1) => "Kobalt Mavi",
+        (1, 0, 1) => "Macenta",
+        (1, 1, 1) => "Saf Beyaz",
+        _ => "Turkuaz (Cyan)"
     };
 
     public static string GetLedColorHex(int r, int g, int b) => (r != 0 ? 1 : 0, g != 0 ? 1 : 0, b != 0 ? 1 : 0) switch

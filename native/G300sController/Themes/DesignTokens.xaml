@@ -2,15 +2,15 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- =========================================================================
-         G300s FLAGSHIP STUDIO DESIGN TOKENS (Deep Obsidian & Electric Cyan)
+         MATTE CARBON & PURE WHITE INDUSTRIAL DESIGN SYSTEM (Zero AI-Slop Palette)
          ========================================================================= -->
 
-    <!-- Core Background Hierarchy -->
-    <Color x:Key="ColorBgCanvas">#08090D</Color>
-    <Color x:Key="ColorBgRail">#0C0E14</Color>
-    <Color x:Key="ColorBgSurface1">#11141C</Color>
-    <Color x:Key="ColorBgSurface2">#171B26</Color>
-    <Color x:Key="ColorBgElevated">#1F2433</Color>
+    <!-- Neutral Matte Carbon Surfaces (Zinc / Graphite scale) -->
+    <Color x:Key="ColorBgCanvas">#09090B</Color>
+    <Color x:Key="ColorBgRail">#0E0E11</Color>
+    <Color x:Key="ColorBgSurface1">#141418</Color>
+    <Color x:Key="ColorBgSurface2">#1C1C22</Color>
+    <Color x:Key="ColorBgElevated">#26262E</Color>
 
     <SolidColorBrush x:Key="BrushBgCanvas" Color="{StaticResource ColorBgCanvas}" />
     <SolidColorBrush x:Key="BrushBgRail" Color="{StaticResource ColorBgRail}" />
@@ -18,62 +18,59 @@
     <SolidColorBrush x:Key="BrushBgSurface2" Color="{StaticResource ColorBgSurface2}" />
     <SolidColorBrush x:Key="BrushBgElevated" Color="{StaticResource ColorBgElevated}" />
 
-    <!-- Hairline Borders -->
-    <SolidColorBrush x:Key="BrushBorderSubtle" Color="#14FFFFFF" />
-    <SolidColorBrush x:Key="BrushBorderStrong" Color="#26FFFFFF" />
+    <!-- Subtle Hairline Dividers -->
+    <SolidColorBrush x:Key="BrushBorderSubtle" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="BrushBorderStrong" Color="#24FFFFFF" />
 
-    <!-- Typography Hierarchy -->
-    <SolidColorBrush x:Key="BrushTextPrimary" Color="#F3F6FA" />
-    <SolidColorBrush x:Key="BrushTextSecondary" Color="#94A3B8" />
-    <SolidColorBrush x:Key="BrushTextMuted" Color="#596579" />
+    <!-- Clean Neutral Typography -->
+    <SolidColorBrush x:Key="BrushTextPrimary" Color="#FAFAFA" />
+    <SolidColorBrush x:Key="BrushTextSecondary" Color="#A1A1AA" />
+    <SolidColorBrush x:Key="BrushTextMuted" Color="#63636E" />
 
-    <!-- Brand Accent: Logitech Electric Cyan -->
-    <Color x:Key="ColorAccentCyan">#00C8FF</Color>
-    <SolidColorBrush x:Key="BrushAccentCyan" Color="{StaticResource ColorAccentCyan}" />
-    <SolidColorBrush x:Key="BrushAccentCyanHover" Color="#33D6FF" />
-    <SolidColorBrush x:Key="BrushAccentCyanSubtle" Color="#1F00C8FF" />
-    <SolidColorBrush x:Key="BrushAccentCyanBorder" Color="#6600C8FF" />
+    <!-- High-Contrast White Active State & Subtle Cyan Hardware Accent -->
+    <SolidColorBrush x:Key="BrushActiveWhite" Color="#F4F4F6" />
+    <SolidColorBrush x:Key="BrushAccentCyan" Color="#00C8FF" />
+    <SolidColorBrush x:Key="BrushAccentCyanHover" Color="#38BDF8" />
+    <SolidColorBrush x:Key="BrushAccentCyanSubtle" Color="#18FFFFFF" />
+    <SolidColorBrush x:Key="BrushAccentCyanBorder" Color="#38FFFFFF" />
 
-    <!-- Semantic Status -->
-    <SolidColorBrush x:Key="BrushSuccess" Color="#10B981" />
-    <SolidColorBrush x:Key="BrushSuccessSubtle" Color="#1A10B981" />
+    <!-- Semantic Indicators -->
+    <SolidColorBrush x:Key="BrushSuccess" Color="#22C55E" />
+    <SolidColorBrush x:Key="BrushSuccessSubtle" Color="#1A22C55E" />
     <SolidColorBrush x:Key="BrushWarning" Color="#F59E0B" />
     <SolidColorBrush x:Key="BrushWarningSubtle" Color="#1FF59E0B" />
-    <SolidColorBrush x:Key="BrushDanger" Color="#F43F5E" />
+    <SolidColorBrush x:Key="BrushDanger" Color="#EF4444" />
 
-    <!-- Font Families -->
+    <!-- Unified Clean Typography (Zero Monospace Slop) -->
     <FontFamily x:Key="FontSans">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="FontDisplay">Segoe UI Variable Display, Segoe UI Semibold, Segoe UI</FontFamily>
-    <FontFamily x:Key="FontMono">Cascadia Mono, Consolas</FontFamily>
+    <FontFamily x:Key="FontMono">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="FontIcons">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
-    <!-- Sleek Surface Panel -->
+    <!-- Matte Studio Panel -->
     <Style x:Key="StudioCardBorder" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource BrushBgSurface1}" />
         <Setter Property="BorderBrush" Value="{StaticResource BrushBorderSubtle}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="10" />
-        <Setter Property="Padding" Value="18" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="20" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
     </Style>
 
-    <!-- Left Navigation Rail Button -->
+    <!-- Left Navigation Rail Item -->
     <Style x:Key="NavRailButton" TargetType="Button">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
-        <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextMuted}" />
+        <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Width" Value="64" />
-        <Setter Property="Height" Value="58" />
-        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="Height" Value="54" />
+        <Setter Property="Margin" Value="0,0,0,6" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="RootBorder"
                             Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="10"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -89,16 +86,16 @@
         </Setter>
     </Style>
 
-    <!-- Secondary Action Pill / Button -->
+    <!-- Clean Matte Pill Button -->
     <Style x:Key="ToolbarActionButton" TargetType="Button">
         <Setter Property="Background" Value="{StaticResource BrushBgSurface2}" />
-        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BrushBorderSubtle}" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="12,4" />
+        <Setter Property="Padding" Value="14,5" />
         <Setter Property="Height" Value="32" />
         <Setter Property="FontFamily" Value="{StaticResource FontSans}" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="12.5" />
         <Setter Property="FontWeight" Value="Medium" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -108,7 +105,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="7"
+                            CornerRadius="8"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -116,11 +113,10 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="RootBorder" Property="Background" Value="{StaticResource BrushBgElevated}" />
-                            <Setter TargetName="RootBorder" Property="BorderBrush" Value="{StaticResource BrushBorderStrong}" />
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="RootBorder" Property="Background" Value="{StaticResource BrushAccentCyanSubtle}" />
-                            <Setter TargetName="RootBorder" Property="BorderBrush" Value="{StaticResource BrushAccentCyan}" />
+                            <Setter TargetName="RootBorder" Property="Opacity" Value="0.85" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -128,15 +124,15 @@
         </Setter>
     </Style>
 
-    <!-- Primary CTA Button (Electric Cyan) -->
+    <!-- High-Contrast White Primary CTA Button -->
     <Style x:Key="PrimaryAccentButton" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource BrushAccentCyan}" />
-        <Setter Property="Foreground" Value="#04080C" />
+        <Setter Property="Background" Value="{StaticResource BrushActiveWhite}" />
+        <Setter Property="Foreground" Value="#09090B" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Padding" Value="16,4" />
+        <Setter Property="Padding" Value="16,5" />
         <Setter Property="Height" Value="32" />
         <Setter Property="FontFamily" Value="{StaticResource FontDisplay}" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="12.5" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -144,14 +140,14 @@
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="RootBorder"
                             Background="{TemplateBinding Background}"
-                            CornerRadius="7"
+                            CornerRadius="8"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="RootBorder" Property="Background" Value="{StaticResource BrushAccentCyanHover}" />
+                            <Setter TargetName="RootBorder" Property="Background" Value="#FFFFFF" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="RootBorder" Property="Opacity" Value="0.88" />
@@ -167,8 +163,8 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Width" Value="38" />
-        <Setter Property="Height" Value="32" />
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="30" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
         <Setter Property="Template">
@@ -188,15 +184,14 @@
         </Setter>
     </Style>
 
-    <!-- List Action Row Button (for clean drawer assignment list) -->
+    <!-- Borderless Clean List Row Button -->
     <Style x:Key="ActionRowButton" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource BrushBgSurface2}" />
+        <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
         <Setter Property="BorderBrush" Value="{StaticResource BrushBorderSubtle}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Height" Value="38" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Height" Value="42" />
         <Setter Property="Padding" Value="12,0" />
-        <Setter Property="Margin" Value="0,0,0,6" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -206,7 +201,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="7"
+                            CornerRadius="6"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -214,8 +209,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="RootBorder" Property="Background" Value="{StaticResource BrushBgElevated}" />
-                            <Setter TargetName="RootBorder" Property="BorderBrush" Value="{StaticResource BrushAccentCyanBorder}" />
+                            <Setter TargetName="RootBorder" Property="Background" Value="{StaticResource BrushBgSurface2}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -223,12 +217,11 @@
         </Setter>
     </Style>
 
-    <!-- Small Circular/Square Step Button -->
+    <!-- Small Step Button -->
     <Style x:Key="StepIconButton" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource BrushBgElevated}" />
+        <Setter Property="Background" Value="{StaticResource BrushBgSurface2}" />
         <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BrushBorderSubtle}" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Width" Value="26" />
         <Setter Property="Height" Value="26" />
         <Setter Property="Padding" Value="0" />
@@ -238,18 +231,86 @@
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="Root"
                             Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="6">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Root" Property="Background" Value="{StaticResource BrushAccentCyanSubtle}" />
-                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource BrushAccentCyan}" />
-                            <Setter Property="Foreground" Value="{StaticResource BrushAccentCyan}" />
+                            <Setter TargetName="Root" Property="Background" Value="{StaticResource BrushBgElevated}" />
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Custom Pill Toggle Switch (Replaces Square CheckBox) -->
+    <Style x:Key="PillToggleSwitch" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontSans}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border x:Name="SwitchTrack"
+                                Width="38" Height="20"
+                                CornerRadius="10"
+                                Background="{StaticResource BrushBgElevated}"
+                                Padding="2"
+                                Margin="0,0,10,0">
+                            <Ellipse x:Name="SwitchThumb"
+                                     Width="16" Height="16"
+                                     Fill="{StaticResource BrushTextSecondary}"
+                                     HorizontalAlignment="Left" />
+                        </Border>
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="SwitchTrack" Property="Background" Value="{StaticResource BrushActiveWhite}" />
+                            <Setter TargetName="SwitchThumb" Property="Fill" Value="#09090B" />
+                            <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Custom Minimalist Slider -->
+    <Style TargetType="Slider">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Slider">
+                    <Grid VerticalAlignment="Center">
+                        <Border Height="4" CornerRadius="2" Background="{StaticResource BrushBgElevated}" VerticalAlignment="Center" />
+                        <Track x:Name="PART_Track">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="Slider.DecreaseLarge" Opacity="0" Focusable="False" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="Slider.IncreaseLarge" Opacity="0" Focusable="False" />
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Width="16" Height="16">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Ellipse Width="16" Height="16"
+                                                     Fill="{StaticResource BrushActiveWhite}"
+                                                     Stroke="#09090B"
+                                                     StrokeThickness="2" />
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
