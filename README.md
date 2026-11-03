@@ -78,12 +78,14 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 ## 🖥️ Usage
 
-### 1. Interactive Desktop GUI
-Launch the visual control center:
+### 1. Native Windows 11 Studio GUI (.NET 10 / Direct Win32 HID)
+Launch the standalone native Windows 11 Studio application (`native/G300sController/`), featuring an interactive 3D photorealistic hardware visualizer, live `WriteableBitmap` RGB swoosh & honeycomb mesh rendering, pixel-level button hit-testing, live keypress recorder, 4-stage DPI controls, and integrated `WH_KEYBOARD_LL` macro & auto-profile engine:
 ```bash
+# Build & launch directly via .NET 10
+dotnet run --project native/G300sController/G300sController.csproj -c Release
+
+# Or launch via the Python CLI entry point (automatically launches G300sController.exe on Windows)
 python g300s.py gui
-# or simply
-g300s
 ```
 
 ### 2. Command Line Interface (CLI)
