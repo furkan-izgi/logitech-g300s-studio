@@ -72,12 +72,9 @@ public partial class MainWindow : Window
 
     private static readonly LightingModeMeta[] LightingModes =
     [
-        new("none",           "Sabit Donanım Rengi",            "Seçili profil rengini sıfır işlemci yüküyle doğrudan fare belleğinde tutar."),
-        new("breathing",      "Yumuşak Nefes Alma",             "Ortak anotlu parlaklık basamakları ile titremesiz (flicker-free) azalıp artan geçiş."),
-        new("spectrum",       "Akıcı Renk Döngüsü",             "6 ana donanım tonu arasında kesintisiz ortak-kanal geçişiyle gökkuşağı döngüsü."),
-        new("ambilight",      "Ekran & Oyun Ortam Rengi",       "Seçilen ekran bölgesindeki baskın sahne rengini gerçek zamanlı yakalayıp fareye yansıtır."),
-        new("game_combat",    "Oyun Durumu: Çatışma & Aksiyon", "Ateş namlu ısınması, dürbün (ADS) odak, şarjör (R), yetenek ve düşük can/hasar tepkisi."),
-        new("audio_reactive", "Oyun Sesi & Patlama Tepkisi",    "Silah sesleri, patlamalar ve müzik baslarına göre dinamik parlaklık yükselişi.")
+        new("none",             "Sabit Donanım Rengi",           "Seçili profil rengini sıfır işlemci yüküyle doğrudan fare belleğinde tutar."),
+        new("spectrum",         "Gökkuşağı Döngüsü (Rainbow)",   "6 ana donanım tonu (Kırmızı → Sarı → Yeşil → Turkuaz → Mavi → Eflatun) arasında akıcı döngü."),
+        new("color_transition", "Renk Geçişi (İki Renk Arası)",  "Seçilen Ana Renk ile İkincil Geçiş Rengi arasında uyumlu ara tonlar üzerinden gidip gelen geçiş.")
     ];
 
     private readonly G300sHidDevice _device = new();
@@ -105,8 +102,8 @@ public partial class MainWindow : Window
 
     private readonly Border[] _ledSwatchBorders = new Border[8];
     private readonly Border[] _secondarySwatchBorders = new Border[8];
-    private readonly Border[] _lightingModeBorders = new Border[6];
-    private readonly Ellipse[] _lightingModeDots = new Ellipse[6];
+    private readonly Border[] _lightingModeBorders = new Border[3];
+    private readonly Ellipse[] _lightingModeDots = new Ellipse[3];
 
     private readonly Slider[] _dpiSliders = new Slider[4];
     private readonly TextBlock[] _dpiValueLabels = new TextBlock[4];
@@ -197,7 +194,6 @@ public partial class MainWindow : Window
         DeselectButton(); // Ensure nothing is selected on startup!
         SwitchMainView(0);
         SwitchDrawerCategory(0);
-        UpdateAmbilightZoneButtonsUi("full");
         _livePreviewTimer.Start();
 
         // Automated multi-view visual verification screenshot mode
@@ -220,7 +216,7 @@ public partial class MainWindow : Window
             CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_sensor{ext}"));
 
             SwitchMainView(2);
-            SelectLightingMode("ambilight");
+            SelectLightingMode("spectrum");
             await Task.Delay(400);
             CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_lighting{ext}"));
 
@@ -341,14 +337,6 @@ public partial class MainWindow : Window
                 LiveTelemetryProgressFill.Background = brush;
                 LiveTelemetryProgressFill.Width = Math.Clamp(_automation.LiveTelemetryLevel * 380.0, 12.0, 380.0);
                 LiveTelemetryTitleText.Text = _automation.LiveTelemetryText;
-
-                var pal = _automation.LiveScenePalette;
-                if (pal.Length >= 3)
-                {
-                    PaletteSwatch0.Background = new SolidColorBrush(Color.FromRgb(pal[0].R, pal[0].G, pal[0].B));
-                    PaletteSwatch1.Background = new SolidColorBrush(Color.FromRgb(pal[1].R, pal[1].G, pal[1].B));
-                    PaletteSwatch2.Background = new SolidColorBrush(Color.FromRgb(pal[2].R, pal[2].G, pal[2].B));
-                }
             }
         }
     }
@@ -1661,37 +1649,6 @@ public partial class MainWindow : Window
                 ? (Brush)FindResource("BrushActiveWhite")
                 : Brushes.Transparent;
         }
-    }
-
-    private void AmbilightZone_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { Tag: string zone })
-        {
-            _automation.AmbilightZone = zone;
-            UpdateAmbilightZoneButtonsUi(zone);
-            if (_automation.ActiveRgbEffect != "ambilight")
-            {
-                SelectLightingMode("ambilight");
-            }
-        }
-    }
-
-    private void UpdateAmbilightZoneButtonsUi(string activeZone)
-    {
-        Button[] btns = [ZoneBtnFull, ZoneBtnCrosshair, ZoneBtnHud, ZoneBtnCinema];
-        string[] tags = ["full", "crosshair", "hud", "cinema"];
-        for (int i = 0; i < btns.Length; i++)
-        {
-            bool active = tags[i] == activeZone;
-            btns[i].Background = active ? (Brush)FindResource("BrushBgElevated") : Brushes.Transparent;
-            btns[i].Foreground = active ? (Brush)FindResource("BrushTextPrimary") : (Brush)FindResource("BrushTextMuted");
-        }
-    }
-
-    private void SmoothBridgeToggle_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_suppressUiEvents || _automation is null) return;
-        _automation.UseHighFreqBridge = SmoothBridgeToggle.IsChecked == true;
     }
 
     private void BreathSpeedSlider_ValueChanged(object sender, RoutedEventArgs e)
