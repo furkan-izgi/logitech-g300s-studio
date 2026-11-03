@@ -443,11 +443,18 @@
                                         <ComboBoxItem Content="Makro Seçin..." IsSelected="True" IsEnabled="False" />
                                         <ComboBoxItem Content="Makro 1 (F13)" Tag="key:f13" />
                                         <ComboBoxItem Content="Makro 2 (F14)" Tag="key:f14" />
-                                        <ComboBoxItem Content="Makro 3 (F15)" Tag="key:f15" />
-                                        <ComboBoxItem Content="Makro 4 (F16)" Tag="key:f16" />
-                                        <ComboBoxItem Content="Makro 5 (F17)" Tag="key:f17" />
-                                        <ComboBoxItem Content="Makro 6 (F18)" Tag="key:f18" />
+                                        <ComboBoxItem Content="Makro 3 (F15 · Zamanlamalı)" Tag="key:f15" />
+                                        <ComboBoxItem Content="Makro 4 (F16 · Seri Tıklama)" Tag="key:f16" />
+                                        <ComboBoxItem Content="Makro 5 (F17 · Geri Tepme)" Tag="key:f17" />
+                                        <ComboBoxItem Content="Makro 6 (F18 · G-Shift)" Tag="key:f18" />
                                     </ComboBox>
+
+                                    <TextBlock Text="G-Shift İkincil Katman" FontSize="13" FontWeight="SemiBold" Margin="0,18,0,6" />
+                                    <TextBlock Text="Bu tuşa basılı tutulduğu sürece fareyi geçici olarak G-Shift profiline (varsayılan Profil 3) geçirir:"
+                                               FontSize="12" Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                    <Button Click="AssignGShiftBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="36">
+                                        <TextBlock Text="G-Shift Katman Tuşu Olarak Ata (F18)" FontSize="12.5" FontWeight="Medium" />
+                                    </Button>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -461,7 +468,7 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <!-- Header + Polling Rate Segmented Pill -->
+                        <!-- Header + Live Polling Rate Tester + Polling Rate Segmented Pill -->
                         <Grid Grid.Row="0" Margin="0,0,0,20">
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="Sensör Hassasiyeti"
@@ -471,6 +478,18 @@
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <!-- Live Polling Rate & Jitter Tester -->
+                                <Border Background="{StaticResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                        CornerRadius="9" Padding="12,4" Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock x:Name="LiveRateReadoutText" Text="Ölçüm: Hazır"
+                                                   FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <Button x:Name="ToggleRateTestBtn" Content="Hz Testi Başlat" Click="ToggleRateTestBtn_Click"
+                                                Style="{StaticResource ToolbarActionButton}" Height="24" Padding="10,0" FontSize="11.5" />
+                                    </StackPanel>
+                                </Border>
+
                                 <TextBlock Text="Bildirim Hızı" FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" Margin="0,0,12,0" />
                                 <Border Background="{StaticResource BrushBgSurface1}" CornerRadius="9" Padding="3">
                                     <StackPanel Orientation="Horizontal">
@@ -677,20 +696,40 @@
 
                                 <Border Grid.Row="1" Background="{StaticResource BrushBgSurface2}"
                                         CornerRadius="10" Padding="14,12" Margin="0,0,0,14">
-                                    <Grid>
-                                        <CheckBox x:Name="AutoSwitchToggle" Style="{StaticResource PillToggleSwitch}"
-                                                  Content="Otomatik Profil Geçişini Etkinleştir"
-                                                  Checked="AutoSwitchToggle_Changed" Unchecked="AutoSwitchToggle_Changed"
-                                                  VerticalAlignment="Center" />
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                            <TextBlock Text="Varsayılan:" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                            <ComboBox x:Name="DefaultSlotCombo" Width="100" Height="28" SelectionChanged="DefaultSlotCombo_SelectionChanged">
-                                                <ComboBoxItem Content="Profil 1" Tag="0" IsSelected="True" />
-                                                <ComboBoxItem Content="Profil 2" Tag="1" />
-                                                <ComboBoxItem Content="Profil 3" Tag="2" />
-                                            </ComboBox>
-                                        </StackPanel>
-                                    </Grid>
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,10">
+                                            <CheckBox x:Name="AutoSwitchToggle" Style="{StaticResource PillToggleSwitch}"
+                                                      Content="Otomatik Profil Geçişini Etkinleştir"
+                                                      Checked="AutoSwitchToggle_Changed" Unchecked="AutoSwitchToggle_Changed"
+                                                      VerticalAlignment="Center" />
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBlock Text="Varsayılan:" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                <ComboBox x:Name="DefaultSlotCombo" Width="100" Height="28" SelectionChanged="DefaultSlotCombo_SelectionChanged">
+                                                    <ComboBoxItem Content="Profil 1" Tag="0" IsSelected="True" />
+                                                    <ComboBoxItem Content="Profil 2" Tag="1" />
+                                                    <ComboBoxItem Content="Profil 3" Tag="2" />
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Border Height="1" Background="{StaticResource BrushBorderSubtle}" Margin="0,0,0,10" />
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="OsdToggle" Grid.Column="0" Style="{StaticResource PillToggleSwitch}"
+                                                      Content="Ekran Üstü Bildirim (OSD)"
+                                                      IsChecked="True"
+                                                      Checked="OsdToggle_Changed" Unchecked="OsdToggle_Changed"
+                                                      VerticalAlignment="Center" />
+                                            <CheckBox x:Name="StartupToggle" Grid.Column="1" Style="{StaticResource PillToggleSwitch}"
+                                                      Content="Windows ile Başlat (Tepsi)"
+                                                      Checked="StartupToggle_Changed" Unchecked="StartupToggle_Changed"
+                                                      VerticalAlignment="Center" />
+                                        </Grid>
+                                    </StackPanel>
                                 </Border>
 
                                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">

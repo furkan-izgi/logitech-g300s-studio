@@ -10,17 +10,31 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using G300sController.Models;
+using Microsoft.Win32;
 
 namespace G300sController.Services;
+
+public sealed class TimedMacroStep
+{
+    public ushort VkCode { get; set; }
+    public string KeyLabel { get; set; } = "";
+    public bool IsKeyUp { get; set; }
+    public int DelayMs { get; set; }
+}
 
 public sealed class MacroBindingItem
 {
     public string TriggerKey { get; set; } = "f13";
-    public string Mode { get; set; } = "text"; // "text", "rapid_fire", "shortcut"
+    // "text", "rapid_fire", "shortcut", "recoil", "timed", "gshift"
+    public string Mode { get; set; } = "text";
     public string TextPayload { get; set; } = "";
     public string MouseButton { get; set; } = "left";
     public int Cps { get; set; } = 12;
     public string ShortcutKeys { get; set; } = "ctrl+c";
+    public int RecoilVerticalPx { get; set; } = 4;
+    public int RecoilHorizontalPx { get; set; } = 0;
+    public int GShiftProfileIndex { get; set; } = 2;
+    public List<TimedMacroStep> TimedSteps { get; set; } = [];
 }
 
 public sealed class AppProfileRule
@@ -47,8 +61,11 @@ public sealed class HostAutomationService : IDisposable
     private readonly ConcurrentDictionary<int, CancellationTokenSource> _rapidFireTasks = new();
 
     private string _lastForegroundExe = "";
+    private int _preGShiftProfileIndex = -1;
+    private bool _isGShiftActive;
 
     public bool AutoProfileSwitchEnabled { get; set; }
+    public bool OsdNotificationsEnabled { get; set; } = true;
     public int DefaultProfileIndex { get; set; }
     public List<AppProfileRule> AppRules { get; } = [];
     public Dictionary<string, MacroBindingItem> Macros { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -58,24 +75,15 @@ public sealed class HostAutomationService : IDisposable
     public (int R, int G, int B) RgbBaseColor { get; private set; } = (0, 1, 1);
     public (int R, int G, int B) RgbSecondaryColor { get; private set; } = (0, 0, 1);
 
-    // "full", "crosshair", "hud", "cinema"
-    public string AmbilightZone { get; set; } = "full";
-    public bool UseHighFreqBridge { get; set; } = true;
-
     // Real-time 24-bit color & telemetry exposed for 30 FPS UI preview
     public (byte R, byte G, byte B) LivePreviewColor { get; private set; } = (0, 212, 255);
-    public (byte R, byte G, byte B)[] LiveScenePalette { get; private set; } =
-    [
-        (0, 212, 255),
-        (41, 121, 255),
-        (224, 64, 251)
-    ];
     public double LiveTelemetryLevel { get; private set; } = 1.0;
     public string LiveTelemetryText { get; private set; } = "Donanım Sabit Rengi";
     public string ActiveForegroundProcess { get; private set; } = "Masaüstü";
 
     public event Action<int, string>? AutoProfileSwitched;
     public event Action<string>? MacroKeyTriggered;
+    public event Action<bool, int>? GShiftStateChanged;
 
     public HostAutomationService(G300sHidDevice device)
     {
@@ -98,10 +106,55 @@ public sealed class HostAutomationService : IDisposable
 
         Macros["f13"] = new MacroBindingItem { TriggerKey = "f13", Mode = "shortcut", ShortcutKeys = "ctrl+c" };
         Macros["f14"] = new MacroBindingItem { TriggerKey = "f14", Mode = "shortcut", ShortcutKeys = "ctrl+v" };
-        Macros["f15"] = new MacroBindingItem { TriggerKey = "f15", Mode = "text", TextPayload = "gg wp!" };
+        Macros["f15"] = new MacroBindingItem { TriggerKey = "f15", Mode = "timed", TimedSteps =
+        [
+            new TimedMacroStep { VkCode = 0x51, KeyLabel = "Q", IsKeyUp = false, DelayMs = 0 },
+            new TimedMacroStep { VkCode = 0x51, KeyLabel = "Q", IsKeyUp = true, DelayMs = 45 },
+            new TimedMacroStep { VkCode = 0x52, KeyLabel = "R", IsKeyUp = false, DelayMs = 90 },
+            new TimedMacroStep { VkCode = 0x52, KeyLabel = "R", IsKeyUp = true, DelayMs = 45 }
+        ]};
         Macros["f16"] = new MacroBindingItem { TriggerKey = "f16", Mode = "rapid_fire", MouseButton = "left", Cps = 15 };
-        Macros["f17"] = new MacroBindingItem { TriggerKey = "f17", Mode = "rapid_fire", MouseButton = "right", Cps = 10 };
-        Macros["f18"] = new MacroBindingItem { TriggerKey = "f18", Mode = "text", TextPayload = "gl hf!" };
+        Macros["f17"] = new MacroBindingItem { TriggerKey = "f17", Mode = "recoil", Cps = 12, RecoilVerticalPx = 4, RecoilHorizontalPx = 0 };
+        Macros["f18"] = new MacroBindingItem { TriggerKey = "f18", Mode = "gshift", GShiftProfileIndex = 2 };
+    }
+
+    public static bool GetRunAtStartup()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", false);
+            return key?.GetValue("LogitechG300sStudio") is string val && !string.IsNullOrWhiteSpace(val);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static void SetRunAtStartup(bool enabled)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+            if (key is null) return;
+
+            if (enabled)
+            {
+                string? exePath = Environment.ProcessPath;
+                if (!string.IsNullOrWhiteSpace(exePath))
+                {
+                    key.SetValue("LogitechG300sStudio", $"\"{exePath}\" --minimized");
+                }
+            }
+            else
+            {
+                key.DeleteValue("LogitechG300sStudio", false);
+            }
+        }
+        catch
+        {
+            // Ignore registry permission errors
+        }
     }
 
     public void LoadConfig()
@@ -119,6 +172,7 @@ public sealed class HostAutomationService : IDisposable
 
             DefaultProfileIndex = root["default_profile"]?.GetValue<int>() ?? 0;
             AutoProfileSwitchEnabled = root["auto_switch_enabled"]?.GetValue<bool>() ?? false;
+            OsdNotificationsEnabled = root["osd_enabled"]?.GetValue<bool>() ?? true;
 
             if (root["app_rules"] is JsonObject rulesObj)
             {
@@ -154,6 +208,36 @@ public sealed class HostAutomationService : IDisposable
                         item.MouseButton = mObj["button"]?.GetValue<string>() ?? "left";
                         item.Cps = Math.Clamp(mObj["cps"]?.GetValue<int>() ?? 12, 1, 50);
                     }
+                    else if (mType == "recoil")
+                    {
+                        item.Mode = "recoil";
+                        item.Cps = Math.Clamp(mObj["cps"]?.GetValue<int>() ?? 12, 1, 50);
+                        item.RecoilVerticalPx = Math.Clamp(mObj["dy"]?.GetValue<int>() ?? 4, -30, 40);
+                        item.RecoilHorizontalPx = Math.Clamp(mObj["dx"]?.GetValue<int>() ?? 0, -30, 30);
+                    }
+                    else if (mType == "gshift")
+                    {
+                        item.Mode = "gshift";
+                        item.GShiftProfileIndex = Math.Clamp(mObj["target_profile"]?.GetValue<int>() ?? 2, 0, 2);
+                    }
+                    else if (mType == "timed")
+                    {
+                        item.Mode = "timed";
+                        if (mObj["timed_steps"] is JsonArray tArr)
+                        {
+                            foreach (var node in tArr)
+                            {
+                                if (node is not JsonObject sObj) continue;
+                                item.TimedSteps.Add(new TimedMacroStep
+                                {
+                                    VkCode = (ushort)(sObj["vk"]?.GetValue<int>() ?? 0),
+                                    KeyLabel = sObj["label"]?.GetValue<string>() ?? "",
+                                    IsKeyUp = sObj["up"]?.GetValue<bool>() ?? false,
+                                    DelayMs = Math.Clamp(sObj["delay"]?.GetValue<int>() ?? 30, 0, 5000)
+                                });
+                            }
+                        }
+                    }
                     else if (mType == "sequence")
                     {
                         item.Mode = "shortcut";
@@ -162,6 +246,35 @@ public sealed class HostAutomationService : IDisposable
 
                     Macros[key] = item;
                 }
+            }
+
+            int schemaVer = root["schema_version"]?.GetValue<int>() ?? 1;
+            if (schemaVer < 2)
+            {
+                if (Macros.TryGetValue("f15", out var m15) && m15.Mode == "text" && m15.TextPayload == "gg wp!")
+                {
+                    Macros["f15"] = new MacroBindingItem
+                    {
+                        TriggerKey = "f15",
+                        Mode = "timed",
+                        TimedSteps =
+                        [
+                            new TimedMacroStep { VkCode = 0x51, KeyLabel = "Q", IsKeyUp = false, DelayMs = 0 },
+                            new TimedMacroStep { VkCode = 0x51, KeyLabel = "Q", IsKeyUp = true, DelayMs = 45 },
+                            new TimedMacroStep { VkCode = 0x52, KeyLabel = "R", IsKeyUp = false, DelayMs = 90 },
+                            new TimedMacroStep { VkCode = 0x52, KeyLabel = "R", IsKeyUp = true, DelayMs = 45 }
+                        ]
+                    };
+                }
+                if (Macros.TryGetValue("f17", out var m17) && m17.Mode == "rapid_fire" && m17.Cps == 10)
+                {
+                    Macros["f17"] = new MacroBindingItem { TriggerKey = "f17", Mode = "recoil", Cps = 12, RecoilVerticalPx = 4, RecoilHorizontalPx = 0 };
+                }
+                if (Macros.TryGetValue("f18", out var m18) && m18.Mode == "text" && m18.TextPayload == "gl hf!")
+                {
+                    Macros["f18"] = new MacroBindingItem { TriggerKey = "f18", Mode = "gshift", GShiftProfileIndex = 2 };
+                }
+                SaveConfig();
             }
         }
         catch
@@ -199,33 +312,48 @@ public sealed class HostAutomationService : IDisposable
                     mObj["button"] = item.MouseButton;
                     mObj["cps"] = item.Cps;
                 }
+                else if (item.Mode == "recoil")
+                {
+                    mObj["type"] = "recoil";
+                    mObj["cps"] = item.Cps;
+                    mObj["dy"] = item.RecoilVerticalPx;
+                    mObj["dx"] = item.RecoilHorizontalPx;
+                }
+                else if (item.Mode == "gshift")
+                {
+                    mObj["type"] = "gshift";
+                    mObj["target_profile"] = item.GShiftProfileIndex;
+                }
+                else if (item.Mode == "timed")
+                {
+                    mObj["type"] = "timed";
+                    var tArr = new JsonArray();
+                    foreach (var st in item.TimedSteps)
+                    {
+                        tArr.Add(new JsonObject
+                        {
+                            ["vk"] = st.VkCode,
+                            ["label"] = st.KeyLabel,
+                            ["up"] = st.IsKeyUp,
+                            ["delay"] = st.DelayMs
+                        });
+                    }
+                    mObj["timed_steps"] = tArr;
+                }
                 else
                 {
                     mObj["type"] = "sequence";
                     mObj["ui_shortcut"] = item.ShortcutKeys;
-                    var steps = new JsonArray();
-                    string[] parts = item.ShortcutKeys.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    for (int i = 0; i < parts.Length - 1; i++)
-                    {
-                        steps.Add(new JsonObject { ["type"] = "press", ["key"] = parts[i].ToLowerInvariant() });
-                    }
-                    if (parts.Length > 0)
-                    {
-                        steps.Add(new JsonObject { ["type"] = "tap", ["key"] = parts[^1].ToLowerInvariant() });
-                    }
-                    for (int i = parts.Length - 2; i >= 0; i--)
-                    {
-                        steps.Add(new JsonObject { ["type"] = "release", ["key"] = parts[i].ToLowerInvariant() });
-                    }
-                    mObj["steps"] = steps;
                 }
                 macrosObj[kv.Key.ToLowerInvariant()] = mObj;
             }
 
             var root = new JsonObject
             {
+                ["schema_version"] = 2,
                 ["default_profile"] = DefaultProfileIndex,
                 ["auto_switch_enabled"] = AutoProfileSwitchEnabled,
+                ["osd_enabled"] = OsdNotificationsEnabled,
                 ["app_rules"] = rulesObj,
                 ["macros"] = macrosObj
             };
@@ -546,7 +674,7 @@ public sealed class HostAutomationService : IDisposable
             var cts = new CancellationTokenSource();
             if (_rapidFireTasks.TryAdd(vkCode, cts))
             {
-                MacroKeyTriggered?.Invoke($"{keyName.ToUpperInvariant()} (Rapid-Fire {macro.Cps} CPS)");
+                MacroKeyTriggered?.Invoke($"{keyName.ToUpperInvariant()} (Seri Tıklama {macro.Cps} CPS)");
                 int delayMs = Math.Max(10, 1000 / Math.Clamp(macro.Cps, 1, 50));
                 string btn = macro.MouseButton;
                 Task.Run(async () =>
@@ -558,6 +686,82 @@ public sealed class HostAutomationService : IDisposable
                     }
                 }, cts.Token);
             }
+        }
+        else if (macro.Mode == "recoil")
+        {
+            if (_rapidFireTasks.ContainsKey(vkCode))
+                return;
+
+            var cts = new CancellationTokenSource();
+            if (_rapidFireTasks.TryAdd(vkCode, cts))
+            {
+                int dy = macro.RecoilVerticalPx;
+                int dx = macro.RecoilHorizontalPx;
+                int cps = Math.Clamp(macro.Cps, 1, 50);
+                MacroKeyTriggered?.Invoke($"{keyName.ToUpperInvariant()} (Recoil ΔY:{dy}px, {cps} CPS)");
+                int clickIntervalMs = Math.Max(15, 1000 / cps);
+                Task.Run(async () =>
+                {
+                    var sw = Stopwatch.StartNew();
+                    long nextClickMs = 0;
+                    while (!cts.Token.IsCancellationRequested)
+                    {
+                        long now = sw.ElapsedMilliseconds;
+                        if (now >= nextClickMs)
+                        {
+                            SendMouseClick("left");
+                            nextClickMs = now + clickIntervalMs;
+                        }
+                        SendMouseMoveRelative(dx, dy);
+                        await Task.Delay(16, cts.Token).ConfigureAwait(false);
+                    }
+                }, cts.Token);
+            }
+        }
+        else if (macro.Mode == "gshift")
+        {
+            if (_isGShiftActive) return;
+            _isGShiftActive = true;
+            int targetSlot = Math.Clamp(macro.GShiftProfileIndex, 0, 2);
+
+            if (_device.IsConnected)
+            {
+                try
+                {
+                    var st = _device.GetActiveState();
+                    _preGShiftProfileIndex = st.ProfileIndex;
+                    if (_preGShiftProfileIndex != targetSlot)
+                    {
+                        _device.SetActiveProfile(targetSlot);
+                    }
+                }
+                catch
+                {
+                    _preGShiftProfileIndex = DefaultProfileIndex;
+                }
+            }
+            MacroKeyTriggered?.Invoke($"G-Shift Aktif → Profil {targetSlot + 1}");
+            GShiftStateChanged?.Invoke(true, targetSlot);
+        }
+        else if (macro.Mode == "timed")
+        {
+            if (macro.TimedSteps.Count == 0) return;
+            var stepsCopy = new List<TimedMacroStep>(macro.TimedSteps);
+            MacroKeyTriggered?.Invoke($"{keyName.ToUpperInvariant()} (Zamanlamalı: {stepsCopy.Count} adım)");
+            Task.Run(async () =>
+            {
+                foreach (var st in stepsCopy)
+                {
+                    if (st.DelayMs > 0)
+                    {
+                        await Task.Delay(st.DelayMs).ConfigureAwait(false);
+                    }
+                    if (st.VkCode != 0)
+                    {
+                        SendVkKey(st.VkCode, st.IsKeyUp);
+                    }
+                }
+            });
         }
         else if (macro.Mode == "text")
         {
@@ -575,11 +779,40 @@ public sealed class HostAutomationService : IDisposable
 
     private void HandleMacroUp(int vkCode, MacroBindingItem macro)
     {
-        if (macro.Mode == "rapid_fire" && _rapidFireTasks.TryRemove(vkCode, out var cts))
+        if ((macro.Mode == "rapid_fire" || macro.Mode == "recoil") && _rapidFireTasks.TryRemove(vkCode, out var cts))
         {
             cts.Cancel();
             cts.Dispose();
         }
+        else if (macro.Mode == "gshift" && _isGShiftActive)
+        {
+            _isGShiftActive = false;
+            int restoreSlot = _preGShiftProfileIndex >= 0 ? _preGShiftProfileIndex : DefaultProfileIndex;
+            if (_device.IsConnected)
+            {
+                try
+                {
+                    _device.SetActiveProfile(restoreSlot);
+                }
+                catch
+                {
+                    // Ignore transient error
+                }
+            }
+            MacroKeyTriggered?.Invoke($"G-Shift Bırakıldı → Profil {restoreSlot + 1}");
+            GShiftStateChanged?.Invoke(false, restoreSlot);
+        }
+    }
+
+    private static void SendMouseMoveRelative(int dx, int dy)
+    {
+        if (dx == 0 && dy == 0) return;
+        var move = new Win32.INPUT[1];
+        move[0].type = Win32.INPUT_MOUSE;
+        move[0].U.mi.dx = dx;
+        move[0].U.mi.dy = dy;
+        move[0].U.mi.dwFlags = Win32.MOUSEEVENTF_MOVE;
+        Win32.SendInput(1, move, Marshal.SizeOf<Win32.INPUT>());
     }
 
     private static void SendUnicodeText(string text)
@@ -698,59 +931,6 @@ public sealed class HostAutomationService : IDisposable
         }
     }
 
-    private static class CoreAudioMeter
-    {
-        private static IAudioMeterInformation? _meter;
-        private static bool _initAttempted;
-
-        public static double GetMasterPeak()
-        {
-            if (!_initAttempted)
-            {
-                _initAttempted = true;
-                try
-                {
-                    var enumeratorType = Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"));
-                    if (enumeratorType is not null)
-                    {
-                        var enumerator = (IMMDeviceEnumerator)Activator.CreateInstance(enumeratorType)!;
-                        enumerator.GetDefaultAudioEndpoint(0, 1, out IMMDevice device);
-                        Guid iidMeter = typeof(IAudioMeterInformation).GUID;
-                        device.Activate(ref iidMeter, 23, IntPtr.Zero, out object meterObj);
-                        _meter = (IAudioMeterInformation)meterObj;
-                    }
-                }
-                catch
-                {
-                    _meter = null;
-                }
-            }
-
-            if (_meter is null) return 0.0;
-            _meter.GetPeakValue(out float peak);
-            return Math.Clamp(peak, 0f, 1f);
-        }
-
-        [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IMMDeviceEnumerator
-        {
-            int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IntPtr ppDevices);
-            int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppEndpoint);
-        }
-
-        [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IMMDevice
-        {
-            int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
-        }
-
-        [ComImport, Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IAudioMeterInformation
-        {
-            int GetPeakValue(out float pfPeak);
-        }
-    }
-
     private static class Win32
     {
         public const int WH_KEYBOARD_LL = 13;
@@ -769,6 +949,7 @@ public sealed class HostAutomationService : IDisposable
         public const uint KEYEVENTF_KEYUP = 0x0002;
         public const uint KEYEVENTF_UNICODE = 0x0004;
 
+        public const uint MOUSEEVENTF_MOVE = 0x0001;
         public const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
         public const uint MOUSEEVENTF_LEFTUP = 0x0004;
         public const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;

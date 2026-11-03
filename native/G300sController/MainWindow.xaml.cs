@@ -80,7 +80,9 @@ public partial class MainWindow : Window
     private readonly G300sHidDevice _device = new();
     private readonly HostAutomationService _automation;
     private readonly SystemTrayService _tray = new();
+    private readonly OsdNotificationService _osd = new();
     private readonly DispatcherTimer _livePreviewTimer;
+    private CancellationTokenSource? _rateTestCts;
 
     private readonly G300sProfile[] _profiles =
     [
@@ -133,6 +135,7 @@ public partial class MainWindow : Window
         _device.HardwareEventReceived += OnHardwareEventReceived;
         _automation.AutoProfileSwitched += OnAutoProfileSwitched;
         _automation.MacroKeyTriggered += OnMacroKeyTriggered;
+        _automation.GShiftStateChanged += OnGShiftStateChanged;
 
         _livePreviewTimer = new DispatcherTimer(DispatcherPriority.Render)
         {
@@ -190,14 +193,22 @@ public partial class MainWindow : Window
         };
 
         _automation.StartHookAndWatcher();
+        _osd.IsEnabled = _automation.OsdNotificationsEnabled;
         ConnectAndReadHardware();
         DeselectButton(); // Ensure nothing is selected on startup!
         SwitchMainView(0);
         SwitchDrawerCategory(0);
         _livePreviewTimer.Start();
 
-        // Automated multi-view visual verification screenshot mode
         string[] args = Environment.GetCommandLineArgs();
+        if (Array.Exists(args, a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase) || string.Equals(a, "--tray", StringComparison.OrdinalIgnoreCase)))
+        {
+            Hide();
+            StatusFooterText.Text = "Windows başlangıcında sistem tepsisinde başlatıldı.";
+            return;
+        }
+
+        // Automated multi-view visual verification screenshot mode
         int ssIdx = Array.IndexOf(args, "--verify-screenshot");
         if (ssIdx >= 0 && ssIdx + 1 < args.Length)
         {
@@ -878,9 +889,10 @@ public partial class MainWindow : Window
             };
 
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(95) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(175) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(74) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(186) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             var badge = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             badge.Children.Add(new TextBlock
@@ -904,7 +916,18 @@ public partial class MainWindow : Window
             modeCombo.Items.Add(new ComboBoxItem { Content = "Metin Dizisi", Tag = "text" });
             modeCombo.Items.Add(new ComboBoxItem { Content = "Seri Tıklama (CPS)", Tag = "rapid_fire" });
             modeCombo.Items.Add(new ComboBoxItem { Content = "Klavye Kısayolu", Tag = "shortcut" });
-            modeCombo.SelectedIndex = item.Mode switch { "rapid_fire" => 1, "shortcut" => 2, _ => 0 };
+            modeCombo.Items.Add(new ComboBoxItem { Content = "Zamanlamalı Kayıt", Tag = "timed" });
+            modeCombo.Items.Add(new ComboBoxItem { Content = "Geri Tepme (Recoil)", Tag = "recoil" });
+            modeCombo.Items.Add(new ComboBoxItem { Content = "G-Shift Katmanı", Tag = "gshift" });
+            modeCombo.SelectedIndex = item.Mode switch
+            {
+                "rapid_fire" => 1,
+                "shortcut" => 2,
+                "timed" => 3,
+                "recoil" => 4,
+                "gshift" => 5,
+                _ => 0
+            };
             Grid.SetColumn(modeCombo, 1);
             grid.Children.Add(modeCombo);
 
@@ -913,22 +936,112 @@ public partial class MainWindow : Window
                 Height = 32,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Padding = new Thickness(8, 0, 8, 0),
-                FontSize = 12.5,
+                FontSize = 12,
                 Text = FormatMacroParamText(item)
             };
             Grid.SetColumn(paramBox, 2);
             grid.Children.Add(paramBox);
+
+            var recBtn = new Button
+            {
+                Content = "● Kayıt",
+                Style = (Style)FindResource("ToolbarActionButton"),
+                Height = 32,
+                Padding = new Thickness(10, 0, 10, 0),
+                Margin = new Thickness(6, 0, 0, 0),
+                FontSize = 11.5,
+                Visibility = item.Mode == "timed" ? Visibility.Visible : Visibility.Collapsed,
+                ToolTip = "Tıklayıp klavye tuşlarına basın; basış ve bırakış süreleri milisaniye hassasiyetinde kaydedilir."
+            };
+            Grid.SetColumn(recBtn, 3);
+            grid.Children.Add(recBtn);
+
+            bool isRecTimed = false;
+            Stopwatch? recSw = null;
+
+            recBtn.Click += (_, _) =>
+            {
+                if (!isRecTimed)
+                {
+                    isRecTimed = true;
+                    item.TimedSteps.Clear();
+                    recSw = Stopwatch.StartNew();
+                    recBtn.Content = "■ Durdur";
+                    paramBox.Text = "Tuşlara basın (Bitirmek için Durdur)...";
+                    recBtn.Focus();
+                }
+                else
+                {
+                    isRecTimed = false;
+                    recSw?.Stop();
+                    recBtn.Content = "● Kayıt";
+                    paramBox.Text = FormatMacroParamText(item);
+                }
+            };
+
+            recBtn.PreviewKeyDown += (_, ke) =>
+            {
+                if (!isRecTimed || recSw is null) return;
+                ke.Handled = true;
+                Key realKey = ke.Key == Key.System ? ke.SystemKey : ke.Key;
+                if (realKey == Key.Escape)
+                {
+                    isRecTimed = false;
+                    recSw.Stop();
+                    recBtn.Content = "● Kayıt";
+                    paramBox.Text = FormatMacroParamText(item);
+                    return;
+                }
+                if (ke.IsRepeat || item.TimedSteps.Count >= 24) return;
+                ushort vk = (ushort)KeyInterop.VirtualKeyFromKey(realKey);
+                int delay = item.TimedSteps.Count == 0 ? 0 : (int)Math.Clamp(recSw.ElapsedMilliseconds, 5, 5000);
+                recSw.Restart();
+                item.TimedSteps.Add(new TimedMacroStep
+                {
+                    VkCode = vk,
+                    KeyLabel = realKey.ToString().ToUpperInvariant(),
+                    IsKeyUp = false,
+                    DelayMs = delay
+                });
+                paramBox.Text = FormatMacroParamText(item);
+            };
+
+            recBtn.PreviewKeyUp += (_, ke) =>
+            {
+                if (!isRecTimed || recSw is null) return;
+                ke.Handled = true;
+                Key realKey = ke.Key == Key.System ? ke.SystemKey : ke.Key;
+                if (item.TimedSteps.Count >= 24) return;
+                ushort vk = (ushort)KeyInterop.VirtualKeyFromKey(realKey);
+                int delay = (int)Math.Clamp(recSw.ElapsedMilliseconds, 5, 5000);
+                recSw.Restart();
+                item.TimedSteps.Add(new TimedMacroStep
+                {
+                    VkCode = vk,
+                    KeyLabel = realKey.ToString().ToUpperInvariant(),
+                    IsKeyUp = true,
+                    DelayMs = delay
+                });
+                paramBox.Text = FormatMacroParamText(item);
+            };
 
             modeCombo.SelectionChanged += (_, _) =>
             {
                 if (modeCombo.SelectedItem is ComboBoxItem { Tag: string m })
                 {
                     item.Mode = m;
+                    recBtn.Visibility = m == "timed" ? Visibility.Visible : Visibility.Collapsed;
                     paramBox.Text = FormatMacroParamText(item);
                 }
             };
 
-            paramBox.TextChanged += (_, _) => ParseMacroParamText(item, paramBox.Text);
+            paramBox.TextChanged += (_, _) =>
+            {
+                if (!isRecTimed)
+                {
+                    ParseMacroParamText(item, paramBox.Text);
+                }
+            };
 
             card.Child = grid;
             MacroItemsPanel.Children.Add(card);
@@ -936,6 +1049,8 @@ public partial class MainWindow : Window
 
         _suppressUiEvents = true;
         AutoSwitchToggle.IsChecked = _automation.AutoProfileSwitchEnabled;
+        OsdToggle.IsChecked = _automation.OsdNotificationsEnabled;
+        StartupToggle.IsChecked = HostAutomationService.GetRunAtStartup();
         DefaultSlotCombo.SelectedIndex = Math.Clamp(_automation.DefaultProfileIndex, 0, 2);
         _suppressUiEvents = false;
 
@@ -945,6 +1060,11 @@ public partial class MainWindow : Window
     private static string FormatMacroParamText(MacroBindingItem item) => item.Mode switch
     {
         "rapid_fire" => $"{item.Cps} CPS ({(string.Equals(item.MouseButton, "right", StringComparison.OrdinalIgnoreCase) ? "Sağ Tık" : "Sol Tık")})",
+        "recoil" => $"{item.Cps} CPS · Dikey: +{item.RecoilVerticalPx}px, Yatay: {item.RecoilHorizontalPx}px",
+        "gshift" => $"Basılı Tut → Profil {item.GShiftProfileIndex + 1}",
+        "timed" => item.TimedSteps.Count == 0
+            ? "Adım yok ('● Kayıt' ile kaydedin)"
+            : string.Join(" → ", item.TimedSteps.Take(6).Select(s => $"{s.KeyLabel}{(s.IsKeyUp ? "↑" : "↓")}({s.DelayMs}ms)")),
         "shortcut" => item.ShortcutKeys,
         _ => item.TextPayload
     };
@@ -963,11 +1083,28 @@ public partial class MainWindow : Window
                 || raw.Contains("sag", StringComparison.OrdinalIgnoreCase);
             item.MouseButton = isRight ? "right" : "left";
         }
+        else if (item.Mode == "recoil")
+        {
+            var nums = System.Text.RegularExpressions.Regex.Matches(raw, @"-?\d+")
+                .Select(m => int.TryParse(m.Value, out int v) ? v : 0)
+                .ToArray();
+            if (nums.Length >= 1) item.Cps = Math.Clamp(Math.Abs(nums[0]), 1, 50);
+            if (nums.Length >= 2) item.RecoilVerticalPx = Math.Clamp(nums[1], -30, 40);
+            if (nums.Length >= 3) item.RecoilHorizontalPx = Math.Clamp(nums[2], -30, 30);
+        }
+        else if (item.Mode == "gshift")
+        {
+            string digits = new(raw.Where(char.IsDigit).ToArray());
+            if (int.TryParse(digits, out int pNum))
+            {
+                item.GShiftProfileIndex = Math.Clamp(pNum - 1, 0, 2);
+            }
+        }
         else if (item.Mode == "shortcut")
         {
             item.ShortcutKeys = raw.Trim();
         }
-        else
+        else if (item.Mode == "text")
         {
             item.TextPayload = raw;
         }
@@ -1879,6 +2016,122 @@ public partial class MainWindow : Window
         _automation.SaveConfig();
     }
 
+    private void OsdToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents || _automation is null) return;
+        bool enabled = OsdToggle.IsChecked == true;
+        _automation.OsdNotificationsEnabled = enabled;
+        _osd.IsEnabled = enabled;
+        _automation.SaveConfig();
+        if (enabled)
+        {
+            var prof = _profiles[_activeProfileIndex];
+            int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
+            _osd.ShowNotification($"Profil {_activeProfileIndex + 1} · {prof.ColorName}", $"{dpi} DPI · {prof.PollingRateHz} Hz", prof.ColorHex);
+        }
+    }
+
+    private void StartupToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        bool enabled = StartupToggle.IsChecked == true;
+        HostAutomationService.SetRunAtStartup(enabled);
+        StatusFooterText.Text = enabled
+            ? "Windows başlangıcında tepsi modunda otomatik çalışma etkinleştirildi."
+            : "Windows başlangıcında otomatik çalışma devre dışı bırakıldı.";
+    }
+
+    private void AssignGShiftBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedButtonIndex < 0) return;
+        if (_automation.Macros.TryGetValue("f18", out var f18Macro))
+        {
+            f18Macro.Mode = "gshift";
+            _automation.SaveConfig();
+            BuildDaemonWorkspaceUi();
+        }
+        AssignActionToSelectedButton("key:f18");
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    private void ToggleRateTestBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rateTestCts is not null)
+        {
+            _rateTestCts.Cancel();
+            _rateTestCts.Dispose();
+            _rateTestCts = null;
+            ToggleRateTestBtn.Content = "Hz Testi Başlat";
+            LiveRateReadoutText.Text = "Ölçüm: Durduruldu";
+            return;
+        }
+
+        _rateTestCts = new CancellationTokenSource();
+        CancellationToken token = _rateTestCts.Token;
+        ToggleRateTestBtn.Content = "Testi Durdur";
+        LiveRateReadoutText.Text = "Fareyi daireler çizerek hareket ettirin...";
+
+        Task.Run(() =>
+        {
+            var sw = Stopwatch.StartNew();
+            GetCursorPos(out POINT lastPt);
+            long lastMoveTick = sw.ElapsedTicks;
+            var intervalsMs = new List<double>(128);
+            int peakHz = 0;
+            long lastUiUpdateMs = 0;
+            double tickToMs = 1000.0 / Stopwatch.Frequency;
+
+            while (!token.IsCancellationRequested)
+            {
+                if (GetCursorPos(out POINT pt) && (pt.X != lastPt.X || pt.Y != lastPt.Y))
+                {
+                    long nowTick = sw.ElapsedTicks;
+                    double dtMs = (nowTick - lastMoveTick) * tickToMs;
+                    lastMoveTick = nowTick;
+                    lastPt = pt;
+
+                    if (dtMs is >= 0.45 and <= 25.0)
+                    {
+                        intervalsMs.Add(dtMs);
+                        if (intervalsMs.Count > 80) intervalsMs.RemoveAt(0);
+                    }
+                }
+
+                long nowMs = sw.ElapsedMilliseconds;
+                if (nowMs - lastUiUpdateMs >= 160)
+                {
+                    lastUiUpdateMs = nowMs;
+                    if (intervalsMs.Count >= 6)
+                    {
+                        double avgMs = intervalsMs.Average();
+                        int hz = (int)Math.Round(1000.0 / Math.Max(0.5, avgMs));
+                        if (hz > peakHz && hz <= 1050) peakHz = hz;
+
+                        double variance = intervalsMs.Average(v => (v - avgMs) * (v - avgMs));
+                        double jitterMs = Math.Sqrt(variance);
+
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            LiveRateReadoutText.Text = $"{hz} Hz · Tepe: {peakHz} Hz · Jitter: ±{jitterMs:0.00} ms";
+                        });
+                        intervalsMs.Clear();
+                    }
+                }
+
+                Thread.SpinWait(400);
+            }
+        }, token);
+    }
+
     private void DefaultSlotCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_suppressUiEvents || _automation is null) return;
@@ -1962,6 +2215,13 @@ public partial class MainWindow : Window
                         _activeDpiStageIndex = state.DpiStageIndex;
                         RefreshSlotHeaderVisuals();
                         RefreshCurrentProfileToUi();
+
+                        var prof = _profiles[_activeProfileIndex];
+                        int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
+                        _osd.ShowNotification(
+                            $"Profil {_activeProfileIndex + 1} · {prof.ColorName}",
+                            $"Kademe {_activeDpiStageIndex + 1}: {dpi} DPI · {prof.PollingRateHz} Hz",
+                            prof.ColorHex);
                     }
                 }
                 catch
@@ -1980,6 +2240,30 @@ public partial class MainWindow : Window
             RefreshSlotHeaderVisuals();
             RefreshCurrentProfileToUi();
             StatusFooterText.Text = $"Otomatik geçiş: {exeName} → Profil {newSlot + 1}";
+
+            var prof = _profiles[_activeProfileIndex];
+            int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
+            _osd.ShowNotification(
+                $"Otomatik Profil · {exeName}",
+                $"Profil {_activeProfileIndex + 1} ({prof.ColorName}) · {dpi} DPI",
+                prof.ColorHex);
+        });
+    }
+
+    private void OnGShiftStateChanged(bool isActive, int targetSlot)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            _activeProfileIndex = Math.Clamp(targetSlot, 0, 2);
+            RefreshSlotHeaderVisuals();
+            RefreshCurrentProfileToUi();
+
+            var prof = _profiles[_activeProfileIndex];
+            int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
+            _osd.ShowNotification(
+                isActive ? $"G-Shift Katmanı Aktif (Profil {targetSlot + 1})" : $"Normal Katmana Dönüldü (Profil {targetSlot + 1})",
+                $"{dpi} DPI · {prof.ColorName}",
+                prof.ColorHex);
         });
     }
 
@@ -2019,7 +2303,10 @@ public partial class MainWindow : Window
             return;
         }
 
+        _rateTestCts?.Cancel();
+        _rateTestCts?.Dispose();
         _livePreviewTimer.Stop();
+        _osd.Dispose();
         _tray.Dispose();
         _automation.Dispose();
         _device.Dispose();
