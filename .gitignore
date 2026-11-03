@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Large vendor installers and extracted app files (>300MB)
+vendor/
+
+# Temporary diagnostic logs and screenshots
+tools/*.png
+tools/*.log
+tools/re_analyze.py
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
