@@ -9,13 +9,14 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using G300sController.Models;
 
 namespace G300sController.Services;
 
 public sealed class MacroBindingItem
 {
-    public string TriggerKey { get; set; } = "f13"; // f13..f24
-    public string Mode { get; set; } = "text";      // "text", "rapid_fire", "shortcut"
+    public string TriggerKey { get; set; } = "f13";
+    public string Mode { get; set; } = "text"; // "text", "rapid_fire", "shortcut"
     public string TextPayload { get; set; } = "";
     public string MouseButton { get; set; } = "left";
     public int Cps { get; set; } = 12;
@@ -30,8 +31,8 @@ public sealed class AppProfileRule
 
 /// <summary>
 /// Provides low-level Win32 keyboard hook (WH_KEYBOARD_LL) for F13..F24 macros,
-/// foreground window process watcher for automatic profile switching, and a
-/// 333 Hz First-Order Delta-Sigma (ΔΣ) PWM lighting &amp; game-telemetry engine.
+/// foreground window process watcher, flicker-free continuous-anode hardware lighting,
+/// multi-zone screen Ambilight, and multi-signal game state telemetry.
 /// </summary>
 public sealed class HostAutomationService : IDisposable
 {
@@ -46,9 +47,6 @@ public sealed class HostAutomationService : IDisposable
     private readonly ConcurrentDictionary<int, CancellationTokenSource> _rapidFireTasks = new();
 
     private string _lastForegroundExe = "";
-    private ulong _lastIdleTime;
-    private ulong _lastKernelTime;
-    private ulong _lastUserTime;
 
     public bool AutoProfileSwitchEnabled { get; set; }
     public int DefaultProfileIndex { get; set; }
@@ -56,14 +54,25 @@ public sealed class HostAutomationService : IDisposable
     public Dictionary<string, MacroBindingItem> Macros { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public string ActiveRgbEffect { get; private set; } = "none";
-    public int RgbSpeedMs { get; private set; } = 2400;
+    public int RgbSpeedMs { get; private set; } = 2800;
     public (int R, int G, int B) RgbBaseColor { get; private set; } = (0, 1, 1);
-    public (int R, int G, int B) RgbSecondaryColor { get; private set; } = (0, 0, 0);
+    public (int R, int G, int B) RgbSecondaryColor { get; private set; } = (0, 0, 1);
+
+    // "full", "crosshair", "hud", "cinema"
+    public string AmbilightZone { get; set; } = "full";
+    public bool UseHighFreqBridge { get; set; } = true;
 
     // Real-time 24-bit color & telemetry exposed for 30 FPS UI preview
     public (byte R, byte G, byte B) LivePreviewColor { get; private set; } = (0, 212, 255);
-    public double LiveTelemetryLevel { get; private set; }
-    public string LiveTelemetryText { get; private set; } = "Hardware Static";
+    public (byte R, byte G, byte B)[] LiveScenePalette { get; private set; } =
+    [
+        (0, 212, 255),
+        (41, 121, 255),
+        (224, 64, 251)
+    ];
+    public double LiveTelemetryLevel { get; private set; } = 1.0;
+    public string LiveTelemetryText { get; private set; } = "Donanım Sabit Rengi";
+    public string ActiveForegroundProcess { get; private set; } = "Masaüstü";
 
     public event Action<int, string>? AutoProfileSwitched;
     public event Action<string>? MacroKeyTriggered;
@@ -247,16 +256,13 @@ public sealed class HostAutomationService : IDisposable
                 {
                     try
                     {
-                        if (AutoProfileSwitchEnabled && _device.IsConnected)
-                        {
-                            PollForegroundWindow();
-                        }
+                        PollForegroundWindow();
                     }
                     catch
                     {
                         // Ignore transient process handle errors
                     }
-                    await Task.Delay(500, token).ConfigureAwait(false);
+                    await Task.Delay(450, token).ConfigureAwait(false);
                 }
             }, token);
         }
@@ -264,7 +270,7 @@ public sealed class HostAutomationService : IDisposable
 
     public void UpdateRgbParameters(int speedMs, (int R, int G, int B) baseColor, (int R, int G, int B)? secondaryColor = null)
     {
-        RgbSpeedMs = Math.Clamp(speedMs, 400, 8000);
+        RgbSpeedMs = Math.Clamp(speedMs, 800, 8000);
         RgbBaseColor = baseColor;
         if (secondaryColor.HasValue)
         {
@@ -279,7 +285,7 @@ public sealed class HostAutomationService : IDisposable
         (int R, int G, int B)? secondaryColor = null)
     {
         ActiveRgbEffect = effectName.ToLowerInvariant();
-        RgbSpeedMs = Math.Clamp(speedMs, 400, 8000);
+        RgbSpeedMs = Math.Clamp(speedMs, 800, 8000);
         RgbBaseColor = baseColor;
         if (secondaryColor.HasValue)
         {
@@ -301,44 +307,89 @@ public sealed class HostAutomationService : IDisposable
         _rgbCts = new CancellationTokenSource();
         CancellationToken token = _rgbCts.Token;
 
-        Task.Run(() => RunDeltaSigmaLightingLoop(token), token);
+        Task.Run(() => RunFlickerFreeLightingLoop(token), token);
     }
 
     private static (byte R, byte G, byte B) MapBitTo24(int r, int g, int b) =>
         (r != 0 ? 1 : 0, g != 0 ? 1 : 0, b != 0 ? 1 : 0) switch
         {
-            (0, 0, 0) => (22, 26, 34),
+            (0, 0, 0) => (28, 32, 42),
             (1, 0, 0) => (255, 45, 70),
-            (1, 1, 0) => (255, 195, 0),
-            (0, 1, 0) => (0, 235, 115),
-            (0, 1, 1) => (0, 215, 255),
-            (0, 0, 1) => (45, 125, 255),
-            (1, 0, 1) => (230, 60, 255),
-            (1, 1, 1) => (245, 250, 255),
-            _ => (0, 215, 255)
+            (1, 1, 0) => (255, 196, 0),
+            (0, 1, 0) => (0, 230, 118),
+            (0, 1, 1) => (0, 212, 255),
+            (0, 0, 1) => (41, 121, 255),
+            (1, 0, 1) => (224, 64, 251),
+            (1, 1, 1) => (244, 248, 255),
+            _ => (0, 212, 255)
         };
 
     /// <summary>
-    /// Runs a 333 Hz First-Order Delta-Sigma (ΔΣ) error-diffusion PWM loop over HID Feature Report 0xF1.
-    /// This enables smooth analog brightness fading (sin² gamma-corrected breathing), continuous 24-bit
-    /// spectrum waves, real-time game screen Ambilight, combat barrel heat, and CoreAudio peak reaction.
+    /// Returns the natural 4-step Continuous-Anode Luminance Ladder for a given 3-bit color:
+    /// Step 0: Deep/Dim (1 LED channel on)
+    /// Step 1: Mid-Low (1 LED channel on or secondary)
+    /// Step 2: Vibrant (2 LED channels on)
+    /// Step 3: Peak Brilliance (3 LED channels on / White)
+    /// Because consecutive steps share at least 1 continuously lit LED channel and never pulse
+    /// against (0,0,0), transitions are 100% free of stroboscopic dark-gap flicker.
     /// </summary>
-    private void RunDeltaSigmaLightingLoop(CancellationToken token)
+    private static (int R, int G, int B)[] BuildContinuousAnodeLadder((int R, int G, int B) primary, (int R, int G, int B) secondary)
+    {
+        // If user chose two distinct non-black colors, build a Gray-code path between them
+        if (secondary != (0, 0, 0) && secondary != primary)
+        {
+            (int R, int G, int B) mid = (
+                primary.R | secondary.R,
+                primary.G | secondary.G,
+                primary.B | secondary.B
+            );
+            return [secondary, mid, primary, (1, 1, 1)];
+        }
+
+        return (primary.R != 0 ? 1 : 0, primary.G != 0 ? 1 : 0, primary.B != 0 ? 1 : 0) switch
+        {
+            (0, 1, 1) => [(0, 0, 1), (0, 1, 1), (0, 1, 1), (1, 1, 1)], // Mavi (1x) -> Turkuaz (2x) -> Beyaz (3x)
+            (1, 0, 1) => [(0, 0, 1), (1, 0, 0), (1, 0, 1), (1, 1, 1)], // Mavi (1x) -> Kırmızı (1x) -> Macenta (2x) -> Beyaz (3x)
+            (1, 1, 0) => [(1, 0, 0), (0, 1, 0), (1, 1, 0), (1, 1, 1)], // Kırmızı (1x) -> Yeşil (1x) -> Sarı (2x) -> Beyaz (3x)
+            (1, 0, 0) => [(1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)], // Kırmızı (1x) -> Macenta (2x) -> Sarı (2x) -> Beyaz (3x)
+            (0, 1, 0) => [(0, 1, 0), (0, 1, 1), (1, 1, 0), (1, 1, 1)], // Yeşil (1x) -> Turkuaz (2x) -> Sarı (2x) -> Beyaz (3x)
+            (0, 0, 1) => [(0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1)], // Mavi (1x) -> Turkuaz (2x) -> Macenta (2x) -> Beyaz (3x)
+            _ => [(0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1)]
+        };
+    }
+
+    private void RunFlickerFreeLightingLoop(CancellationToken token)
     {
         Win32.timeBeginPeriod(1);
         var sw = Stopwatch.StartNew();
 
-        double accR = 0.0, accG = 0.0, accB = 0.0;
-        int lastMask = -1;
-
-        // State for screen ambilight & game state sampling (updated at ~28 Hz)
+        int lastSentMask = -1;
         long lastSampleMs = -100;
-        double ambiR = 0.0, ambiG = 0.85, ambiB = 1.0;
-        double damageAlertLevel = 0.0;
+
+        // Smoothed Ambilight HSV/RGB state with hysteresis
+        double smoothR = 0.0, smoothG = 0.85, smoothB = 1.0;
+        (int R, int G, int B) currentAmbiHwColor = (0, 1, 1);
+        long lastAmbiSwitchMs = 0;
+
+        // Game state telemetry variables
         double barrelHeat = 0.0;
+        double damageAlertLevel = 0.0;
+        double flashbangLevel = 0.0;
+        double reloadProgress = 0.0;
+        double abilityPulse = 0.0;
         double smoothAudioPeak = 0.0;
-        bool wasLeftMouseDown = false;
-        double muzzleFlashBoost = 0.0;
+        bool wasLmbDown = false;
+
+        // Gray-code 6-color wheel where every adjacent pair shares 1 continuously lit LED channel
+        (int R, int G, int B)[] grayWheel =
+        [
+            (1, 0, 0), // Kırmızı
+            (1, 1, 0), // Sarı     (R ortak)
+            (0, 1, 0), // Yeşil    (G ortak)
+            (0, 1, 1), // Turkuaz  (G ortak)
+            (0, 0, 1), // Mavi     (B ortak)
+            (1, 0, 1)  // Macenta  (B/R ortak)
+        ];
 
         try
         {
@@ -347,274 +398,300 @@ public sealed class HostAutomationService : IDisposable
                 double elapsedSec = sw.Elapsed.TotalSeconds;
                 long elapsedMs = sw.ElapsedMilliseconds;
 
-                // Target normalized linear RGB in [0.0 .. 1.0]
-                double targetR = 0.0, targetG = 0.0, targetB = 0.0;
+                (int R, int G, int B) stateA = RgbBaseColor;
+                (int R, int G, int B) stateB = RgbBaseColor;
+                bool isBridging = false;
 
                 switch (ActiveRgbEffect)
                 {
                     case "breathing":
                     {
-                        // Smooth sinusoidal breathing with perceptual gamma (γ = 1.85)
-                        double periodSec = Math.Max(0.8, RgbSpeedMs / 1000.0);
+                        var ladder = BuildContinuousAnodeLadder(RgbBaseColor, RgbSecondaryColor);
+                        double periodSec = Math.Max(1.0, RgbSpeedMs / 1000.0);
                         double wave = (1.0 - Math.Cos(2.0 * Math.PI * elapsedSec / periodSec)) * 0.5;
-                        double gammaWave = Math.Pow(wave, 1.85);
 
-                        double r1 = RgbBaseColor.R != 0 ? 1.0 : 0.0;
-                        double g1 = RgbBaseColor.G != 0 ? 1.0 : 0.0;
-                        double b1 = RgbBaseColor.B != 0 ? 1.0 : 0.0;
+                        // Map wave [0..1] onto the 4 continuous-anode ladder states [0..3]
+                        double scaled = wave * (ladder.Length - 1);
+                        int idxA = Math.Clamp((int)Math.Floor(scaled), 0, ladder.Length - 1);
+                        int idxB = Math.Clamp(idxA + 1, 0, ladder.Length - 1);
+                        double frac = scaled - idxA;
 
-                        double r2 = RgbSecondaryColor.R != 0 ? 1.0 : 0.0;
-                        double g2 = RgbSecondaryColor.G != 0 ? 1.0 : 0.0;
-                        double b2 = RgbSecondaryColor.B != 0 ? 1.0 : 0.0;
+                        stateA = ladder[idxA];
+                        stateB = ladder[idxB];
 
-                        targetR = r2 + (r1 - r2) * gammaWave;
-                        targetG = g2 + (g1 - g2) * gammaWave;
-                        targetB = b2 + (b1 - b2) * gammaWave;
+                        // Only use 166.7 Hz 1:1 bridge in the center 30% transition zone when both states share an ON bit
+                        bool sharesCommonLed = ((stateA.R & stateB.R) | (stateA.G & stateB.G) | (stateA.B & stateB.B)) != 0;
+                        if (UseHighFreqBridge && stateA != stateB && sharesCommonLed && frac is > 0.35 and < 0.65)
+                        {
+                            isBridging = true;
+                        }
+                        else if (frac >= 0.5)
+                        {
+                            stateA = stateB;
+                        }
 
-                        LiveTelemetryLevel = wave;
-                        LiveTelemetryText = $"Parlaklık: {(int)Math.Round(wave * 100)}%";
+                        var c24A = MapBitTo24(stateA.R, stateA.G, stateA.B);
+                        var c24B = MapBitTo24(stateB.R, stateB.G, stateB.B);
+                        LivePreviewColor = (
+                            (byte)(c24A.R + (c24B.R - c24A.R) * frac),
+                            (byte)(c24A.G + (c24B.G - c24A.G) * frac),
+                            (byte)(c24A.B + (c24B.B - c24A.B) * frac)
+                        );
+                        LiveTelemetryLevel = 0.25 + wave * 0.75;
+                        LiveTelemetryText = $"Yumuşak Geçiş · Yoğunluk %{(int)Math.Round((0.25 + wave * 0.75) * 100)}";
                         break;
                     }
 
                     case "spectrum":
                     case "cycle":
                     {
-                        double periodSec = Math.Max(1.2, RgbSpeedMs / 1000.0 * 2.0);
-                        double hue = (elapsedSec / periodSec * 360.0) % 360.0;
-                        (double r, double g, double b) = HsvToRgb(hue, 1.0, 1.0);
-                        targetR = Math.Pow(r, 1.6);
-                        targetG = Math.Pow(g, 1.6);
-                        targetB = Math.Pow(b, 1.6);
+                        double periodSec = Math.Max(1.6, RgbSpeedMs / 1000.0 * 2.2);
+                        double pos = ((elapsedSec / periodSec) % 1.0) * grayWheel.Length;
+                        int idxA = (int)Math.Floor(pos) % grayWheel.Length;
+                        int idxB = (idxA + 1) % grayWheel.Length;
+                        double frac = pos - Math.Floor(pos);
 
-                        LiveTelemetryLevel = hue / 360.0;
-                        LiveTelemetryText = $"Spektrum Açısı: {(int)hue}°";
+                        stateA = grayWheel[idxA];
+                        stateB = grayWheel[idxB];
+
+                        if (UseHighFreqBridge && frac is > 0.36 and < 0.64)
+                        {
+                            isBridging = true;
+                        }
+                        else if (frac >= 0.5)
+                        {
+                            stateA = stateB;
+                        }
+
+                        var c24A = MapBitTo24(stateA.R, stateA.G, stateA.B);
+                        var c24B = MapBitTo24(stateB.R, stateB.G, stateB.B);
+                        LivePreviewColor = (
+                            (byte)(c24A.R + (c24B.R - c24A.R) * frac),
+                            (byte)(c24A.G + (c24B.G - c24A.G) * frac),
+                            (byte)(c24A.B + (c24B.B - c24A.B) * frac)
+                        );
+                        LiveTelemetryLevel = pos / grayWheel.Length;
+                        LiveTelemetryText = $"Spektrum Dalgası · {(int)(pos / grayWheel.Length * 360)}°";
                         break;
                     }
 
                     case "ambilight":
                     {
-                        if (elapsedMs - lastSampleMs >= 36)
+                        if (elapsedMs - lastSampleMs >= 45)
                         {
                             lastSampleMs = elapsedMs;
-                            var (sr, sg, sb, _) = SampleScreenAmbilightAndDamage();
-                            // Smooth EMA filter so game lighting feels organic
-                            const double alpha = 0.18;
-                            ambiR = ambiR + (sr - ambiR) * alpha;
-                            ambiG = ambiG + (sg - ambiG) * alpha;
-                            ambiB = ambiB + (sb - ambiB) * alpha;
+                            var sample = SampleScreenZone(AmbilightZone);
+                            const double alpha = 0.22;
+                            smoothR += (sample.R - smoothR) * alpha;
+                            smoothG += (sample.G - smoothG) * alpha;
+                            smoothB += (sample.B - smoothB) * alpha;
+                            LiveScenePalette = sample.Palette;
+
+                            // Classify to 3-bit hardware color with 180ms minimum hold hysteresis to prevent boundary flicker
+                            if (elapsedMs - lastAmbiSwitchMs >= 180)
+                            {
+                                var candidate = ClassifyRgbToHardwareColor(smoothR, smoothG, smoothB, currentAmbiHwColor);
+                                if (candidate != currentAmbiHwColor)
+                                {
+                                    currentAmbiHwColor = candidate;
+                                    lastAmbiSwitchMs = elapsedMs;
+                                }
+                            }
                         }
 
-                        targetR = Math.Pow(Math.Clamp(ambiR, 0.0, 1.0), 1.5);
-                        targetG = Math.Pow(Math.Clamp(ambiG, 0.0, 1.0), 1.5);
-                        targetB = Math.Pow(Math.Clamp(ambiB, 0.0, 1.0), 1.5);
+                        stateA = currentAmbiHwColor;
+                        var hwUi = MapBitTo24(stateA.R, stateA.G, stateA.B);
+                        byte rawHexR = (byte)Math.Clamp((int)(smoothR * 255), 0, 255);
+                        byte rawHexG = (byte)Math.Clamp((int)(smoothG * 255), 0, 255);
+                        byte rawHexB = (byte)Math.Clamp((int)(smoothB * 255), 0, 255);
 
-                        double luma = Math.Max(ambiR, Math.Max(ambiG, ambiB));
-                        LiveTelemetryLevel = luma;
-                        LiveTelemetryText = $"Ekran Rengi: #{(int)(ambiR * 255):X2}{(int)(ambiG * 255):X2}{(int)(ambiB * 255):X2}";
+                        LivePreviewColor = (
+                            (byte)Math.Clamp((int)(rawHexR * 0.45 + hwUi.R * 0.55), 28, 255),
+                            (byte)Math.Clamp((int)(rawHexG * 0.45 + hwUi.G * 0.55), 28, 255),
+                            (byte)Math.Clamp((int)(rawHexB * 0.45 + hwUi.B * 0.55), 36, 255)
+                        );
+                        LiveTelemetryLevel = Math.Max(0.25, Math.Max(smoothR, Math.Max(smoothG, smoothB)));
+                        string zoneTr = AmbilightZone switch
+                        {
+                            "crosshair" => "Merkez Nişangah",
+                            "hud" => "Alt HUD Barı",
+                            "cinema" => "Sinematik Kenar",
+                            _ => "Tam Ekran"
+                        };
+                        string hwName = G300sProtocol.GetLedColorName(stateA.R, stateA.G, stateA.B);
+                        LiveTelemetryText = $"Ortam ({zoneTr}): #{rawHexR:X2}{rawHexG:X2}{rawHexB:X2} → {hwName}";
                         break;
                     }
 
                     case "game_combat":
                     {
-                        if (elapsedMs - lastSampleMs >= 20)
+                        if (elapsedMs - lastSampleMs >= 25)
                         {
-                            double dt = Math.Max(0.005, (elapsedMs - lastSampleMs) / 1000.0);
+                            double dt = Math.Max(0.01, (elapsedMs - lastSampleMs) / 1000.0);
                             lastSampleMs = elapsedMs;
 
                             bool lmbDown = (Win32.GetAsyncKeyState(0x01) & 0x8000) != 0;
+                            bool rmbDown = (Win32.GetAsyncKeyState(0x02) & 0x8000) != 0;
+                            bool rKeyDown = (Win32.GetAsyncKeyState('R') & 0x8000) != 0;
+                            bool abilityDown = ((Win32.GetAsyncKeyState('Q') & 0x8000) != 0)
+                                || ((Win32.GetAsyncKeyState('E') & 0x8000) != 0)
+                                || ((Win32.GetAsyncKeyState('G') & 0x8000) != 0);
+
                             if (lmbDown)
                             {
-                                barrelHeat = Math.Min(1.0, barrelHeat + dt * 0.65);
-                                if (!wasLeftMouseDown)
+                                barrelHeat = Math.Min(1.0, barrelHeat + dt * 0.70);
+                                if (!wasLmbDown) barrelHeat = Math.Min(1.0, barrelHeat + 0.12);
+                            }
+                            else
+                            {
+                                barrelHeat = Math.Max(0.0, barrelHeat - dt * 0.42);
+                            }
+                            wasLmbDown = lmbDown;
+
+                            if (rKeyDown && reloadProgress <= 0.01)
+                            {
+                                reloadProgress = 1.0;
+                            }
+                            if (reloadProgress > 0.0)
+                            {
+                                reloadProgress = Math.Max(0.0, reloadProgress - dt * 0.65);
+                            }
+
+                            if (abilityDown)
+                            {
+                                abilityPulse = 1.0;
+                            }
+                            else
+                            {
+                                abilityPulse = Math.Max(0.0, abilityPulse - dt * 2.5);
+                            }
+
+                            // Sample screen for red damage vignette & white flashbang every ~75ms
+                            if ((elapsedMs / 25) % 3 == 0)
+                            {
+                                var sample = SampleScreenZone("full");
+                                LiveScenePalette = sample.Palette;
+                                damageAlertLevel = sample.DamageVignette > damageAlertLevel
+                                    ? sample.DamageVignette
+                                    : Math.Max(0.0, damageAlertLevel - 0.10);
+                                flashbangLevel = sample.WhiteoutLevel > flashbangLevel
+                                    ? sample.WhiteoutLevel
+                                    : Math.Max(0.0, flashbangLevel - 0.15);
+                            }
+
+                            // Choose solid hardware state based on game priority hierarchy
+                            if (flashbangLevel > 0.82)
+                            {
+                                stateA = (1, 1, 1); // Whiteout / Flashbang
+                                LiveTelemetryLevel = 1.0;
+                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Flashbang / Yüksek Parlama!";
+                            }
+                            else if (damageAlertLevel > 0.36)
+                            {
+                                stateA = (1, 0, 0); // Crimson Red Alert
+                                LiveTelemetryLevel = damageAlertLevel;
+                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Kritik Hasar / Düşük Can Uyarısı!";
+                            }
+                            else if (reloadProgress > 0.05)
+                            {
+                                stateA = reloadProgress > 0.5 ? (1, 1, 0) : (0, 1, 0); // Amber -> Green Ready
+                                LiveTelemetryLevel = 1.0 - reloadProgress;
+                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Şarjör Yenileniyor (%{(int)((1.0 - reloadProgress) * 100)})";
+                            }
+                            else if (abilityPulse > 0.2)
+                            {
+                                stateA = (1, 0, 1); // Magenta Tactical Ability
+                                LiveTelemetryLevel = abilityPulse;
+                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Taktik Yetenek Tetiklendi";
+                            }
+                            else if (barrelHeat > 0.08)
+                            {
+                                stateA = barrelHeat switch
                                 {
-                                    // Instant shot impulse
-                                    barrelHeat = Math.Min(1.0, barrelHeat + 0.14);
-                                    muzzleFlashBoost = 1.0;
-                                }
+                                    < 0.35 => (0, 1, 0), // Yeşil
+                                    < 0.68 => (1, 1, 0), // Kehribar Sarı
+                                    < 0.90 => (1, 0, 0), // Kırmızı
+                                    _ => (1, 1, 1)       // Aşırı Isınma Beyaz/Kırmızı
+                                };
+                                LiveTelemetryLevel = barrelHeat;
+                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Çatışma · Namlu Isısı %{(int)(barrelHeat * 100)}";
+                            }
+                            else if (rmbDown)
+                            {
+                                stateA = (0, 0, 1); // Deep Cobalt Sniper Focus
+                                LiveTelemetryLevel = 0.6;
+                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Keskin Nişancı / Dürbün Odak (ADS)";
                             }
                             else
                             {
-                                barrelHeat = Math.Max(0.0, barrelHeat - dt * 0.38);
+                                stateA = RgbBaseColor;
+                                LiveTelemetryLevel = 0.25;
+                                LiveTelemetryText = $"[{ActiveForegroundProcess}] Taktik Bekleme · Durum İzleniyor";
                             }
-                            wasLeftMouseDown = lmbDown;
-                            muzzleFlashBoost = Math.Max(0.0, muzzleFlashBoost - dt * 6.0);
 
-                            // Check screen red damage vignette every ~60ms
-                            if ((elapsedMs / 20) % 3 == 0)
-                            {
-                                var (_, _, _, dmg) = SampleScreenAmbilightAndDamage();
-                                damageAlertLevel = dmg > damageAlertLevel
-                                    ? dmg
-                                    : Math.Max(0.0, damageAlertLevel - 0.08);
-                            }
-                        }
-
-                        if (damageAlertLevel > 0.38)
-                        {
-                            // Critical Damage / Low HP Double-Heartbeat Crimson Alert
-                            double hbPhase = (elapsedSec * 2.2) % 1.0;
-                            double pulse = (hbPhase < 0.15 || (hbPhase > 0.25 && hbPhase < 0.42)) ? 1.0 : 0.08;
-                            targetR = pulse;
-                            targetG = 0.0;
-                            targetB = 0.0;
-                            LiveTelemetryLevel = damageAlertLevel;
-                            LiveTelemetryText = "UYARI: Kritik Hasar / Düşük Can Algılandı!";
-                        }
-                        else if (barrelHeat > 0.02 || muzzleFlashBoost > 0.05)
-                        {
-                            // Thermal Blackbody Gradient: Base -> Gold -> Orange -> Crimson/White Strobe
-                            double h = Math.Clamp(barrelHeat + muzzleFlashBoost * 0.25, 0.0, 1.0);
-                            if (h < 0.4)
-                            {
-                                double t = h / 0.4;
-                                targetR = t;
-                                targetG = 0.85 + 0.15 * t;
-                                targetB = 1.0 * (1.0 - t);
-                            }
-                            else if (h < 0.8)
-                            {
-                                double t = (h - 0.4) / 0.4;
-                                targetR = 1.0;
-                                targetG = 1.0 - 0.75 * t;
-                                targetB = 0.0;
-                            }
-                            else
-                            {
-                                // Overheat / Muzzle flash strobe
-                                bool flash = ((int)(elapsedMs / 35) % 2) == 0;
-                                targetR = 1.0;
-                                targetG = flash ? 0.85 : 0.0;
-                                targetB = flash ? 0.85 : 0.0;
-                            }
-                            LiveTelemetryLevel = barrelHeat;
-                            LiveTelemetryText = $"Namlu Sıcaklığı: %{(int)Math.Round(barrelHeat * 100)}";
-                        }
-                        else
-                        {
-                            // Calm tactical idle breathing in user's base color
-                            double idleBreath = 0.20 + 0.65 * Math.Pow((1.0 - Math.Cos(elapsedSec * 2.2)) * 0.5, 1.7);
-                            targetR = (RgbBaseColor.R != 0 ? 1.0 : 0.0) * idleBreath;
-                            targetG = (RgbBaseColor.G != 0 ? 1.0 : 0.0) * idleBreath;
-                            targetB = (RgbBaseColor.B != 0 ? 1.0 : 0.0) * idleBreath;
-                            LiveTelemetryLevel = 0.05;
-                            LiveTelemetryText = "Taktik Bekleme · Ateş / Hasar İzleniyor";
+                            LivePreviewColor = MapBitTo24(stateA.R, stateA.G, stateA.B);
                         }
                         break;
                     }
 
                     case "audio_reactive":
                     {
-                        if (elapsedMs - lastSampleMs >= 18)
+                        if (elapsedMs - lastSampleMs >= 25)
                         {
                             lastSampleMs = elapsedMs;
                             double rawPeak = SampleSystemAudioPeak();
                             smoothAudioPeak = rawPeak > smoothAudioPeak
                                 ? smoothAudioPeak + (rawPeak - smoothAudioPeak) * 0.65
-                                : smoothAudioPeak * 0.86;
+                                : smoothAudioPeak * 0.85;
                         }
 
-                        double level = Math.Clamp(smoothAudioPeak * 1.35, 0.0, 1.0);
-                        double baseR = RgbBaseColor.R != 0 ? 1.0 : 0.0;
-                        double baseG = RgbBaseColor.G != 0 ? 1.0 : 0.0;
-                        double baseB = RgbBaseColor.B != 0 ? 1.0 : 0.0;
+                        var ladder = BuildContinuousAnodeLadder(RgbBaseColor, RgbSecondaryColor);
+                        double level = Math.Clamp(smoothAudioPeak * 1.4, 0.0, 1.0);
+                        int idx = Math.Clamp((int)Math.Floor(level * ladder.Length), 0, ladder.Length - 1);
+                        stateA = level > 0.82 ? (1, 0, 0) : ladder[idx];
 
-                        if (level > 0.78)
-                        {
-                            // High-energy bass/explosion peak shifts toward fiery crimson/white
-                            double overdrive = (level - 0.78) / 0.22;
-                            targetR = 1.0;
-                            targetG = baseG * (1.0 - overdrive * 0.6);
-                            targetB = baseB * (1.0 - overdrive * 0.6);
-                        }
-                        else
-                        {
-                            double intensity = 0.06 + Math.Pow(level, 1.5) * 0.94;
-                            targetR = baseR * intensity;
-                            targetG = baseG * intensity;
-                            targetB = baseB * intensity;
-                        }
-
+                        LivePreviewColor = MapBitTo24(stateA.R, stateA.G, stateA.B);
                         LiveTelemetryLevel = level;
-                        LiveTelemetryText = $"Ses / Patlama Şiddeti: %{(int)Math.Round(level * 100)}";
-                        break;
-                    }
-
-                    case "cpu":
-                    {
-                        if (elapsedMs - lastSampleMs >= 250)
-                        {
-                            lastSampleMs = elapsedMs;
-                            LiveTelemetryLevel = GetCpuUsagePercent() / 100.0;
-                        }
-                        double cpu = LiveTelemetryLevel;
-                        if (cpu < 0.5)
-                        {
-                            double t = cpu / 0.5;
-                            targetR = t;
-                            targetG = 1.0;
-                            targetB = 0.0;
-                        }
-                        else
-                        {
-                            double t = (cpu - 0.5) / 0.5;
-                            targetR = 1.0;
-                            targetG = 1.0 - t;
-                            targetB = 0.0;
-                        }
-                        LiveTelemetryText = $"CPU Yükü: %{(int)Math.Round(cpu * 100)}";
-                        break;
-                    }
-
-                    case "police":
-                    {
-                        bool side = ((int)(elapsedMs / 160) % 2) == 0;
-                        bool strobe = ((int)(elapsedMs / 40) % 2) == 0;
-                        targetR = (side && strobe) ? 1.0 : 0.0;
-                        targetG = 0.0;
-                        targetB = (!side && strobe) ? 1.0 : 0.0;
-                        LiveTelemetryLevel = strobe ? 1.0 : 0.2;
-                        LiveTelemetryText = "Acil Durum Çakar (Kırmızı / Mavi)";
+                        LiveTelemetryText = $"Ses & Patlama Şiddeti: %{(int)Math.Round(level * 100)}";
                         break;
                     }
                 }
 
-                // Update 24-bit UI preview color smoothly
-                LivePreviewColor = (
-                    (byte)Math.Clamp((int)(Math.Pow(targetR, 1.0 / 1.6) * 255), 18, 255),
-                    (byte)Math.Clamp((int)(Math.Pow(targetG, 1.0 / 1.6) * 255), 20, 255),
-                    (byte)Math.Clamp((int)(Math.Pow(targetB, 1.0 / 1.6) * 255), 26, 255)
-                );
-
-                // First-Order Delta-Sigma (ΔΣ) Quantizer for 3-bit Hardware LED (0xF1)
-                accR += targetR;
-                int outR = accR >= 1.0 ? 1 : 0;
-                if (outR == 1) accR -= 1.0;
-
-                accG += targetG;
-                int outG = accG >= 1.0 ? 1 : 0;
-                if (outG == 1) accG -= 1.0;
-
-                accB += targetB;
-                int outB = accB >= 1.0 ? 1 : 0;
-                if (outB == 1) accB -= 1.0;
-
-                int mask = outR | (outG << 1) | (outB << 2);
-                if (_device.IsConnected && mask != lastMask)
+                // Send to physical hardware without flicker
+                if (isBridging && _device.IsConnected)
                 {
-                    try
+                    // Short 18ms burst of 166.7 Hz 1:1 USB-clocked alternating bridge (where shared LED stays 100% ON)
+                    for (int k = 0; k < 6 && !token.IsCancellationRequested; k++)
                     {
-                        _device.SetLiveLed(outR, outG, outB);
-                        lastMask = mask;
-                    }
-                    catch
-                    {
-                        Thread.Sleep(5);
+                        var c = (k & 1) == 0 ? stateA : stateB;
+                        int m = (c.R != 0 ? 1 : 0) | ((c.G != 0 ? 1 : 0) << 1) | ((c.B != 0 ? 1 : 0) << 2);
+                        try
+                        {
+                            _device.SetLiveLed(c.R, c.G, c.B);
+                            lastSentMask = m;
+                        }
+                        catch
+                        {
+                            break;
+                        }
                     }
                 }
                 else
                 {
-                    // Maintain ~333 Hz carrier tick when output bitmask doesn't change
-                    Thread.Sleep(3);
+                    int mask = (stateA.R != 0 ? 1 : 0) | ((stateA.G != 0 ? 1 : 0) << 1) | ((stateA.B != 0 ? 1 : 0) << 2);
+                    if (_device.IsConnected && mask != lastSentMask)
+                    {
+                        try
+                        {
+                            _device.SetLiveLed(stateA.R, stateA.G, stateA.B);
+                            lastSentMask = mask;
+                        }
+                        catch
+                        {
+                            // Ignore transient HID error
+                        }
+                    }
+                    Thread.Sleep(18);
                 }
             }
         }
@@ -625,16 +702,63 @@ public sealed class HostAutomationService : IDisposable
     }
 
     /// <summary>
-    /// Downsamples the primary screen into a 24x24 buffer using Win32 GDI StretchBlt
-    /// to extract the saturation-weighted dominant game color and detect red damage vignettes.
+    /// Maps normalized linear RGB (0..1) to the closest 3-bit hardware color with Schmitt-trigger hysteresis
+    /// so the physical LED never flickers when the game scene sits near a color threshold.
     /// </summary>
-    private static (double R, double G, double B, double DamageVignette) SampleScreenAmbilightAndDamage()
+    private static (int R, int G, int B) ClassifyRgbToHardwareColor(
+        double r,
+        double g,
+        double b,
+        (int R, int G, int B) current)
+    {
+        double max = Math.Max(r, Math.Max(g, b));
+        double min = Math.Min(r, Math.Min(g, b));
+        double sat = max > 0.05 ? (max - min) / max : 0.0;
+
+        if (max < 0.12) return (0, 0, 1); // Very dark scene -> Deep Cobalt ambient
+        if (sat < 0.22 && max > 0.72) return (1, 1, 1); // Bright low-saturation scene -> Pure White
+
+        // Normalize by max channel and apply hysteresis threshold around 0.58
+        double nr = r / max;
+        double ng = g / max;
+        double nb = b / max;
+
+        double threshR = current.R != 0 ? 0.48 : 0.62;
+        double threshG = current.G != 0 ? 0.48 : 0.62;
+        double threshB = current.B != 0 ? 0.48 : 0.62;
+
+        int bitR = nr >= threshR ? 1 : 0;
+        int bitG = ng >= threshG ? 1 : 0;
+        int bitB = nb >= threshB ? 1 : 0;
+
+        if (bitR == 0 && bitG == 0 && bitB == 0)
+        {
+            if (nr >= ng && nr >= nb) bitR = 1;
+            else if (ng >= nr && ng >= nb) bitG = 1;
+            else bitB = 1;
+        }
+
+        return (bitR, bitG, bitB);
+    }
+
+    private sealed record ScreenZoneSample(
+        double R,
+        double G,
+        double B,
+        double DamageVignette,
+        double WhiteoutLevel,
+        (byte R, byte G, byte B)[] Palette);
+
+    private static ScreenZoneSample SampleScreenZone(string zoneMode)
     {
         const int sampleW = 24;
         const int sampleH = 24;
 
         IntPtr hdcScreen = Win32.GetDC(IntPtr.Zero);
-        if (hdcScreen == IntPtr.Zero) return (0.0, 0.8, 1.0, 0.0);
+        if (hdcScreen == IntPtr.Zero)
+        {
+            return new ScreenZoneSample(0.0, 0.8, 1.0, 0.0, 0.0, [(0, 212, 255), (41, 121, 255), (224, 64, 251)]);
+        }
 
         IntPtr hdcMem = Win32.CreateCompatibleDC(hdcScreen);
         IntPtr hBitmap = Win32.CreateCompatibleBitmap(hdcScreen, sampleW, sampleH);
@@ -645,14 +769,30 @@ public sealed class HostAutomationService : IDisposable
             int scrW = Win32.GetSystemMetrics(0);
             int scrH = Win32.GetSystemMetrics(1);
 
-            Win32.SetStretchBltMode(hdcMem, 3); // COLORONCOLOR (fast downsample)
-            Win32.StretchBlt(hdcMem, 0, 0, sampleW, sampleH, hdcScreen, 0, 0, scrW, scrH, 0x00CC0020);
+            int srcX = 0, srcY = 0, srcW = scrW, srcH = scrH;
+            if (zoneMode == "crosshair")
+            {
+                srcW = (int)(scrW * 0.36);
+                srcH = (int)(scrH * 0.36);
+                srcX = (scrW - srcW) / 2;
+                srcY = (scrH - srcH) / 2;
+            }
+            else if (zoneMode == "hud")
+            {
+                srcW = (int)(scrW * 0.70);
+                srcH = (int)(scrH * 0.24);
+                srcX = (scrW - srcW) / 2;
+                srcY = scrH - srcH;
+            }
+
+            Win32.SetStretchBltMode(hdcMem, 3);
+            Win32.StretchBlt(hdcMem, 0, 0, sampleW, sampleH, hdcScreen, srcX, srcY, srcW, srcH, 0x00CC0020);
 
             var bmi = new Win32.BITMAPINFOHEADER
             {
                 biSize = (uint)Marshal.SizeOf<Win32.BITMAPINFOHEADER>(),
                 biWidth = sampleW,
-                biHeight = -sampleH, // top-down
+                biHeight = -sampleH,
                 biPlanes = 1,
                 biBitCount = 32,
                 biCompression = 0
@@ -663,12 +803,22 @@ public sealed class HostAutomationService : IDisposable
 
             double sumR = 0.0, sumG = 0.0, sumB = 0.0, weightSum = 0.001;
             double edgeRedSum = 0.0;
+            double whiteSum = 0.0;
             int edgeCount = 0;
+
+            // 3 regional buckets (Left/Top, Center, Right/Bottom) for live palette bar
+            double[] bucketR = new double[3];
+            double[] bucketG = new double[3];
+            double[] bucketB = new double[3];
+            double[] bucketW = [0.001, 0.001, 0.001];
 
             for (int y = 0; y < sampleH; y++)
             {
                 for (int x = 0; x < sampleW; x++)
                 {
+                    if (zoneMode == "cinema" && x > 4 && x < sampleW - 5 && y > 4 && y < sampleH - 5)
+                        continue;
+
                     int idx = (y * sampleW + x) * 4;
                     double b = pixels[idx + 0] / 255.0;
                     double g = pixels[idx + 1] / 255.0;
@@ -678,14 +828,20 @@ public sealed class HostAutomationService : IDisposable
                     double min = Math.Min(r, Math.Min(g, b));
                     double sat = max > 0.05 ? (max - min) / max : 0.0;
 
-                    // Weight vibrant & bright game colors higher than dark gray UI backgrounds
-                    double weight = 0.15 + sat * sat * 2.5 + max * 0.5;
+                    double weight = 0.2 + sat * sat * 2.8 + max * 0.5;
                     sumR += r * weight;
                     sumG += g * weight;
                     sumB += b * weight;
                     weightSum += weight;
 
-                    // Check screen perimeter for red damage vignette / blood overlay
+                    int bIdx = (x * 3) / sampleW;
+                    bucketR[bIdx] += r * weight;
+                    bucketG[bIdx] += g * weight;
+                    bucketB[bIdx] += b * weight;
+                    bucketW[bIdx] += weight;
+
+                    if (min > 0.85) whiteSum += 1.0;
+
                     if (x <= 2 || x >= sampleW - 3 || y <= 2 || y >= sampleH - 3)
                     {
                         edgeCount++;
@@ -701,21 +857,36 @@ public sealed class HostAutomationService : IDisposable
             double avgG = sumG / weightSum;
             double avgB = sumB / weightSum;
 
-            // Boost saturation slightly so LED swoosh looks vivid
             double maxC = Math.Max(avgR, Math.Max(avgG, avgB));
-            if (maxC > 0.08)
+            if (maxC > 0.025)
             {
                 avgR /= maxC;
                 avgG /= maxC;
                 avgB /= maxC;
             }
 
-            double damageRatio = edgeCount > 0 ? Math.Clamp(edgeRedSum / (edgeCount * 0.28), 0.0, 1.0) : 0.0;
-            return (avgR, avgG, avgB, damageRatio);
+            var palette = new (byte R, byte G, byte B)[3];
+            for (int i = 0; i < 3; i++)
+            {
+                double pr = bucketR[i] / bucketW[i];
+                double pg = bucketG[i] / bucketW[i];
+                double pb = bucketB[i] / bucketW[i];
+                double pm = Math.Max(pr, Math.Max(pg, pb));
+                if (pm > 0.025) { pr /= pm; pg /= pm; pb /= pm; }
+                palette[i] = (
+                    (byte)Math.Clamp((int)(pr * 255), 40, 255),
+                    (byte)Math.Clamp((int)(pg * 255), 40, 255),
+                    (byte)Math.Clamp((int)(pb * 255), 48, 255)
+                );
+            }
+
+            double damageRatio = edgeCount > 0 ? Math.Clamp(edgeRedSum / (edgeCount * 0.26), 0.0, 1.0) : 0.0;
+            double whiteRatio = Math.Clamp(whiteSum / (sampleW * sampleH), 0.0, 1.0);
+            return new ScreenZoneSample(avgR, avgG, avgB, damageRatio, whiteRatio, palette);
         }
         catch
         {
-            return (0.0, 0.8, 1.0, 0.0);
+            return new ScreenZoneSample(0.0, 0.8, 1.0, 0.0, 0.0, [(0, 212, 255), (41, 121, 255), (224, 64, 251)]);
         }
         finally
         {
@@ -726,27 +897,6 @@ public sealed class HostAutomationService : IDisposable
         }
     }
 
-    private static (double R, double G, double B) HsvToRgb(double h, double s, double v)
-    {
-        double c = v * s;
-        double x = c * (1.0 - Math.Abs((h / 60.0) % 2.0 - 1.0));
-        double m = v - c;
-        (double r1, double g1, double b1) = h switch
-        {
-            < 60 => (c, x, 0.0),
-            < 120 => (x, c, 0.0),
-            < 180 => (0.0, c, x),
-            < 240 => (0.0, x, c),
-            < 300 => (x, 0.0, c),
-            _ => (c, 0.0, x)
-        };
-        return (r1 + m, g1 + m, b1 + m);
-    }
-
-    /// <summary>
-    /// Reads the real-time system master audio peak value (0.0..1.0) via Windows CoreAudio COM
-    /// (IMMDeviceEnumerator -> IAudioMeterInformation) with a fallback to synthetic pulse if no audio device is active.
-    /// </summary>
     private static double SampleSystemAudioPeak()
     {
         try
@@ -777,24 +927,31 @@ public sealed class HostAutomationService : IDisposable
             if (Win32.QueryFullProcessImageNameW(hProc, 0, sb, ref size))
             {
                 string exe = Path.GetFileName(sb.ToString()).ToLowerInvariant();
-                if (!string.IsNullOrEmpty(exe) && exe != _lastForegroundExe)
+                if (!string.IsNullOrEmpty(exe))
                 {
-                    _lastForegroundExe = exe;
-                    int targetProfile = DefaultProfileIndex;
-                    foreach (var rule in AppRules)
+                    ActiveForegroundProcess = exe;
+                    if (exe != _lastForegroundExe)
                     {
-                        if (string.Equals(rule.ExecutableName, exe, StringComparison.OrdinalIgnoreCase))
+                        _lastForegroundExe = exe;
+                        if (AutoProfileSwitchEnabled && _device.IsConnected)
                         {
-                            targetProfile = rule.ProfileIndex;
-                            break;
-                        }
-                    }
+                            int targetProfile = DefaultProfileIndex;
+                            foreach (var rule in AppRules)
+                            {
+                                if (string.Equals(rule.ExecutableName, exe, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    targetProfile = rule.ProfileIndex;
+                                    break;
+                                }
+                            }
 
-                    var state = _device.GetActiveState();
-                    if (state.ProfileIndex != targetProfile)
-                    {
-                        _device.SetActiveProfile(targetProfile);
-                        AutoProfileSwitched?.Invoke(targetProfile, exe);
+                            var state = _device.GetActiveState();
+                            if (state.ProfileIndex != targetProfile)
+                            {
+                                _device.SetActiveProfile(targetProfile);
+                                AutoProfileSwitched?.Invoke(targetProfile, exe);
+                            }
+                        }
                     }
                 }
             }
@@ -861,13 +1018,13 @@ public sealed class HostAutomationService : IDisposable
         }
         else if (macro.Mode == "text")
         {
-            MacroKeyTriggered?.Invoke($"{keyName.ToUpperInvariant()} (Text: {macro.TextPayload})");
+            MacroKeyTriggered?.Invoke($"{keyName.ToUpperInvariant()} (Metin: {macro.TextPayload})");
             string text = macro.TextPayload;
             Task.Run(() => SendUnicodeText(text));
         }
         else if (macro.Mode == "shortcut")
         {
-            MacroKeyTriggered?.Invoke($"{keyName.ToUpperInvariant()} (Shortcut: {macro.ShortcutKeys})");
+            MacroKeyTriggered?.Invoke($"{keyName.ToUpperInvariant()} (Kısayol: {macro.ShortcutKeys})");
             string sc = macro.ShortcutKeys;
             Task.Run(() => SendShortcutSequence(sc));
         }
@@ -974,33 +1131,6 @@ public sealed class HostAutomationService : IDisposable
         Win32.SendInput(1, up, Marshal.SizeOf<Win32.INPUT>());
     }
 
-    private double GetCpuUsagePercent()
-    {
-        if (!Win32.GetSystemTimes(out ulong idle, out ulong kernel, out ulong user))
-            return 0.0;
-
-        if (_lastKernelTime == 0)
-        {
-            _lastIdleTime = idle;
-            _lastKernelTime = kernel;
-            _lastUserTime = user;
-            return 0.0;
-        }
-
-        ulong dIdle = idle - _lastIdleTime;
-        ulong dKernel = kernel - _lastKernelTime;
-        ulong dUser = user - _lastUserTime;
-
-        _lastIdleTime = idle;
-        _lastKernelTime = kernel;
-        _lastUserTime = user;
-
-        ulong total = dKernel + dUser;
-        if (total == 0) return 0.0;
-
-        return Math.Clamp((1.0 - (double)dIdle / total) * 100.0, 0.0, 100.0);
-    }
-
     public void Dispose()
     {
         _watcherCts?.Cancel();
@@ -1025,9 +1155,6 @@ public sealed class HostAutomationService : IDisposable
         }
     }
 
-    /// <summary>
-    /// Lightweight CoreAudio COM wrapper for IAudioMeterInformation to read real-time master audio peak.
-    /// </summary>
     private static class CoreAudioMeter
     {
         private static IAudioMeterInformation? _meter;

@@ -42,44 +42,42 @@ public partial class MainWindow : Window
 
     private static readonly ButtonVisualMeta[] ButtonMetaList =
     [
-        new(0, "G1", "Sol Tık (G1)",             59,  33, 323, 141,  12, 240, true),
-        new(1, "G2", "Sağ Tık (G2)",            213,   6, 441,  78, 836, 146, false),
-        new(2, "G3", "Orta Tekerlek (G3)",      241,  39, 313,  78,  12,  36, true),
-        new(3, "G4", "Sol Arka (G4)",           140, 117, 216, 161,  12, 172, true),
-        new(4, "G5", "Sol Ön (G5)",              66,  97, 128, 134,  12, 104, true),
-        new(5, "G6", "Sağ Arka (G6)",           425,  14, 498,  53, 836,  82, false),
-        new(6, "G7", "Sağ Ön (G7)",             344, -10, 405,  30, 836,  18, false),
-        new(7, "G8", "Orta Arka / Mod (G8)",    390,  59, 452, 111, 836, 274, false),
-        new(8, "G9", "Orta Ön / DPI (G9)",      353,  59, 406,  97, 836, 210, false)
+        new(0, "G1", "Sol Tık (G1)",             59,  33, 323, 141,  18, 242, true),
+        new(1, "G2", "Sağ Tık (G2)",            213,   6, 441,  78, 840, 146, false),
+        new(2, "G3", "Orta Tekerlek (G3)",      241,  39, 313,  78,  18,  38, true),
+        new(3, "G4", "Sol Arka (G4)",           140, 117, 216, 161,  18, 174, true),
+        new(4, "G5", "Sol Ön (G5)",              66,  97, 128, 134,  18, 106, true),
+        new(5, "G6", "Sağ Arka (G6)",           425,  14, 498,  53, 840,  82, false),
+        new(6, "G7", "Sağ Ön (G7)",             344, -10, 405,  30, 840,  18, false),
+        new(7, "G8", "Orta Arka / Mod (G8)",    390,  59, 452, 111, 840, 274, false),
+        new(8, "G9", "Orta Ön / DPI (G9)",      353,  59, 406,  97, 840, 210, false)
     ];
 
     private static readonly (string Name, int R, int G, int B, string Hex)[] PaletteSwatches =
     [
-        ("Kapalı",        0, 0, 0, "#242A36"),
-        ("Kırmızı",       1, 0, 0, "#FF2D46"),
-        ("Kehribar Sarı", 1, 1, 0, "#FFC400"),
-        ("Zümrüt Yeşil",  0, 1, 0, "#00E676"),
-        ("Logitech Cyan", 0, 1, 1, "#00D4FF"),
-        ("Kobalt Mavi",   0, 0, 1, "#2979FF"),
-        ("Hyper Magenta", 1, 0, 1, "#E040FB"),
-        ("Saf Beyaz",     1, 1, 1, "#F4F8FF")
+        ("Kapalı",          0, 0, 0, "#27272E"),
+        ("Kırmızı",         1, 0, 0, "#FF2D46"),
+        ("Kehribar Sarı",   1, 1, 0, "#FFC400"),
+        ("Zümrüt Yeşil",    0, 1, 0, "#00E676"),
+        ("Turkuaz (Cyan)",  0, 1, 1, "#00D4FF"),
+        ("Kobalt Mavi",     0, 0, 1, "#2979FF"),
+        ("Macenta",         1, 0, 1, "#E040FB"),
+        ("Saf Beyaz",       1, 1, 1, "#F4F8FF")
     ];
 
     private sealed record LightingModeMeta(
         string Key,
-        string IconGlyph,
         string Title,
-        string Description,
-        string BadgeText);
+        string Description);
 
     private static readonly LightingModeMeta[] LightingModes =
     [
-        new("none",           "\uE793", "Sabit Donanım Rengi",            "Yerleşik profil rengini 0% CPU kullanımıyla doğrudan donanımda tutar.", "0% CPU"),
-        new("breathing",      "\uE945", "Yumuşak Nefes Alma (ΔΣ PWM)",    "333 Hz ΔΣ modülasyonu ile kademesiz parlaklık azalıp artma ve çift renk geçişi.", "Yumuşak Geçiş"),
-        new("spectrum",       "\uE771", "Akıcı Spektrum Dalgası",         "Kesintisiz 360° RGB gökkuşağı ara renk sentezi ve yumuşak dalga geçişi.", "24-Bit ΔΣ"),
-        new("ambilight",      "\uE7F4", "Oyun & Ekran Ana Rengi",         "Oyundaki sahne ve ortam renklerini gerçek zamanlı yakalayıp fareye yansıtır.", "Ambilight"),
-        new("game_combat",    "\uE7C8", "Oyun Durumu: Çatışma & Can",     "Ateş ettikçe namlu ısınması (Mavi→Sarı→Kırmızı) ve düşük can kalp atışı uyarısı.", "Tepkisel"),
-        new("audio_reactive", "\uE767", "Oyun Sesi & Patlama Tepkisi",    "Silah sesleri, patlamalar ve müzik baslarına göre anlık parlaklık darbesi.", "CoreAudio")
+        new("none",           "Sabit Donanım Rengi",            "Seçili profil rengini sıfır işlemci yüküyle doğrudan fare belleğinde tutar."),
+        new("breathing",      "Yumuşak Nefes Alma",             "Ortak anotlu parlaklık basamakları ile titremesiz (flicker-free) azalıp artan geçiş."),
+        new("spectrum",       "Akıcı Renk Döngüsü",             "6 ana donanım tonu arasında kesintisiz ortak-kanal geçişiyle gökkuşağı döngüsü."),
+        new("ambilight",      "Ekran & Oyun Ortam Rengi",       "Seçilen ekran bölgesindeki baskın sahne rengini gerçek zamanlı yakalayıp fareye yansıtır."),
+        new("game_combat",    "Oyun Durumu: Çatışma & Aksiyon", "Ateş namlu ısınması, dürbün (ADS) odak, şarjör (R), yetenek ve düşük can/hasar tepkisi."),
+        new("audio_reactive", "Oyun Sesi & Patlama Tepkisi",    "Silah sesleri, patlamalar ve müzik baslarına göre dinamik parlaklık yükselişi.")
     ];
 
     private readonly G300sHidDevice _device = new();
@@ -100,6 +98,7 @@ public partial class MainWindow : Window
     private readonly bool[,]?[] _hitMasks = new bool[,]?[9];
 
     private readonly Border[] _calloutBorders = new Border[9];
+    private readonly Border[] _calloutAccentBars = new Border[9];
     private readonly TextBlock[] _calloutActionTexts = new TextBlock[9];
     private readonly Polyline[] _leaderLines = new Polyline[9];
     private readonly Ellipse[] _anchorDots = new Ellipse[9];
@@ -107,6 +106,7 @@ public partial class MainWindow : Window
     private readonly Border[] _ledSwatchBorders = new Border[8];
     private readonly Border[] _secondarySwatchBorders = new Border[8];
     private readonly Border[] _lightingModeBorders = new Border[6];
+    private readonly Ellipse[] _lightingModeDots = new Ellipse[6];
 
     private readonly Slider[] _dpiSliders = new Slider[4];
     private readonly TextBlock[] _dpiValueLabels = new TextBlock[4];
@@ -117,10 +117,10 @@ public partial class MainWindow : Window
     private int _activeDrawerCategory;
     private int _activeProfileIndex;
     private int _activeDpiStageIndex = 1;
-    private int _selectedButtonIndex;
+    private int _selectedButtonIndex = -1; // Unselected on startup!
     private int _hoveredButtonIndex = -1;
     private int _draggingDpiStageIndex = -1;
-    private (int R, int G, int B) _secondaryBreathColor = (0, 0, 0);
+    private (int R, int G, int B) _secondaryBreathColor = (0, 0, 1);
     private (byte R, byte G, byte B) _lastRenderedSwooshColor = (0, 0, 0);
 
     private bool _isRecordingKey;
@@ -139,7 +139,7 @@ public partial class MainWindow : Window
 
         _livePreviewTimer = new DispatcherTimer(DispatcherPriority.Render)
         {
-            Interval = TimeSpan.FromMilliseconds(38)
+            Interval = TimeSpan.FromMilliseconds(40)
         };
         _livePreviewTimer.Tick += LivePreviewTimer_Tick;
 
@@ -152,13 +152,26 @@ public partial class MainWindow : Window
     {
         IntPtr hwnd = new WindowInteropHelper(this).Handle;
         int dark = 1;
-        DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int)); // DWMWA_USE_IMMERSIVE_DARK_MODE
-        int round = 2; // DWMWCP_ROUND
-        DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int)); // DWMWA_WINDOW_CORNER_PREFERENCE
+        DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
+        int round = 2;
+        DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));
     }
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+    public void RestoreWindowFromExternalLaunch()
+    {
+        Show();
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+        Activate();
+        Topmost = true;
+        Topmost = false;
+        Focus();
+    }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
@@ -171,7 +184,7 @@ public partial class MainWindow : Window
 
         string iconPath = Path.Combine(assetsDir, "g300s.ico");
         _tray.Initialize(this, iconPath);
-        _tray.RestoreRequested += RestoreFromTray;
+        _tray.RestoreRequested += () => Dispatcher.Invoke(RestoreWindowFromExternalLaunch);
         _tray.ProfileSwitchRequested += idx => Dispatcher.Invoke(() => SelectProfileSlot(idx, sendToHardware: true));
         _tray.ExitRequested += () =>
         {
@@ -181,8 +194,10 @@ public partial class MainWindow : Window
 
         _automation.StartHookAndWatcher();
         ConnectAndReadHardware();
+        DeselectButton(); // Ensure nothing is selected on startup!
         SwitchMainView(0);
         SwitchDrawerCategory(0);
+        UpdateAmbilightZoneButtonsUi("full");
         _livePreviewTimer.Start();
 
         // Automated multi-view visual verification screenshot mode
@@ -195,7 +210,7 @@ public partial class MainWindow : Window
             string baseName = Path.GetFileNameWithoutExtension(outPath);
             string ext = Path.GetExtension(outPath);
 
-            await Task.Delay(550);
+            await Task.Delay(500);
             CaptureWindowScreenshot(outPath);
 
             SwitchMainView(1);
@@ -205,8 +220,8 @@ public partial class MainWindow : Window
             CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_sensor{ext}"));
 
             SwitchMainView(2);
-            SelectLightingMode("breathing");
-            await Task.Delay(1100);
+            SelectLightingMode("ambilight");
+            await Task.Delay(400);
             CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_lighting{ext}"));
 
             SwitchMainView(3);
@@ -308,9 +323,8 @@ public partial class MainWindow : Window
         MouseSwooshImage.Source = wb;
         LightingPreviewSwooshImage.Source = wb;
 
-        Color glowCol = Color.FromArgb(42, r, g, b);
-        SpotlightStop0.Color = glowCol;
-        LightingPreviewGlowStop.Color = Color.FromArgb(64, r, g, b);
+        SpotlightStop0.Color = Color.FromArgb(26, r, g, b);
+        LightingPreviewGlowStop.Color = Color.FromArgb(48, r, g, b);
     }
 
     private void LivePreviewTimer_Tick(object? sender, EventArgs e)
@@ -327,6 +341,14 @@ public partial class MainWindow : Window
                 LiveTelemetryProgressFill.Background = brush;
                 LiveTelemetryProgressFill.Width = Math.Clamp(_automation.LiveTelemetryLevel * 380.0, 12.0, 380.0);
                 LiveTelemetryTitleText.Text = _automation.LiveTelemetryText;
+
+                var pal = _automation.LiveScenePalette;
+                if (pal.Length >= 3)
+                {
+                    PaletteSwatch0.Background = new SolidColorBrush(Color.FromRgb(pal[0].R, pal[0].G, pal[0].B));
+                    PaletteSwatch1.Background = new SolidColorBrush(Color.FromRgb(pal[1].R, pal[1].G, pal[1].B));
+                    PaletteSwatch2.Background = new SolidColorBrush(Color.FromRgb(pal[2].R, pal[2].G, pal[2].B));
+                }
             }
         }
     }
@@ -341,11 +363,11 @@ public partial class MainWindow : Window
             double anchorX = MouseOffsetX + meta.CenterX;
             double anchorY = MouseOffsetY + meta.CenterY;
 
-            double cardW = 192.0;
-            double cardH = 44.0;
+            double cardW = 182.0;
+            double cardH = 38.0;
             double attachX = meta.IsLeftSide ? meta.CardX + cardW : meta.CardX;
             double attachY = meta.CardY + cardH / 2.0;
-            double elbowX = meta.IsLeftSide ? attachX + 24.0 : attachX - 24.0;
+            double elbowX = meta.IsLeftSide ? attachX + 22.0 : attachX - 22.0;
 
             var line = new Polyline
             {
@@ -355,8 +377,8 @@ public partial class MainWindow : Window
                     new Point(elbowX, attachY),
                     new Point(attachX, attachY)
                 ],
-                Stroke = new SolidColorBrush(Color.FromArgb(110, 148, 163, 184)),
-                StrokeThickness = 1.5,
+                Stroke = new SolidColorBrush(Color.FromArgb(80, 161, 161, 170)),
+                StrokeThickness = 1.2,
                 IsHitTestVisible = false
             };
             _leaderLines[idx] = line;
@@ -364,28 +386,26 @@ public partial class MainWindow : Window
 
             var dot = new Ellipse
             {
-                Width = 7,
-                Height = 7,
-                Fill = new SolidColorBrush(Color.FromRgb(0, 200, 255)),
-                Stroke = new SolidColorBrush(Color.FromRgb(8, 9, 13)),
+                Width = 6,
+                Height = 6,
+                Fill = new SolidColorBrush(Color.FromRgb(212, 212, 216)),
+                Stroke = new SolidColorBrush(Color.FromRgb(9, 9, 11)),
                 StrokeThickness = 1.5,
                 IsHitTestVisible = false
             };
-            Canvas.SetLeft(dot, anchorX - 3.5);
-            Canvas.SetTop(dot, anchorY - 3.5);
+            Canvas.SetLeft(dot, anchorX - 3.0);
+            Canvas.SetTop(dot, anchorY - 3.0);
             _anchorDots[idx] = dot;
             OverlayCalloutsCanvas.Children.Add(dot);
 
-            // Sleek Floating Pill Callout
+            // Minimalist Frameless Callout Tag (No boxy AI-slop card!)
             var card = new Border
             {
                 Width = cardW,
                 Height = cardH,
-                CornerRadius = new CornerRadius(10),
-                Background = new SolidColorBrush(Color.FromArgb(225, 17, 20, 28)),
-                BorderBrush = (Brush)FindResource("BrushBorderSubtle"),
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(10, 5, 12, 5),
+                CornerRadius = new CornerRadius(7),
+                Background = Brushes.Transparent,
+                Padding = new Thickness(8, 4, 8, 4),
                 Cursor = Cursors.Hand,
                 Tag = idx
             };
@@ -394,52 +414,48 @@ public partial class MainWindow : Window
 
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            var badge = new Border
+            var accentBar = new Border
             {
-                Width = 28,
-                Height = 26,
-                CornerRadius = new CornerRadius(6),
-                Background = (Brush)FindResource("BrushBgElevated"),
-                Margin = new Thickness(0, 0, 10, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-                Child = new TextBlock
-                {
-                    Text = meta.CodeLabel,
-                    FontFamily = (FontFamily)FindResource("FontDisplay"),
-                    FontSize = 11.5,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = (Brush)FindResource("BrushAccentCyan"),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
+                Width = 2.5,
+                Height = 18,
+                CornerRadius = new CornerRadius(1.25),
+                Background = new SolidColorBrush(Color.FromArgb(90, 161, 161, 170)),
+                Margin = new Thickness(0, 0, 9, 0),
+                VerticalAlignment = VerticalAlignment.Center
             };
-            Grid.SetColumn(badge, 0);
-            grid.Children.Add(badge);
+            _calloutAccentBars[idx] = accentBar;
+            Grid.SetColumn(accentBar, 0);
+            grid.Children.Add(accentBar);
 
-            var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            var nameLbl = new TextBlock
+            var codeLbl = new TextBlock
             {
-                Text = meta.FullTitle,
-                FontSize = 10.5,
-                Foreground = (Brush)FindResource("BrushTextMuted"),
-                TextTrimming = TextTrimming.CharacterEllipsis
-            };
-            var actionLbl = new TextBlock
-            {
-                Text = "Left Click",
+                Text = meta.CodeLabel,
                 FontFamily = (FontFamily)FindResource("FontDisplay"),
                 FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("BrushTextMuted"),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 9, 0)
+            };
+            Grid.SetColumn(codeLbl, 1);
+            grid.Children.Add(codeLbl);
+
+            var actionLbl = new TextBlock
+            {
+                Text = "Sol Tık",
+                FontFamily = (FontFamily)FindResource("FontSans"),
+                FontSize = 13,
+                FontWeight = FontWeights.Medium,
                 Foreground = (Brush)FindResource("BrushTextPrimary"),
+                VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
             _calloutActionTexts[idx] = actionLbl;
-            textStack.Children.Add(nameLbl);
-            textStack.Children.Add(actionLbl);
-            Grid.SetColumn(textStack, 1);
-            grid.Children.Add(textStack);
+            Grid.SetColumn(actionLbl, 2);
+            grid.Children.Add(actionLbl);
 
             card.Child = grid;
             card.MouseEnter += (_, _) => SetHoveredButton(idx);
@@ -459,30 +475,28 @@ public partial class MainWindow : Window
     {
         DpiStagesContainer.Children.Clear();
 
-        string[] stageColors = ["#38BDF8", "#00E676", "#FBBF24", "#F43F5E"];
-
         for (int i = 0; i < 4; i++)
         {
             int stageIdx = i;
             var card = new Border
             {
                 Style = (Style)FindResource("StudioCardBorder"),
-                Padding = new Thickness(16, 14, 16, 14),
+                Padding = new Thickness(18, 14, 18, 14),
                 Margin = new Thickness(i == 0 ? 0 : 6, 0, i == 3 ? 0 : 6, 0)
             };
 
             var stack = new StackPanel();
 
-            // Top row: Stage badge + Boot Default Star
             var topGrid = new Grid { Margin = new Thickness(0, 0, 0, 10) };
             var actBtn = new Button
             {
                 Content = $"Kademe {stageIdx + 1}",
                 Style = (Style)FindResource("ToolbarActionButton"),
-                Height = 28,
-                Padding = new Thickness(12, 0, 12, 0),
+                Height = 26,
+                Padding = new Thickness(11, 0, 11, 0),
+                FontSize = 12,
                 HorizontalAlignment = HorizontalAlignment.Left,
-                ToolTip = "Bu DPI kademesini donanımda anında etkinleştir"
+                ToolTip = "Bu DPI kademesini şimdi etkinleştir"
             };
             actBtn.Click += (_, _) => ActivateDpiStage(stageIdx);
             _dpiActivateButtons[stageIdx] = actBtn;
@@ -490,33 +504,31 @@ public partial class MainWindow : Window
 
             var defBtn = new Button
             {
-                Content = "★ Varsayılan",
+                Content = "Varsayılan",
                 Style = (Style)FindResource("ToolbarActionButton"),
-                Height = 28,
+                Height = 26,
                 Padding = new Thickness(10, 0, 10, 0),
-                FontSize = 11,
+                FontSize = 11.5,
                 HorizontalAlignment = HorizontalAlignment.Right,
-                ToolTip = "Fare ilk açıldığında bu DPI kademesiyle başlasın"
+                ToolTip = "Başlangıç DPI kademesi olarak ayarla"
             };
             defBtn.Click += (_, _) => SetDefaultDpiStage(stageIdx);
             _dpiDefaultButtons[stageIdx] = defBtn;
             topGrid.Children.Add(defBtn);
             stack.Children.Add(topGrid);
 
-            // Big DPI Value Readout
             var valText = new TextBlock
             {
                 Text = "1000 DPI",
                 FontFamily = (FontFamily)FindResource("FontDisplay"),
-                FontSize = 22,
-                FontWeight = FontWeights.Bold,
-                Foreground = (SolidColorBrush)new BrushConverter().ConvertFromString(stageColors[i])!,
-                Margin = new Thickness(0, 2, 0, 10)
+                FontSize = 21,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("BrushTextPrimary"),
+                Margin = new Thickness(0, 2, 0, 12)
             };
             _dpiValueLabels[stageIdx] = valText;
             stack.Children.Add(valText);
 
-            // Slider + Step Controls
             var ctrlGrid = new Grid();
             ctrlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             ctrlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -526,7 +538,7 @@ public partial class MainWindow : Window
             {
                 Content = "−",
                 Style = (Style)FindResource("StepIconButton"),
-                Margin = new Thickness(0, 0, 8, 0)
+                Margin = new Thickness(0, 0, 10, 0)
             };
             minusBtn.Click += (_, _) => StepDpiStage(stageIdx, -250);
             Grid.SetColumn(minusBtn, 0);
@@ -551,7 +563,7 @@ public partial class MainWindow : Window
             {
                 Content = "+",
                 Style = (Style)FindResource("StepIconButton"),
-                Margin = new Thickness(8, 0, 0, 0)
+                Margin = new Thickness(10, 0, 0, 0)
             };
             plusBtn.Click += (_, _) => StepDpiStage(stageIdx, 250);
             Grid.SetColumn(plusBtn, 2);
@@ -570,14 +582,13 @@ public partial class MainWindow : Window
         double h = DpiGraphCanvas.ActualHeight;
         if (w < 100 || h < 80) return;
 
-        double padLeft = 58;
-        double padRight = 36;
+        double padLeft = 56;
+        double padRight = 32;
         double padTop = 24;
         double padBottom = 34;
         double plotW = w - padLeft - padRight;
         double plotH = h - padTop - padBottom;
 
-        // Horizontal grid lines (250, 750, 1250, 1750, 2250, 2500)
         int[] gridDpis = [250, 750, 1250, 1750, 2250, 2500];
         foreach (int gd in gridDpis)
         {
@@ -588,7 +599,7 @@ public partial class MainWindow : Window
                 Y1 = gy,
                 X2 = w - padRight,
                 Y2 = gy,
-                Stroke = new SolidColorBrush(Color.FromArgb(24, 255, 255, 255)),
+                Stroke = new SolidColorBrush(Color.FromArgb(18, 255, 255, 255)),
                 StrokeThickness = 1
             };
             DpiGraphCanvas.Children.Add(line);
@@ -596,17 +607,15 @@ public partial class MainWindow : Window
             var lbl = new TextBlock
             {
                 Text = $"{gd}",
-                FontFamily = (FontFamily)FindResource("FontMono"),
-                FontSize = 10.5,
+                FontSize = 11,
                 Foreground = (Brush)FindResource("BrushTextMuted")
             };
-            Canvas.SetLeft(lbl, 8);
+            Canvas.SetLeft(lbl, 6);
             Canvas.SetTop(lbl, gy - 8);
             DpiGraphCanvas.Children.Add(lbl);
         }
 
         var prof = _profiles[_activeProfileIndex];
-        string[] stageColors = ["#38BDF8", "#00E676", "#FBBF24", "#F43F5E"];
         Point[] pts = new Point[4];
 
         for (int i = 0; i < 4; i++)
@@ -616,84 +625,74 @@ public partial class MainWindow : Window
             double y = padTop + plotH * (1.0 - norm);
             pts[i] = new Point(x, y);
 
-            // Illuminated vertical bar
-            var barColor = (Color)ColorConverter.ConvertFromString(stageColors[i]);
+            bool isActive = i == _activeDpiStageIndex;
             var bar = new Border
             {
-                Width = 44,
+                Width = 40,
                 Height = Math.Max(6, (padTop + plotH) - y),
                 CornerRadius = new CornerRadius(6, 6, 2, 2),
                 Background = new LinearGradientBrush(
-                    Color.FromArgb((byte)(i == _activeDpiStageIndex ? 120 : 55), barColor.R, barColor.G, barColor.B),
-                    Color.FromArgb(8, barColor.R, barColor.G, barColor.B),
+                    isActive ? Color.FromArgb(90, 250, 250, 250) : Color.FromArgb(35, 161, 161, 170),
+                    Color.FromArgb(4, 161, 161, 170),
                     90.0),
-                BorderBrush = new SolidColorBrush(Color.FromArgb((byte)(i == _activeDpiStageIndex ? 220 : 90), barColor.R, barColor.G, barColor.B)),
-                BorderThickness = new Thickness(1, 2, 1, 0),
                 IsHitTestVisible = false
             };
-            Canvas.SetLeft(bar, x - 22);
+            Canvas.SetLeft(bar, x - 20);
             Canvas.SetTop(bar, y);
             DpiGraphCanvas.Children.Add(bar);
 
-            // Stage X-axis label
             var xLbl = new TextBlock
             {
-                Text = $"Kademe {i + 1}" + (prof.DefaultDpiStage == i ? " ★" : ""),
-                FontFamily = (FontFamily)FindResource("FontDisplay"),
-                FontSize = 11.5,
-                FontWeight = i == _activeDpiStageIndex ? FontWeights.Bold : FontWeights.Medium,
-                Foreground = i == _activeDpiStageIndex ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary")
+                Text = $"Kademe {i + 1}" + (prof.DefaultDpiStage == i ? " (Varsayılan)" : ""),
+                FontSize = 12,
+                FontWeight = isActive ? FontWeights.SemiBold : FontWeights.Normal,
+                Foreground = isActive ? (Brush)FindResource("BrushTextPrimary") : (Brush)FindResource("BrushTextMuted")
             };
-            Canvas.SetLeft(xLbl, x - 30);
+            Canvas.SetLeft(xLbl, x - (prof.DefaultDpiStage == i ? 54 : 26));
             Canvas.SetTop(xLbl, padTop + plotH + 10);
             DpiGraphCanvas.Children.Add(xLbl);
         }
 
-        // Smooth connecting polyline
         var curve = new Polyline
         {
             Points = new PointCollection(pts),
-            Stroke = new SolidColorBrush(Color.FromArgb(140, 0, 200, 255)),
-            StrokeThickness = 2.5,
+            Stroke = new SolidColorBrush(Color.FromArgb(110, 244, 244, 246)),
+            StrokeThickness = 2,
             IsHitTestVisible = false
         };
         DpiGraphCanvas.Children.Add(curve);
 
-        // Draggable stage nodes
         for (int i = 0; i < 4; i++)
         {
-            var barColor = (Color)ColorConverter.ConvertFromString(stageColors[i]);
+            bool isActive = i == _activeDpiStageIndex;
             var node = new Ellipse
             {
-                Width = 18,
-                Height = 18,
-                Fill = new SolidColorBrush(barColor),
-                Stroke = new SolidColorBrush(Color.FromRgb(10, 12, 18)),
-                StrokeThickness = 3,
+                Width = 14,
+                Height = 14,
+                Fill = isActive ? (Brush)FindResource("BrushActiveWhite") : (Brush)FindResource("BrushTextSecondary"),
+                Stroke = new SolidColorBrush(Color.FromRgb(9, 9, 11)),
+                StrokeThickness = 2.5,
                 Cursor = Cursors.SizeNS
             };
-            Canvas.SetLeft(node, pts[i].X - 9);
-            Canvas.SetTop(node, pts[i].Y - 9);
+            Canvas.SetLeft(node, pts[i].X - 7);
+            Canvas.SetTop(node, pts[i].Y - 7);
             DpiGraphCanvas.Children.Add(node);
 
             var topTag = new Border
             {
-                Background = (Brush)FindResource("BrushBgElevated"),
-                BorderBrush = new SolidColorBrush(barColor),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(5),
-                Padding = new Thickness(7, 2, 7, 2),
+                Background = (Brush)FindResource("BrushBgSurface2"),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(8, 3, 8, 3),
                 IsHitTestVisible = false,
                 Child = new TextBlock
                 {
                     Text = $"{prof.DpiStages[i]} DPI",
-                    FontFamily = (FontFamily)FindResource("FontMono"),
-                    FontSize = 11,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = Brushes.White
+                    FontSize = 11.5,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = (Brush)FindResource("BrushTextPrimary")
                 }
             };
-            Canvas.SetLeft(topTag, pts[i].X - 32);
+            Canvas.SetLeft(topTag, pts[i].X - 30);
             Canvas.SetTop(topTag, Math.Max(2, pts[i].Y - 32));
             DpiGraphCanvas.Children.Add(topTag);
         }
@@ -705,7 +704,7 @@ public partial class MainWindow : Window
     {
         Point pt = e.GetPosition(DpiGraphCanvas);
         double w = DpiGraphCanvas.ActualWidth;
-        double padLeft = 58, padRight = 36;
+        double padLeft = 56, padRight = 32;
         double plotW = w - padLeft - padRight;
         if (plotW <= 0) return;
 
@@ -752,86 +751,74 @@ public partial class MainWindow : Window
 
     private void BuildLightingStudioUi()
     {
-        LightingModesGrid.Children.Clear();
+        LightingModesList.Children.Clear();
 
         for (int i = 0; i < LightingModes.Length; i++)
         {
             var mode = LightingModes[i];
             int idx = i;
 
-            var card = new Border
+            var row = new Border
             {
-                Style = (Style)FindResource("StudioCardBorder"),
-                Padding = new Thickness(16, 14, 16, 14),
-                Margin = new Thickness(idx % 2 == 0 ? 0 : 6, 0, idx % 2 == 0 ? 6 : 0, 10),
+                CornerRadius = new CornerRadius(8),
+                Background = Brushes.Transparent,
+                Padding = new Thickness(14, 10, 14, 10),
+                Margin = new Thickness(0, 0, 0, 4),
                 Cursor = Cursors.Hand
             };
 
-            var stack = new StackPanel();
-            var topGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            var iconStack = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-            var iconBorder = new Border
+            var radioOuter = new Border
             {
-                Width = 30,
-                Height = 30,
+                Width = 16,
+                Height = 16,
                 CornerRadius = new CornerRadius(8),
-                Background = (Brush)FindResource("BrushBgSurface2"),
-                Margin = new Thickness(0, 0, 10, 0),
-                Child = new TextBlock
-                {
-                    Text = mode.IconGlyph,
-                    FontFamily = (FontFamily)FindResource("FontIcons"),
-                    FontSize = 14,
-                    Foreground = (Brush)FindResource("BrushAccentCyan"),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
+                BorderBrush = (Brush)FindResource("BrushTextMuted"),
+                BorderThickness = new Thickness(1.5),
+                Margin = new Thickness(0, 0, 14, 0),
+                VerticalAlignment = VerticalAlignment.Center
             };
-            iconStack.Children.Add(iconBorder);
-            iconStack.Children.Add(new TextBlock
+            var radioInner = new Ellipse
+            {
+                Width = 8,
+                Height = 8,
+                Fill = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            radioOuter.Child = radioInner;
+            _lightingModeDots[idx] = radioInner;
+            Grid.SetColumn(radioOuter, 0);
+            grid.Children.Add(radioOuter);
+
+            var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            textStack.Children.Add(new TextBlock
             {
                 Text = mode.Title,
                 FontFamily = (FontFamily)FindResource("FontDisplay"),
                 FontSize = 13.5,
                 FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center
+                Foreground = (Brush)FindResource("BrushTextPrimary")
             });
-            topGrid.Children.Add(iconStack);
-
-            var badge = new Border
-            {
-                CornerRadius = new CornerRadius(6),
-                Background = (Brush)FindResource("BrushBgSurface2"),
-                Padding = new Thickness(7, 2, 7, 2),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center,
-                Child = new TextBlock
-                {
-                    Text = mode.BadgeText,
-                    FontFamily = (FontFamily)FindResource("FontMono"),
-                    FontSize = 10,
-                    Foreground = (Brush)FindResource("BrushAccentCyan")
-                }
-            };
-            topGrid.Children.Add(badge);
-            stack.Children.Add(topGrid);
-
-            stack.Children.Add(new TextBlock
+            textStack.Children.Add(new TextBlock
             {
                 Text = mode.Description,
-                FontSize = 11.5,
-                Foreground = (Brush)FindResource("BrushTextSecondary"),
-                TextWrapping = TextWrapping.Wrap
+                FontSize = 12,
+                Foreground = (Brush)FindResource("BrushTextMuted"),
+                Margin = new Thickness(0, 2, 0, 0)
             });
+            Grid.SetColumn(textStack, 1);
+            grid.Children.Add(textStack);
 
-            card.Child = stack;
-            card.MouseLeftButtonDown += (_, _) => SelectLightingMode(mode.Key);
-            _lightingModeBorders[idx] = card;
-            LightingModesGrid.Children.Add(card);
+            row.Child = grid;
+            row.MouseLeftButtonDown += (_, _) => SelectLightingMode(mode.Key);
+            _lightingModeBorders[idx] = row;
+            LightingModesList.Children.Add(row);
         }
 
-        // Primary color orbs
         LedSwatchesGrid.Children.Clear();
         SecondaryLedSwatchesGrid.Children.Clear();
 
@@ -844,7 +831,7 @@ public partial class MainWindow : Window
             _ledSwatchBorders[idx] = primaryOrb;
             LedSwatchesGrid.Children.Add(primaryOrb);
 
-            var secOrb = CreateColorOrb(sw.Hex, $"{sw.Name} (İkincil Nefes Alma Rengi)", () => SelectSecondaryLedColor(sw.R, sw.G, sw.B));
+            var secOrb = CreateColorOrb(sw.Hex, $"{sw.Name} (İkincil Renk)", () => SelectSecondaryLedColor(sw.R, sw.G, sw.B));
             _secondarySwatchBorders[idx] = secOrb;
             SecondaryLedSwatchesGrid.Children.Add(secOrb);
         }
@@ -857,9 +844,9 @@ public partial class MainWindow : Window
     {
         var outer = new Border
         {
-            Width = 32,
-            Height = 32,
-            CornerRadius = new CornerRadius(16),
+            Width = 28,
+            Height = 28,
+            CornerRadius = new CornerRadius(14),
             BorderThickness = new Thickness(2),
             BorderBrush = Brushes.Transparent,
             Padding = new Thickness(2),
@@ -869,9 +856,9 @@ public partial class MainWindow : Window
 
         var inner = new Border
         {
-            CornerRadius = new CornerRadius(13),
+            CornerRadius = new CornerRadius(11),
             Background = (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!,
-            BorderBrush = new SolidColorBrush(Color.FromArgb(65, 255, 255, 255)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(45, 255, 255, 255)),
             BorderThickness = new Thickness(1)
         };
 
@@ -897,10 +884,8 @@ public partial class MainWindow : Window
             var card = new Border
             {
                 Background = (Brush)FindResource("BrushBgSurface2"),
-                BorderBrush = (Brush)FindResource("BrushBorderSubtle"),
-                BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(12, 10, 12, 10),
+                Padding = new Thickness(14, 10, 14, 10),
                 Margin = new Thickness(0, 0, 0, 8)
             };
 
@@ -912,17 +897,16 @@ public partial class MainWindow : Window
             var badge = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             badge.Children.Add(new TextBlock
             {
-                Text = $"MAKRO {i + 1}",
+                Text = $"Makro {i + 1}",
                 FontFamily = (FontFamily)FindResource("FontDisplay"),
-                FontSize = 11.5,
-                FontWeight = FontWeights.Bold,
-                Foreground = (Brush)FindResource("BrushAccentCyan")
+                FontSize = 13,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("BrushTextPrimary")
             });
             badge.Children.Add(new TextBlock
             {
-                Text = $"Tetik: {k.ToUpperInvariant()}",
-                FontFamily = (FontFamily)FindResource("FontMono"),
-                FontSize = 10,
+                Text = k.ToUpperInvariant(),
+                FontSize = 11.5,
                 Foreground = (Brush)FindResource("BrushTextMuted")
             });
             Grid.SetColumn(badge, 0);
@@ -930,7 +914,7 @@ public partial class MainWindow : Window
 
             var modeCombo = new ComboBox { Height = 32, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
             modeCombo.Items.Add(new ComboBoxItem { Content = "Metin Dizisi", Tag = "text" });
-            modeCombo.Items.Add(new ComboBoxItem { Content = "Rapid-Fire Tıklama", Tag = "rapid_fire" });
+            modeCombo.Items.Add(new ComboBoxItem { Content = "Seri Tıklama (CPS)", Tag = "rapid_fire" });
             modeCombo.Items.Add(new ComboBoxItem { Content = "Klavye Kısayolu", Tag = "shortcut" });
             modeCombo.SelectedIndex = item.Mode switch { "rapid_fire" => 1, "shortcut" => 2, _ => 0 };
             Grid.SetColumn(modeCombo, 1);
@@ -941,8 +925,7 @@ public partial class MainWindow : Window
                 Height = 32,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Padding = new Thickness(8, 0, 8, 0),
-                FontFamily = (FontFamily)FindResource("FontMono"),
-                FontSize = 11.5,
+                FontSize = 12.5,
                 Text = FormatMacroParamText(item)
             };
             Grid.SetColumn(paramBox, 2);
@@ -973,7 +956,7 @@ public partial class MainWindow : Window
 
     private static string FormatMacroParamText(MacroBindingItem item) => item.Mode switch
     {
-        "rapid_fire" => $"{item.Cps} CPS ({item.MouseButton})",
+        "rapid_fire" => $"{item.Cps} CPS ({(string.Equals(item.MouseButton, "right", StringComparison.OrdinalIgnoreCase) ? "Sağ Tık" : "Sol Tık")})",
         "shortcut" => item.ShortcutKeys,
         _ => item.TextPayload
     };
@@ -987,7 +970,10 @@ public partial class MainWindow : Window
             {
                 item.Cps = Math.Clamp(cps, 1, 50);
             }
-            item.MouseButton = raw.Contains("right", StringComparison.OrdinalIgnoreCase) ? "right" : "left";
+            bool isRight = raw.Contains("right", StringComparison.OrdinalIgnoreCase)
+                || raw.Contains("sağ", StringComparison.OrdinalIgnoreCase)
+                || raw.Contains("sag", StringComparison.OrdinalIgnoreCase);
+            item.MouseButton = isRight ? "right" : "left";
         }
         else if (item.Mode == "shortcut")
         {
@@ -1011,10 +997,8 @@ public partial class MainWindow : Window
             var row = new Border
             {
                 Background = (Brush)FindResource("BrushBgSurface2"),
-                BorderBrush = (Brush)FindResource("BrushBorderSubtle"),
-                BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(12, 9, 12, 9),
+                Padding = new Thickness(14, 10, 14, 10),
                 Margin = new Thickness(0, 0, 0, 6)
             };
 
@@ -1026,9 +1010,8 @@ public partial class MainWindow : Window
             var exeText = new TextBlock
             {
                 Text = rule.ExecutableName,
-                FontFamily = (FontFamily)FindResource("FontMono"),
-                FontSize = 12,
-                FontWeight = FontWeights.SemiBold,
+                FontSize = 13,
+                FontWeight = FontWeights.Medium,
                 Foreground = (Brush)FindResource("BrushTextPrimary"),
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -1038,19 +1021,16 @@ public partial class MainWindow : Window
             var slotBadge = new Border
             {
                 CornerRadius = new CornerRadius(6),
-                Background = (Brush)FindResource("BrushAccentCyanSubtle"),
-                BorderBrush = (Brush)FindResource("BrushAccentCyanBorder"),
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(9, 3, 9, 3),
+                Background = (Brush)FindResource("BrushBgElevated"),
+                Padding = new Thickness(10, 3, 10, 3),
                 Margin = new Thickness(8, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 Child = new TextBlock
                 {
-                    Text = $"PROFİL {rule.ProfileIndex + 1}",
-                    FontFamily = (FontFamily)FindResource("FontMono"),
-                    FontSize = 10.5,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = (Brush)FindResource("BrushAccentCyan")
+                    Text = $"Profil {rule.ProfileIndex + 1}",
+                    FontSize = 11.5,
+                    FontWeight = FontWeights.Medium,
+                    Foreground = (Brush)FindResource("BrushTextSecondary")
                 }
             };
             Grid.SetColumn(slotBadge, 1);
@@ -1058,11 +1038,11 @@ public partial class MainWindow : Window
 
             var delBtn = new Button
             {
-                Content = "Sil",
+                Content = "Kaldır",
                 Style = (Style)FindResource("ToolbarActionButton"),
                 Height = 26,
                 Padding = new Thickness(10, 0, 10, 0),
-                FontSize = 11
+                FontSize = 11.5
             };
             delBtn.Click += (_, _) =>
             {
@@ -1097,24 +1077,23 @@ public partial class MainWindow : Window
                 }
 
                 SetConnectionStatusUi(true, "Bağlı");
-                StatusFooterText.Text = $"Logitech G300s donanımı ile senkronize edildi · Aktif Profil {_activeProfileIndex + 1}, Kademe {_activeDpiStageIndex + 1}.";
+                StatusFooterText.Text = $"Logitech G300s bağlı · Aktif Profil {_activeProfileIndex + 1}, Kademe {_activeDpiStageIndex + 1}";
             }
             else
             {
                 SetConnectionStatusUi(false, "Çevrimdışı");
-                StatusFooterText.Text = "Logitech G300s USB üzerinde algılanmadı · Çevrimdışı stüdyo modunda çalışıyor.";
+                StatusFooterText.Text = "Logitech G300s algılanmadı · Çevrimdışı düzenleme modu";
             }
         }
         catch (Exception ex)
         {
-            SetConnectionStatusUi(false, "G/Ç Hatası");
+            SetConnectionStatusUi(false, "Bağlantı Hatası");
             StatusFooterText.Text = $"Donanım okuma hatası: {ex.Message}";
         }
 
         _hasUnsavedChanges = false;
         UpdateDirtyStateVisuals();
         SelectProfileSlot(_activeProfileIndex, sendToHardware: false);
-        SelectButtonForEditing(0);
     }
 
     private void SetConnectionStatusUi(bool online, string label)
@@ -1138,11 +1117,11 @@ public partial class MainWindow : Window
                     _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB);
                 }
                 _device.SetLiveRate(prof.PollingRateHz);
-                StatusFooterText.Text = $"Aktif donanım profili Profil {_activeProfileIndex + 1} ({prof.ColorName}) olarak değiştirildi.";
+                StatusFooterText.Text = $"Profil {_activeProfileIndex + 1} ({prof.ColorName}) etkinleştirildi.";
             }
             catch (Exception ex)
             {
-                StatusFooterText.Text = $"Profil değiştirme hatası: {ex.Message}";
+                StatusFooterText.Text = $"Profil geçiş hatası: {ex.Message}";
             }
         }
 
@@ -1163,13 +1142,13 @@ public partial class MainWindow : Window
 
             if (i == _activeProfileIndex)
             {
-                slotBtns[i].Background = (Brush)FindResource("BrushAccentCyanSubtle");
-                slotBtns[i].Foreground = (Brush)FindResource("BrushAccentCyan");
+                slotBtns[i].Background = (Brush)FindResource("BrushBgElevated");
+                slotBtns[i].Foreground = (Brush)FindResource("BrushTextPrimary");
             }
             else
             {
                 slotBtns[i].Background = Brushes.Transparent;
-                slotBtns[i].Foreground = (Brush)FindResource("BrushTextSecondary");
+                slotBtns[i].Foreground = (Brush)FindResource("BrushTextMuted");
             }
         }
     }
@@ -1189,28 +1168,24 @@ public partial class MainWindow : Window
             LiveColorPreviewOrb.Background = new SolidColorBrush(col);
             LiveTelemetryProgressFill.Background = new SolidColorBrush(col);
             LiveTelemetryProgressFill.Width = 380;
-            LiveTelemetryTitleText.Text = $"Donanım Sabit Rengi ({prof.ColorName})";
+            LiveTelemetryTitleText.Text = $"Sabit Donanım Rengi ({prof.ColorName})";
         }
 
-        // Update 9 Callout Pills
         for (int i = 0; i < 9; i++)
         {
             string spec = prof.Buttons[i];
             _calloutActionTexts[i].Text = G300sProtocol.GetFriendlyActionTitle(spec);
         }
 
-        // Polling Rate buttons
         Button[] rateBtns = [RateBtn125, RateBtn250, RateBtn500, RateBtn1000];
         int[] rates = [125, 250, 500, 1000];
         for (int i = 0; i < 4; i++)
         {
             bool active = prof.PollingRateHz == rates[i];
-            rateBtns[i].Background = active ? (Brush)FindResource("BrushAccentCyanSubtle") : (Brush)FindResource("BrushBgSurface2");
-            rateBtns[i].BorderBrush = active ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushBorderSubtle");
-            rateBtns[i].Foreground = active ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextPrimary");
+            rateBtns[i].Background = active ? (Brush)FindResource("BrushBgElevated") : Brushes.Transparent;
+            rateBtns[i].Foreground = active ? (Brush)FindResource("BrushTextPrimary") : (Brush)FindResource("BrushTextMuted");
         }
 
-        // DPI Stage Cards
         for (int i = 0; i < 4; i++)
         {
             int dpiVal = prof.DpiStages[i];
@@ -1218,36 +1193,47 @@ public partial class MainWindow : Window
             _dpiValueLabels[i].Text = $"{dpiVal} DPI";
 
             bool isCurrentStage = i == _activeDpiStageIndex;
-            _dpiActivateButtons[i].Background = isCurrentStage ? (Brush)FindResource("BrushAccentCyanSubtle") : (Brush)FindResource("BrushBgSurface2");
-            _dpiActivateButtons[i].BorderBrush = isCurrentStage ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushBorderSubtle");
-            _dpiActivateButtons[i].Foreground = isCurrentStage ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
+            _dpiActivateButtons[i].Background = isCurrentStage ? (Brush)FindResource("BrushActiveWhite") : (Brush)FindResource("BrushBgSurface2");
+            _dpiActivateButtons[i].Foreground = isCurrentStage ? new SolidColorBrush(Color.FromRgb(9, 9, 11)) : (Brush)FindResource("BrushTextSecondary");
 
             bool isDefault = i == prof.DefaultDpiStage;
-            _dpiDefaultButtons[i].Background = isDefault ? (Brush)FindResource("BrushWarningSubtle") : (Brush)FindResource("BrushBgSurface2");
-            _dpiDefaultButtons[i].BorderBrush = isDefault ? (Brush)FindResource("BrushWarning") : (Brush)FindResource("BrushBorderSubtle");
-            _dpiDefaultButtons[i].Foreground = isDefault ? (Brush)FindResource("BrushWarning") : (Brush)FindResource("BrushTextMuted");
+            _dpiDefaultButtons[i].Background = isDefault ? (Brush)FindResource("BrushBgElevated") : Brushes.Transparent;
+            _dpiDefaultButtons[i].Foreground = isDefault ? (Brush)FindResource("BrushTextPrimary") : (Brush)FindResource("BrushTextMuted");
         }
 
-        // Primary Swatches
         for (int i = 0; i < PaletteSwatches.Length; i++)
         {
             var sw = PaletteSwatches[i];
             bool selected = prof.LedR == sw.R && prof.LedG == sw.G && prof.LedB == sw.B;
-            _ledSwatchBorders[i].BorderBrush = selected ? (Brush)FindResource("BrushAccentCyan") : Brushes.Transparent;
+            _ledSwatchBorders[i].BorderBrush = selected ? (Brush)FindResource("BrushActiveWhite") : Brushes.Transparent;
         }
 
-        // Top Header Telemetry
         int activeDpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
-        TelemetryDpiText.Text = $"{activeDpi} DPI (S{_activeDpiStageIndex + 1})";
+        TelemetryDpiText.Text = $"{activeDpi} DPI";
         TelemetryRateText.Text = $"{prof.PollingRateHz} Hz";
 
-        RefreshSelectedButtonInspectorUi();
+        if (_selectedButtonIndex >= 0)
+        {
+            RefreshSelectedButtonInspectorUi();
+        }
         if (_activeViewIndex == 1)
         {
             RenderDpiGraph();
         }
         _suppressUiEvents = false;
     }
+
+    private void DeselectButton()
+    {
+        _selectedButtonIndex = -1;
+        StopKeyRecording();
+        SelectedButtonGlowImage.Visibility = Visibility.Collapsed;
+        SelectedButtonHighlightImage.Visibility = Visibility.Collapsed;
+        InspectorDrawerBorder.Visibility = Visibility.Collapsed;
+        UpdateCalloutHighlightVisuals();
+    }
+
+    private void CloseInspector_Click(object sender, RoutedEventArgs e) => DeselectButton();
 
     private void SelectButtonForEditing(int btnIndex)
     {
@@ -1278,6 +1264,7 @@ public partial class MainWindow : Window
             SelectedButtonHighlightImage.Visibility = Visibility.Visible;
         }
 
+        InspectorDrawerBorder.Visibility = Visibility.Visible;
         UpdateCalloutHighlightVisuals();
         RefreshSelectedButtonInspectorUi();
     }
@@ -1298,7 +1285,7 @@ public partial class MainWindow : Window
                 HoveredButtonGlowImage.Width = glowBmp.PixelWidth;
                 HoveredButtonGlowImage.Height = glowBmp.PixelHeight;
                 HoveredButtonGlowImage.Source = glowBmp;
-                HoveredButtonGlowImage.Opacity = 0.72;
+                HoveredButtonGlowImage.Opacity = 0.65;
                 HoveredButtonGlowImage.Visibility = Visibility.Visible;
             }
         }
@@ -1319,33 +1306,34 @@ public partial class MainWindow : Window
 
             if (isSelected)
             {
-                _calloutBorders[i].Background = new SolidColorBrush(Color.FromArgb(245, 18, 36, 52));
-                _calloutBorders[i].BorderBrush = (Brush)FindResource("BrushAccentCyan");
-                _leaderLines[i].Stroke = (Brush)FindResource("BrushAccentCyan");
-                _leaderLines[i].StrokeThickness = 2.2;
-                _anchorDots[i].Fill = (Brush)FindResource("BrushAccentCyan");
+                _calloutBorders[i].Background = (Brush)FindResource("BrushBgSurface2");
+                _calloutAccentBars[i].Background = (Brush)FindResource("BrushActiveWhite");
+                _leaderLines[i].Stroke = (Brush)FindResource("BrushActiveWhite");
+                _leaderLines[i].StrokeThickness = 1.8;
+                _anchorDots[i].Fill = (Brush)FindResource("BrushActiveWhite");
             }
             else if (isHovered)
             {
-                _calloutBorders[i].Background = (Brush)FindResource("BrushBgElevated");
-                _calloutBorders[i].BorderBrush = (Brush)FindResource("BrushBorderStrong");
-                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(210, 56, 189, 248));
-                _leaderLines[i].StrokeThickness = 1.8;
-                _anchorDots[i].Fill = (Brush)FindResource("BrushAccentCyanHover");
+                _calloutBorders[i].Background = (Brush)FindResource("BrushBgSurface1");
+                _calloutAccentBars[i].Background = (Brush)FindResource("BrushTextSecondary");
+                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(180, 212, 212, 216));
+                _leaderLines[i].StrokeThickness = 1.5;
+                _anchorDots[i].Fill = (Brush)FindResource("BrushActiveWhite");
             }
             else
             {
-                _calloutBorders[i].Background = new SolidColorBrush(Color.FromArgb(225, 17, 20, 28));
-                _calloutBorders[i].BorderBrush = (Brush)FindResource("BrushBorderSubtle");
-                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(100, 148, 163, 184));
-                _leaderLines[i].StrokeThickness = 1.4;
-                _anchorDots[i].Fill = new SolidColorBrush(Color.FromRgb(0, 180, 230));
+                _calloutBorders[i].Background = Brushes.Transparent;
+                _calloutAccentBars[i].Background = new SolidColorBrush(Color.FromArgb(90, 161, 161, 170));
+                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(75, 161, 161, 170));
+                _leaderLines[i].StrokeThickness = 1.2;
+                _anchorDots[i].Fill = new SolidColorBrush(Color.FromRgb(161, 161, 170));
             }
         }
     }
 
     private void RefreshSelectedButtonInspectorUi()
     {
+        if (_selectedButtonIndex < 0) return;
         var meta = ButtonMetaList[_selectedButtonIndex];
         var prof = _profiles[_activeProfileIndex];
         string spec = prof.Buttons[_selectedButtonIndex];
@@ -1377,6 +1365,10 @@ public partial class MainWindow : Window
         if (hit >= 0)
         {
             SelectButtonForEditing(hit);
+        }
+        else
+        {
+            DeselectButton();
         }
     }
 
@@ -1420,9 +1412,8 @@ public partial class MainWindow : Window
         for (int i = 0; i < navBtns.Length; i++)
         {
             bool active = i == _activeViewIndex;
-            navBtns[i].Background = active ? (Brush)FindResource("BrushAccentCyanSubtle") : Brushes.Transparent;
-            navBtns[i].BorderBrush = active ? (Brush)FindResource("BrushAccentCyanBorder") : Brushes.Transparent;
-            navBtns[i].Foreground = active ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
+            navBtns[i].Background = active ? (Brush)FindResource("BrushBgSurface2") : Brushes.Transparent;
+            navBtns[i].Foreground = active ? (Brush)FindResource("BrushTextPrimary") : (Brush)FindResource("BrushTextMuted");
         }
 
         if (_activeViewIndex == 1)
@@ -1450,13 +1441,14 @@ public partial class MainWindow : Window
         for (int i = 0; i < tabs.Length; i++)
         {
             bool active = i == _activeDrawerCategory;
-            tabs[i].Background = active ? (Brush)FindResource("BrushAccentCyanSubtle") : Brushes.Transparent;
-            tabs[i].Foreground = active ? (Brush)FindResource("BrushAccentCyan") : (Brush)FindResource("BrushTextSecondary");
+            tabs[i].Background = active ? (Brush)FindResource("BrushBgElevated") : Brushes.Transparent;
+            tabs[i].Foreground = active ? (Brush)FindResource("BrushTextPrimary") : (Brush)FindResource("BrushTextMuted");
         }
     }
 
     private void AssignActionToSelectedButton(string actionSpec)
     {
+        if (_selectedButtonIndex < 0) return;
         var prof = _profiles[_activeProfileIndex];
         prof.SetButtonAction(_selectedButtonIndex, actionSpec);
         MarkModified($"{ButtonMetaList[_selectedButtonIndex].CodeLabel} tuşuna '{G300sProtocol.GetFriendlyActionTitle(actionSpec)}' atandı.");
@@ -1490,8 +1482,8 @@ public partial class MainWindow : Window
         }
 
         _isRecordingKey = true;
-        RecordKeyBtnText.Text = "Dinleniyor... Bir tuşa basın (İptal: Esc)";
-        RecordKeyBtn.BorderBrush = (Brush)FindResource("BrushAccentCyan");
+        RecordKeyBtnText.Text = "Dinleniyor... Bir tuşa basın (Esc: İptal)";
+        RecordKeyBtn.Background = (Brush)FindResource("BrushBgElevated");
         RecordKeyBtn.Focus();
     }
 
@@ -1501,8 +1493,8 @@ public partial class MainWindow : Window
     {
         if (!_isRecordingKey) return;
         _isRecordingKey = false;
-        RecordKeyBtnText.Text = "Tuş Kaydetmek İçin Tıklayın...";
-        RecordKeyBtn.BorderBrush = (Brush)FindResource("BrushBorderSubtle");
+        RecordKeyBtnText.Text = "Tuş Kaydetmek İçin Tıklayın";
+        RecordKeyBtn.Background = (Brush)FindResource("BrushBgSurface2");
     }
 
     private void RecordKeyBtn_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -1587,11 +1579,11 @@ public partial class MainWindow : Window
             try
             {
                 _device.SetActiveDpiStage(_activeDpiStageIndex);
-                StatusFooterText.Text = $"Donanım hassasiyeti Kademe {_activeDpiStageIndex + 1} ({_profiles[_activeProfileIndex].DpiStages[_activeDpiStageIndex]} DPI) olarak etkinleştirildi.";
+                StatusFooterText.Text = $"Donanım hassasiyeti Kademe {_activeDpiStageIndex + 1} ({_profiles[_activeProfileIndex].DpiStages[_activeDpiStageIndex]} DPI) yapıldı.";
             }
             catch (Exception ex)
             {
-                StatusFooterText.Text = $"DPI kademesi değiştirilemedi: {ex.Message}";
+                StatusFooterText.Text = $"DPI değiştirilemedi: {ex.Message}";
             }
         }
         RefreshCurrentProfileToUi();
@@ -1601,7 +1593,7 @@ public partial class MainWindow : Window
     {
         var prof = _profiles[_activeProfileIndex];
         prof.DefaultDpiStage = stageIdx;
-        MarkModified($"Kademe {stageIdx + 1} ({prof.DpiStages[stageIdx]} DPI) açılış varsayılanı olarak işaretlendi.");
+        MarkModified($"Kademe {stageIdx + 1} ({prof.DpiStages[stageIdx]} DPI) başlangıç varsayılanı yapıldı.");
         RefreshCurrentProfileToUi();
     }
 
@@ -1628,7 +1620,7 @@ public partial class MainWindow : Window
         var prof = _profiles[_activeProfileIndex];
         _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (prof.LedR, prof.LedG, prof.LedB), _secondaryBreathColor);
         UpdateSecondarySwatchVisuals();
-        StatusFooterText.Text = "Nefes alma ikincil geçiş rengi güncellendi.";
+        StatusFooterText.Text = "İkincil geçiş rengi güncellendi.";
     }
 
     private void UpdateSecondarySwatchVisuals()
@@ -1637,7 +1629,7 @@ public partial class MainWindow : Window
         {
             var sw = PaletteSwatches[i];
             bool selected = _secondaryBreathColor.R == sw.R && _secondaryBreathColor.G == sw.G && _secondaryBreathColor.B == sw.B;
-            _secondarySwatchBorders[i].BorderBrush = selected ? (Brush)FindResource("BrushAccentCyan") : Brushes.Transparent;
+            _secondarySwatchBorders[i].BorderBrush = selected ? (Brush)FindResource("BrushActiveWhite") : Brushes.Transparent;
         }
     }
 
@@ -1654,7 +1646,7 @@ public partial class MainWindow : Window
 
         UpdateLightingModeSelectionVisuals(effectKey);
         RefreshCurrentProfileToUi();
-        StatusFooterText.Text = $"Işıklandırma modu '{effectKey}' olarak etkinleştirildi.";
+        StatusFooterText.Text = "Aydınlatma modu güncellendi.";
     }
 
     private void UpdateLightingModeSelectionVisuals(string activeKey)
@@ -1663,12 +1655,43 @@ public partial class MainWindow : Window
         {
             bool active = string.Equals(LightingModes[i].Key, activeKey, StringComparison.OrdinalIgnoreCase);
             _lightingModeBorders[i].Background = active
-                ? new SolidColorBrush(Color.FromArgb(245, 18, 36, 52))
-                : (Brush)FindResource("BrushBgSurface1");
-            _lightingModeBorders[i].BorderBrush = active
-                ? (Brush)FindResource("BrushAccentCyan")
-                : (Brush)FindResource("BrushBorderSubtle");
+                ? (Brush)FindResource("BrushBgSurface2")
+                : Brushes.Transparent;
+            _lightingModeDots[i].Fill = active
+                ? (Brush)FindResource("BrushActiveWhite")
+                : Brushes.Transparent;
         }
+    }
+
+    private void AmbilightZone_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string zone })
+        {
+            _automation.AmbilightZone = zone;
+            UpdateAmbilightZoneButtonsUi(zone);
+            if (_automation.ActiveRgbEffect != "ambilight")
+            {
+                SelectLightingMode("ambilight");
+            }
+        }
+    }
+
+    private void UpdateAmbilightZoneButtonsUi(string activeZone)
+    {
+        Button[] btns = [ZoneBtnFull, ZoneBtnCrosshair, ZoneBtnHud, ZoneBtnCinema];
+        string[] tags = ["full", "crosshair", "hud", "cinema"];
+        for (int i = 0; i < btns.Length; i++)
+        {
+            bool active = tags[i] == activeZone;
+            btns[i].Background = active ? (Brush)FindResource("BrushBgElevated") : Brushes.Transparent;
+            btns[i].Foreground = active ? (Brush)FindResource("BrushTextPrimary") : (Brush)FindResource("BrushTextMuted");
+        }
+    }
+
+    private void SmoothBridgeToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents || _automation is null) return;
+        _automation.UseHighFreqBridge = SmoothBridgeToggle.IsChecked == true;
     }
 
     private void BreathSpeedSlider_ValueChanged(object sender, RoutedEventArgs e)
@@ -1685,7 +1708,7 @@ public partial class MainWindow : Window
     private void MarkModified(string message)
     {
         _hasUnsavedChanges = true;
-        StatusFooterText.Text = $"{message} (Kalıcı olması için 'Belleğe Kaydet' butonuna tıklayın)";
+        StatusFooterText.Text = $"{message} · Kalıcı olması için 'Belleğe Kaydet' butonuna tıklayın.";
         UpdateDirtyStateVisuals();
     }
 
@@ -1708,8 +1731,8 @@ public partial class MainWindow : Window
         }
 
         FlashSaveBtn.IsEnabled = false;
-        FlashSaveBtnText.Text = "Yazılıyor...";
-        StatusFooterText.Text = "0xF0 meşgul kilidi kontrol ediliyor ve 3 profil yerleşik EEPROM belleğe yazılıyor...";
+        FlashSaveBtnText.Text = "Kaydediliyor...";
+        StatusFooterText.Text = "Profiller yerleşik EEPROM belleğe yazılıyor...";
 
         try
         {
@@ -1730,11 +1753,11 @@ public partial class MainWindow : Window
 
             _hasUnsavedChanges = false;
             UpdateDirtyStateVisuals();
-            StatusFooterText.Text = "Tüm 3 yerleşik profil Logitech G300s belleğine yazıldı ve doğrulandı.";
+            StatusFooterText.Text = "Tüm 3 profil Logitech G300s belleğine kaydedildi.";
         }
         catch (Exception ex)
         {
-            StatusFooterText.Text = $"EEPROM yazma hatası: {ex.Message}";
+            StatusFooterText.Text = $"Belleğe yazma hatası: {ex.Message}";
             MessageBox.Show(this, $"Donanım belleğine yazılamadı:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
@@ -1878,7 +1901,7 @@ public partial class MainWindow : Window
             };
 
             File.WriteAllText(dlg.FileName, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-            StatusFooterText.Text = $"3 profil '{Path.GetFileName(dlg.FileName)}' dosyasına dışa aktarıldı.";
+            StatusFooterText.Text = $"Profiller '{Path.GetFileName(dlg.FileName)}' dosyasına dışa aktarıldı.";
         }
         catch (Exception ex)
         {
@@ -1889,7 +1912,7 @@ public partial class MainWindow : Window
     private void SaveDaemonConfig_Click(object sender, RoutedEventArgs e)
     {
         _automation.SaveConfig();
-        StatusFooterText.Text = "Makro ve otomatik profil kuralları ~/.g300s_daemon.json dosyasına kaydedildi.";
+        StatusFooterText.Text = "Makro ve otomatik profil kuralları kaydedildi.";
     }
 
     private void AutoSwitchToggle_Changed(object sender, RoutedEventArgs e)
@@ -1960,7 +1983,7 @@ public partial class MainWindow : Window
 
         _automation.SaveConfig();
         RefreshAppRulesListUi();
-        StatusFooterText.Text = $"Otomatik geçiş kuralı eklendi: {exe} → Profil {slot + 1}.";
+        StatusFooterText.Text = $"Otomatik geçiş kuralı eklendi: {exe} → Profil {slot + 1}";
     }
 
     private void OnHardwareEventReceived(HardwareButtonEvent ev)
@@ -1968,7 +1991,8 @@ public partial class MainWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             string stateLabel = ev.IsPressed ? "Basıldı" : "Bırakıldı";
-            TelemetryEventText.Text = $"Donanım Olayı: {ev.ActionName} ({stateLabel})";
+            string friendlyName = G300sProtocol.GetFriendlyActionTitle(ev.ActionName);
+            TelemetryEventText.Text = $"{friendlyName} ({stateLabel})";
 
             if (_device.IsConnected)
             {
@@ -1998,7 +2022,7 @@ public partial class MainWindow : Window
             _activeProfileIndex = newSlot;
             RefreshSlotHeaderVisuals();
             RefreshCurrentProfileToUi();
-            StatusFooterText.Text = $"Otomatik geçiş: '{exeName}' algılandı → Profil {newSlot + 1}";
+            StatusFooterText.Text = $"Otomatik geçiş: {exeName} → Profil {newSlot + 1}";
         });
     }
 
@@ -2013,7 +2037,7 @@ public partial class MainWindow : Window
     private void MinimizeToTray_Click(object sender, RoutedEventArgs e)
     {
         Hide();
-        StatusFooterText.Text = "Arka planda sistem tepsisinde (System Tray) çalışmaya devam ediyor.";
+        StatusFooterText.Text = "Sistem tepsisinde çalışıyor.";
     }
 
     private void CaptionMinimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -2027,19 +2051,6 @@ public partial class MainWindow : Window
     {
         _isExiting = true;
         Close();
-    }
-
-    private void RestoreFromTray()
-    {
-        Dispatcher.Invoke(() =>
-        {
-            Show();
-            if (WindowState == WindowState.Minimized)
-            {
-                WindowState = WindowState.Normal;
-            }
-            Activate();
-        });
     }
 
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
