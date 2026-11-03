@@ -69,9 +69,12 @@ class G300sDevice:
                 stacklevel=2
             )
 
-        self._open()
+        self.open()
 
-    def _open(self):
+    def open(self):
+        """Open HID connection to device on usage page 0xFF80."""
+        if self.dev:
+            return
         devices = hid.enumerate(VID, PID)
         path = next((d["path"] for d in devices if d.get("usage_page") == USAGE_PAGE), None)
         if not path:
@@ -82,6 +85,10 @@ class G300sDevice:
         self.dev = hid.device()
         self.dev.open_path(path)
         self.path = path
+
+    def is_lgs_running(self) -> bool:
+        """Check if Logitech Gaming Software is currently running."""
+        return is_lgs_running()
 
     def close(self):
         if self.dev:
