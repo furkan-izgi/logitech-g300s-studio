@@ -179,6 +179,13 @@ def cmd_selftest(dev: G300sDevice, args):
     print("Selftest PASSED. All hardware interfaces verified.")
 
 
+def cmd_daemon(args):
+    from .daemon.service import DaemonService
+    service = DaemonService(config_path=args.config)
+    print(f"Starting Logitech G300s Daemon (Config: {service.config_path})...")
+    service.run_forever()
+
+
 def main(argv: List[str] = None):
     if argv is None:
         argv = sys.argv[1:]
@@ -258,7 +265,19 @@ def main(argv: List[str] = None):
     # selftest
     subparsers.add_parser("selftest", help="Run self-test and protocol validation")
 
+    # daemon
+    p_daemon = subparsers.add_parser("daemon", help="Run background daemon for auto-profile, macros, and RGB")
+    p_daemon.add_argument("--config", help="Custom path to daemon configuration JSON", default=None)
+
     parsed = parser.parse_args(argv)
+
+    if parsed.command == "daemon":
+        try:
+            cmd_daemon(parsed)
+        except KeyboardInterrupt:
+            print("\nDaemon terminated.")
+            sys.exit(0)
+        return
 
     try:
         with G300sDevice() as dev:
