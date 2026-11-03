@@ -83,6 +83,7 @@ public partial class MainWindow : Window
     private readonly OsdNotificationService _osd = new();
     private readonly DispatcherTimer _livePreviewTimer;
     private CancellationTokenSource? _rateTestCts;
+    private CancellationTokenSource? _hotplugDebounceCts;
 
     private readonly G300sProfile[] _profiles =
     [
@@ -186,6 +187,13 @@ public partial class MainWindow : Window
         _tray.Initialize(this, iconPath);
         _tray.RestoreRequested += () => Dispatcher.Invoke(RestoreWindowFromExternalLaunch);
         _tray.ProfileSwitchRequested += idx => Dispatcher.Invoke(() => SelectProfileSlot(idx, sendToHardware: true));
+        _tray.DpiStageSwitchRequested += st => Dispatcher.Invoke(() => ActivateDpiStage(st));
+        _tray.LightingModeSwitchRequested += mode => Dispatcher.Invoke(() => SelectLightingMode(mode));
+        _tray.OsdToggleRequested += () => Dispatcher.Invoke(() =>
+        {
+            OsdToggle.IsChecked = !(OsdToggle.IsChecked == true);
+        });
+        _tray.DeviceChangeDetected += OnUsbDeviceChangeDetected;
         _tray.ExitRequested += () =>
         {
             _isExiting = true;
@@ -1337,6 +1345,14 @@ public partial class MainWindow : Window
         TelemetryDpiText.Text = $"{activeDpi} DPI";
         TelemetryRateText.Text = $"{prof.PollingRateHz} Hz";
 
+        _tray.UpdateTrayState(
+            _activeProfileIndex,
+            _activeDpiStageIndex,
+            prof.DpiStages,
+            prof.PollingRateHz,
+            _automation.ActiveRgbEffect,
+            _automation.OsdNotificationsEnabled);
+
         if (_selectedButtonIndex >= 0)
         {
             RefreshSelectedButtonInspectorUi();
@@ -2051,6 +2067,234 @@ public partial class MainWindow : Window
             BuildDaemonWorkspaceUi();
         }
         AssignActionToSelectedButton("key:f18");
+    }
+
+    private void OnUsbDeviceChangeDetected()
+    {
+        _hotplugDebounceCts?.Cancel();
+        _hotplugDebounceCts?.Dispose();
+        _hotplugDebounceCts = new CancellationTokenSource();
+        CancellationToken token = _hotplugDebounceCts.Token;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(650, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            _ = Dispatcher.BeginInvoke(() =>
+            {
+                bool wasConnected = _device.IsConnected;
+                if (wasConnected)
+                {
+                    try
+                    {
+                        _ = _device.GetActiveState();
+                        return; // Still connected and responsive
+                    }
+                    catch
+                    {
+                        _device.Dispose();
+                        SetConnectionStatusUi(false, "Çevrimdışı");
+                        StatusFooterText.Text = "Logitech G300s USB bağlantısı kesildi · Tak-Çıkar bekleniyor...";
+                        _osd.ShowNotification("Logitech G300s Çıkarıldı", "USB bağlantısı kesildi", "#FF2D46");
+                        return;
+                    }
+                }
+
+                // Was disconnected; attempt automatic hot-plug reconnection
+                if (_device.Connect())
+                {
+                    ConnectAndReadHardware();
+                    var prof = _profiles[_activeProfileIndex];
+                    int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
+                    _osd.ShowNotification(
+                        "Logitech G300s Bağlandı",
+                        $"Profil {_activeProfileIndex + 1} ({prof.ColorName}) · {dpi} DPI",
+                        prof.ColorHex);
+                }
+            });
+        }, token);
+    }
+
+    private void PresetTemplateCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressUiEvents || PresetTemplateCombo is null) return;
+        if (PresetTemplateCombo.SelectedItem is not ComboBoxItem { Tag: string presetKey }) return;
+
+        var prof = _profiles[_activeProfileIndex];
+        string presetTitle;
+
+        switch (presetKey)
+        {
+            case "fps":
+                presetTitle = "FPS Rekabetçi (CS2 / Valorant)";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 500);
+                prof.SetDpiStage(1, 750);
+                prof.SetDpiStage(2, 1250);
+                prof.SetDpiStage(3, 1750);
+                prof.SetLed(1, 0, 0); // Kırmızı
+                prof.SetButtonAction(0, "mouse:1");
+                prof.SetButtonAction(1, "mouse:2");
+                prof.SetButtonAction(2, "mouse:3");
+                prof.SetButtonAction(3, "mouse:5");
+                prof.SetButtonAction(4, "mouse:4");
+                prof.SetButtonAction(5, "key:f18"); // G-Shift Katmanı
+                prof.SetButtonAction(6, "key:f17"); // Recoil Dengeleme
+                prof.SetButtonAction(7, "dpi-cycle");
+                prof.SetButtonAction(8, "dpi-alternate"); // DPI Shift (Nişan)
+                break;
+
+            case "br":
+                presetTitle = "Battle Royale (Apex / PUBG)";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 750);
+                prof.SetDpiStage(1, 1000);
+                prof.SetDpiStage(2, 1500);
+                prof.SetDpiStage(3, 2250);
+                prof.SetLed(1, 1, 0); // Kehribar Sarı
+                prof.SetButtonAction(0, "mouse:1");
+                prof.SetButtonAction(1, "mouse:2");
+                prof.SetButtonAction(2, "mouse:3");
+                prof.SetButtonAction(3, "mouse:5");
+                prof.SetButtonAction(4, "mouse:4");
+                prof.SetButtonAction(5, "key:f16"); // Seri Tıklama
+                prof.SetButtonAction(6, "key:f17"); // Recoil Dengeleme
+                prof.SetButtonAction(7, "profile-cycle");
+                prof.SetButtonAction(8, "dpi-alternate");
+                break;
+
+            case "moba":
+                presetTitle = "MOBA & Taktik (LoL / Dota 2)";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 1000);
+                prof.SetDpiStage(1, 1500);
+                prof.SetDpiStage(2, 2000);
+                prof.SetDpiStage(3, 2500);
+                prof.SetLed(1, 0, 1); // Eflatun
+                prof.SetButtonAction(0, "mouse:1");
+                prof.SetButtonAction(1, "mouse:2");
+                prof.SetButtonAction(2, "mouse:3");
+                prof.SetButtonAction(3, "key:1");
+                prof.SetButtonAction(4, "key:2");
+                prof.SetButtonAction(5, "key:3");
+                prof.SetButtonAction(6, "key:4");
+                prof.SetButtonAction(7, "dpi-cycle");
+                prof.SetButtonAction(8, "key:f15"); // Zamanlamalı Kombo
+                break;
+
+            default:
+                presetTitle = "Masaüstü & Üretkenlik";
+                prof.PollingRateHz = 500;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 750);
+                prof.SetDpiStage(1, 1250);
+                prof.SetDpiStage(2, 1750);
+                prof.SetDpiStage(3, 2250);
+                prof.SetLed(0, 1, 1); // Turkuaz
+                prof.SetButtonAction(0, "mouse:1");
+                prof.SetButtonAction(1, "mouse:2");
+                prof.SetButtonAction(2, "mouse:3");
+                prof.SetButtonAction(3, "key:lctrl+y");
+                prof.SetButtonAction(4, "key:lctrl+z");
+                prof.SetButtonAction(5, "key:lctrl+c");
+                prof.SetButtonAction(6, "key:lctrl+v");
+                prof.SetButtonAction(7, "profile-cycle");
+                prof.SetButtonAction(8, "dpi-cycle");
+                break;
+        }
+
+        _suppressUiEvents = true;
+        PresetTemplateCombo.SelectedIndex = 0;
+        _suppressUiEvents = false;
+
+        if (_device.IsConnected && _automation.ActiveRgbEffect == "none")
+        {
+            try { _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB); } catch { /* ignore */ }
+        }
+
+        MarkModified($"Profil {_activeProfileIndex + 1} üzerine '{presetTitle}' şablonu yüklendi.");
+        RefreshSlotHeaderVisuals();
+        RefreshCurrentProfileToUi();
+    }
+
+    private void CopyProfileCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressUiEvents || CopyProfileCombo is null) return;
+        if (CopyProfileCombo.SelectedItem is not ComboBoxItem { Tag: string tag } || !int.TryParse(tag, out int dstSlot))
+            return;
+
+        dstSlot = Math.Clamp(dstSlot, 0, 2);
+        _suppressUiEvents = true;
+        CopyProfileCombo.SelectedIndex = 0;
+        _suppressUiEvents = false;
+
+        if (dstSlot == _activeProfileIndex)
+        {
+            StatusFooterText.Text = $"Profil {dstSlot + 1} zaten aktif profil.";
+            return;
+        }
+
+        var src = _profiles[_activeProfileIndex];
+        var dst = _profiles[dstSlot];
+
+        dst.PollingRateHz = src.PollingRateHz;
+        dst.DefaultDpiStage = src.DefaultDpiStage;
+        for (int i = 0; i < 4; i++)
+        {
+            dst.SetDpiStage(i, src.DpiStages[i]);
+        }
+        for (int b = 0; b < 9; b++)
+        {
+            dst.SetButtonAction(b, src.Buttons[b]);
+        }
+
+        MarkModified($"Profil {_activeProfileIndex + 1} ayarları → Profil {dstSlot + 1} üzerine kopyalandı.");
+        RefreshSlotHeaderVisuals();
+        RefreshCurrentProfileToUi();
+    }
+
+    private void CreateDesktopShortcut_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string? exePath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(exePath)) return;
+
+            string desktopDir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            string lnkPath = Path.Combine(desktopDir, "Logitech G300s Studio.lnk");
+            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "g300s.ico");
+
+            Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
+            if (shellType is null) return;
+
+            dynamic shell = Activator.CreateInstance(shellType)!;
+            dynamic shortcut = shell.CreateShortcut(lnkPath);
+            shortcut.TargetPath = exePath;
+            shortcut.WorkingDirectory = Path.GetDirectoryName(exePath);
+            shortcut.Description = "Logitech G300s Studio — Donanım ve Otomasyon Kontrol Merkezi";
+            if (File.Exists(iconPath))
+            {
+                shortcut.IconLocation = iconPath;
+            }
+            shortcut.Save();
+
+            StatusFooterText.Text = "Masaüstüne 'Logitech G300s Studio' kısayolu oluşturuldu.";
+            _osd.ShowNotification("Masaüstü Kısayolu Oluşturuldu", "Logitech G300s Studio masaüstüne eklendi", "#00E676");
+        }
+        catch (Exception ex)
+        {
+            StatusFooterText.Text = $"Kısayol oluşturma hatası: {ex.Message}";
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
