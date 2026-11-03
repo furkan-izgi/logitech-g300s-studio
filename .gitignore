@@ -19,3 +19,8 @@ tools/re_analyze.py
 .vscode/
 .idea/
 *.swp
+
+# .NET Native Build Artifacts
+native/**/bin/
+native/**/obj/
+**/crash.log
