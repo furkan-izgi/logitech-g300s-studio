@@ -227,6 +227,29 @@
                                            FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                             </StackPanel>
 
+                            <!-- Top-Right Preset Library & Profile Copy Bar -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Margin="0,24,32,0" Panel.ZIndex="10">
+                                <ComboBox x:Name="PresetTemplateCombo" Width="195" Height="30"
+                                          SelectionChanged="PresetTemplateCombo_SelectionChanged"
+                                          ToolTip="Seçili profile oyun veya üretkenlik şablonu uygula">
+                                    <ComboBoxItem Content="Hazır Şablon Yükle..." IsSelected="True" IsEnabled="False" />
+                                    <ComboBoxItem Content="FPS Rekabetçi (CS2 / Valorant)" Tag="fps" />
+                                    <ComboBoxItem Content="Battle Royale (Apex / PUBG)" Tag="br" />
+                                    <ComboBoxItem Content="MOBA &amp; Taktik (LoL / Dota 2)" Tag="moba" />
+                                    <ComboBoxItem Content="Masaüstü &amp; Üretkenlik" Tag="productivity" />
+                                </ComboBox>
+
+                                <ComboBox x:Name="CopyProfileCombo" Width="165" Height="30" Margin="8,0,0,0"
+                                          SelectionChanged="CopyProfileCombo_SelectionChanged"
+                                          ToolTip="Aktif profilin tüm tuş ve DPI ayarlarını başka bir profile kopyala">
+                                    <ComboBoxItem Content="Profili Kopyala →" IsSelected="True" IsEnabled="False" />
+                                    <ComboBoxItem Content="→ Profil 1'e Kopyala" Tag="0" />
+                                    <ComboBoxItem Content="→ Profil 2'ye Kopyala" Tag="1" />
+                                    <ComboBoxItem Content="→ Profil 3'e Kopyala" Tag="2" />
+                                </ComboBox>
+                            </StackPanel>
+
                             <Viewbox Stretch="Uniform" Margin="24,36,24,14">
                                 <Canvas x:Name="MouseStageCanvas" Width="1040" Height="610"
                                         Background="Transparent"
@@ -671,9 +694,15 @@
                                     <StackPanel x:Name="MacroItemsPanel" />
                                 </ScrollViewer>
 
-                                <Button Grid.Row="2" Click="SaveDaemonConfig_Click" Style="{StaticResource PrimaryAccentButton}" HorizontalAlignment="Right" Margin="0,14,0,0">
-                                    <TextBlock Text="Makroları Kaydet" />
-                                </Button>
+                                <Grid Grid.Row="2" Margin="0,14,0,0">
+                                    <Button Click="CreateDesktopShortcut_Click" Style="{StaticResource ToolbarActionButton}" HorizontalAlignment="Left"
+                                            ToolTip="Masaüstüne Logitech G300s Studio kısayolu ekler">
+                                        <TextBlock Text="Masaüstü Kısayolu Oluştur" />
+                                    </Button>
+                                    <Button Click="SaveDaemonConfig_Click" Style="{StaticResource PrimaryAccentButton}" HorizontalAlignment="Right">
+                                        <TextBlock Text="Makroları Kaydet" />
+                                    </Button>
+                                </Grid>
                             </Grid>
                         </Border>
 
