@@ -227,10 +227,29 @@
                                            FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                             </StackPanel>
 
-                            <!-- Top-Right Preset Library & Profile Copy Bar -->
+                            <!-- Top-Right Heatmap Analytics, Preset Library & Profile Copy Bar -->
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                                         Margin="0,24,32,0" Panel.ZIndex="10">
-                                <ComboBox x:Name="PresetTemplateCombo" Width="195" Height="30"
+                                <!-- Heatmap Toggle & Live CPM Badge -->
+                                <Border Background="{StaticResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                        CornerRadius="9" Padding="10,4" Margin="0,0,10,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <CheckBox x:Name="HeatmapToggle" Style="{StaticResource PillToggleSwitch}"
+                                                  Content="Isı Haritası"
+                                                  Checked="HeatmapToggle_Changed" Unchecked="HeatmapToggle_Changed"
+                                                  VerticalAlignment="Center" Margin="0,0,8,0"
+                                                  ToolTip="Fare tuşlarının kullanım yoğunluğunu ve tıklama ısı haritasını görselleştirir" />
+                                        <TextBlock x:Name="HeatmapStatsText" Text="0 CPM · 0 Tık"
+                                                   FontSize="11.5" Foreground="{StaticResource BrushTextSecondary}"
+                                                   VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <Button Click="ResetHeatmapStats_Click" Style="{StaticResource ToolbarActionButton}"
+                                                Height="22" Padding="6,0" FontSize="11" ToolTip="Tıklama istatistiklerini sıfırla">
+                                            <TextBlock Text="Sıfırla" />
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <ComboBox x:Name="PresetTemplateCombo" Width="185" Height="30"
                                           SelectionChanged="PresetTemplateCombo_SelectionChanged"
                                           ToolTip="Seçili profile oyun veya üretkenlik şablonu uygula">
                                     <ComboBoxItem Content="Hazır Şablon Yükle..." IsSelected="True" IsEnabled="False" />
@@ -240,7 +259,7 @@
                                     <ComboBoxItem Content="Masaüstü &amp; Üretkenlik" Tag="productivity" />
                                 </ComboBox>
 
-                                <ComboBox x:Name="CopyProfileCombo" Width="165" Height="30" Margin="8,0,0,0"
+                                <ComboBox x:Name="CopyProfileCombo" Width="155" Height="30" Margin="8,0,0,0"
                                           SelectionChanged="CopyProfileCombo_SelectionChanged"
                                           ToolTip="Aktif profilin tüm tuş ve DPI ayarlarını başka bir profile kopyala">
                                     <ComboBoxItem Content="Profili Kopyala →" IsSelected="True" IsEnabled="False" />
@@ -489,6 +508,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <!-- Header + Crosshair Overlay + Live Polling Rate Tester + Polling Rate Segmented Pill -->
@@ -560,7 +580,82 @@
                         </Border>
 
                         <!-- 4 DPI Stage Control Cards -->
-                        <UniformGrid x:Name="DpiStagesContainer" Grid.Row="2" Columns="4" />
+                        <UniformGrid x:Name="DpiStagesContainer" Grid.Row="2" Columns="4" Margin="0,0,0,14" />
+
+                        <!-- Row 3: Advanced Performance (Sniper Mode & Smart Debounce Filter) -->
+                        <Grid Grid.Row="3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: G-Shift Sniper DPI (Sniper Mode) Card -->
+                            <Border Grid.Column="0" Background="{StaticResource BrushBgSurface2}"
+                                    BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                    CornerRadius="10" Padding="16,12" Margin="0,0,8,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0">
+                                        <CheckBox x:Name="SniperToggle" Style="{StaticResource PillToggleSwitch}"
+                                                  Content="G-Shift Nişan (Sniper) Modu"
+                                                  Checked="SniperToggle_Changed" Unchecked="SniperToggle_Changed"
+                                                  VerticalAlignment="Center"
+                                                  ToolTip="G-Shift veya nişan tuşuna basılı tutulduğunda fare hassasiyetini anlık olarak sniper kademesine düşürür, bırakıldığında eski DPI'a döner" />
+                                        <ComboBox x:Name="SniperDpiCombo" Width="135" Height="26" FontSize="11.5"
+                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                  SelectionChanged="SniperDpiCombo_SelectionChanged">
+                                            <ComboBoxItem Content="250 DPI (Önerilen)" Tag="250" IsSelected="True" />
+                                            <ComboBoxItem Content="500 DPI" Tag="500" />
+                                            <ComboBoxItem Content="750 DPI" Tag="750" />
+                                            <ComboBoxItem Content="1000 DPI" Tag="1000" />
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <TextBlock Grid.Row="1" x:Name="SniperStatusText"
+                                               Text="G-Shift basıldığında hedef hassasiyeti: 250 DPI (Hazır)"
+                                               FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,6,0,0" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Right: Smart Microswitch Debounce / Anti-Double-Click Filter Card -->
+                            <Border Grid.Column="1" Background="{StaticResource BrushBgSurface2}"
+                                    BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                    CornerRadius="10" Padding="16,12" Margin="8,0,0,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0">
+                                        <CheckBox x:Name="DebounceToggle" Style="{StaticResource PillToggleSwitch}"
+                                                  Content="Akıllı Çift Tıklama Filtresi"
+                                                  IsChecked="True"
+                                                  Checked="DebounceToggle_Changed" Unchecked="DebounceToggle_Changed"
+                                                  VerticalAlignment="Center"
+                                                  ToolTip="Eskiyen Omron mikro anahtarlardaki mekanik kontak sekmesi ve istemsiz çift tıklamaları engeller" />
+
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <TextBlock Text="Eşik:" FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                            <Slider x:Name="DebounceSlider" Width="100" Minimum="5" Maximum="40" Value="18"
+                                                    TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                                    ValueChanged="DebounceSlider_ValueChanged" />
+                                            <TextBlock x:Name="DebounceValueText" Text="18 ms"
+                                                       FontSize="11.5" FontWeight="Medium" Foreground="{StaticResource BrushTextPrimary}"
+                                                       VerticalAlignment="Center" Margin="6,0,0,0" Width="40" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <TextBlock Grid.Row="1" x:Name="DebounceStatusText"
+                                               Text="Switch sekme koruması aktif · Engellenen: 0 tık"
+                                               FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,6,0,0" />
+                                </Grid>
+                            </Border>
+                        </Grid>
                     </Grid>
 
                     <!-- ==================== VIEW 2: LIGHTSYNC & COMPREHENSIVE GAME AMBIENT STUDIO ==================== -->
