@@ -74,7 +74,8 @@ public partial class MainWindow : Window
     [
         new("none",             "Sabit Donanım Rengi",           "Seçili profil rengini sıfır işlemci yüküyle doğrudan fare belleğinde tutar."),
         new("spectrum",         "Gökkuşağı Döngüsü (Rainbow)",   "6 ana donanım tonu (Kırmızı → Sarı → Yeşil → Turkuaz → Mavi → Eflatun) arasında akıcı döngü."),
-        new("color_transition", "Renk Geçişi (İki Renk Arası)",  "Seçilen Ana Renk ile İkincil Geçiş Rengi arasında uyumlu ara tonlar üzerinden gidip gelen geçiş.")
+        new("color_transition", "Renk Geçişi (İki Renk Arası)",  "Seçilen Ana Renk ile İkincil Geçiş Rengi arasında uyumlu ara tonlar üzerinden gidip gelen geçiş."),
+        new("ambilight",        "Ekran Ortam Rengi Yansıtma",    "Masaüstü ve oyun ekranındaki canlı renk tonlarını gerçek zamanlı analiz ederek farenin yan LED'lerine senkronize eder.")
     ];
 
     private readonly G300sHidDevice _device = new();
@@ -120,8 +121,8 @@ public partial class MainWindow : Window
 
     private readonly Border[] _ledSwatchBorders = new Border[8];
     private readonly Border[] _secondarySwatchBorders = new Border[8];
-    private readonly Border[] _lightingModeBorders = new Border[3];
-    private readonly Ellipse[] _lightingModeDots = new Ellipse[3];
+    private readonly Border[] _lightingModeBorders = new Border[4];
+    private readonly Ellipse[] _lightingModeDots = new Ellipse[4];
 
     private readonly Slider[] _dpiSliders = new Slider[4];
     private readonly TextBlock[] _dpiValueLabels = new TextBlock[4];
@@ -367,6 +368,23 @@ public partial class MainWindow : Window
             SwitchMainView(3);
             await Task.Delay(250);
             CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_automation{ext}"));
+
+            SwitchMainView(4);
+            await Task.Delay(250);
+            CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_settings{ext}"));
+
+            // Also copy screenshots directly into project screenshots/ directory so user can open them easily
+            try
+            {
+                string projectScreenshotsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "screenshots");
+                string fullProjDir = Path.GetFullPath(projectScreenshotsDir);
+                if (!Directory.Exists(fullProjDir)) Directory.CreateDirectory(fullProjDir);
+                foreach (string f in Directory.GetFiles(dir, $"{baseName}*{ext}"))
+                {
+                    File.Copy(f, Path.Combine(fullProjDir, Path.GetFileName(f)), true);
+                }
+            }
+            catch {}
 
             _isExiting = true;
             Application.Current.Shutdown(0);
@@ -1906,13 +1924,14 @@ public partial class MainWindow : Window
 
     private void SwitchMainView(int viewIdx)
     {
-        _activeViewIndex = Math.Clamp(viewIdx, 0, 3);
+        _activeViewIndex = Math.Clamp(viewIdx, 0, 4);
         ViewAssignmentsGrid.Visibility = _activeViewIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
         ViewSensitivityGrid.Visibility = _activeViewIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
         ViewLightingGrid.Visibility = _activeViewIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
         ViewAutomationGrid.Visibility = _activeViewIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
+        ViewSettingsGrid.Visibility = _activeViewIndex == 4 ? Visibility.Visible : Visibility.Collapsed;
 
-        Button[] navBtns = [NavBtnAssignments, NavBtnSensitivity, NavBtnLighting, NavBtnAutomation];
+        Button[] navBtns = [NavBtnAssignments, NavBtnSensitivity, NavBtnLighting, NavBtnAutomation, NavBtnSettings];
         for (int i = 0; i < navBtns.Length; i++)
         {
             bool active = i == _activeViewIndex;
@@ -1923,6 +1942,10 @@ public partial class MainWindow : Window
         if (_activeViewIndex == 1)
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, RenderDpiGraph);
+        }
+        else if (_activeViewIndex == 4)
+        {
+            UpdateSwitchHealthUi();
         }
     }
 
@@ -2143,9 +2166,22 @@ public partial class MainWindow : Window
         int speedMs = (int)BreathSpeedSlider.Value;
         _automation.SetRgbEffect(effectKey, speedMs, (prof.LedR, prof.LedG, prof.LedB), _secondaryBreathColor);
 
-        if (effectKey == "none" && _device.IsConnected)
+        if (effectKey == "ambilight")
         {
-            try { _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB); } catch { /* ignore */ }
+            _ambilight.Start();
+            if (LightingSwatchesPanel is not null) LightingSwatchesPanel.Visibility = Visibility.Collapsed;
+            if (LightingAmbilightPanel is not null) LightingAmbilightPanel.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            _ambilight.Stop();
+            if (LightingSwatchesPanel is not null) LightingSwatchesPanel.Visibility = Visibility.Visible;
+            if (LightingAmbilightPanel is not null) LightingAmbilightPanel.Visibility = Visibility.Collapsed;
+
+            if (effectKey == "none" && _device.IsConnected)
+            {
+                try { _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB); } catch { /* ignore */ }
+            }
         }
 
         UpdateLightingModeSelectionVisuals(effectKey);
@@ -3061,68 +3097,30 @@ public partial class MainWindow : Window
 
     private void UpdateSwitchHealthUi()
     {
-        if (SwitchHealthBarsPanel is null || OverallHealthText is null || OverallHealthDot is null) return;
+        if (OverallHealthText is null || OverallHealthDot is null) return;
 
-        SwitchHealthBarsPanel.Children.Clear();
         double totalHealth = 0;
         int count = 0;
+
+        if (SwitchHealthBarsPanel is not null) SwitchHealthBarsPanel.Children.Clear();
+        if (SwitchHealthFullPanel is not null) SwitchHealthFullPanel.Children.Clear();
 
         foreach (var (idx, stats) in _switchHealth.Switches)
         {
             totalHealth += stats.HealthPercentage;
             count++;
 
-            var row = new Grid { Margin = new Thickness(0, 0, 0, 6) };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
-
-            var nameTb = new TextBlock
+            // Row for popup
+            if (SwitchHealthBarsPanel is not null)
             {
-                Text = stats.Name,
-                FontSize = 11,
-                Foreground = (Brush)FindResource("BrushTextSecondary"),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(nameTb, 0);
-            row.Children.Add(nameTb);
+                SwitchHealthBarsPanel.Children.Add(CreateSwitchHealthRow(stats, 130.0));
+            }
 
-            // Progress Bar Track
-            var track = new Border
+            // Row for full settings view
+            if (SwitchHealthFullPanel is not null)
             {
-                Height = 6,
-                CornerRadius = new CornerRadius(3),
-                Background = (Brush)FindResource("BrushBgElevated"),
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(6, 0, 8, 0),
-                ClipToBounds = true
-            };
-
-            var fill = new Border
-            {
-                HorizontalAlignment = HorizontalAlignment.Left,
-                Height = 6,
-                CornerRadius = new CornerRadius(3),
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(stats.HealthColorHex)),
-                Width = Math.Max(4.0, (stats.HealthPercentage / 100.0) * 130.0)
-            };
-            track.Child = fill;
-            Grid.SetColumn(track, 1);
-            row.Children.Add(track);
-
-            var statTb = new TextBlock
-            {
-                Text = $"%{stats.HealthPercentage:0.0} ({stats.TotalClicks})",
-                FontSize = 10.5,
-                FontFamily = (FontFamily)FindResource("FontTacticalMono"),
-                Foreground = (Brush)FindResource("BrushTextPrimary"),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(statTb, 2);
-            row.Children.Add(statTb);
-
-            SwitchHealthBarsPanel.Children.Add(row);
+                SwitchHealthFullPanel.Children.Add(CreateSwitchHealthRow(stats, 220.0));
+            }
         }
 
         double avgHealth = count > 0 ? (totalHealth / count) : 100.0;
@@ -3130,6 +3128,66 @@ public partial class MainWindow : Window
         OverallHealthDot.Fill = avgHealth > 85.0
             ? (Brush)FindResource("BrushSuccess")
             : (avgHealth > 60.0 ? (Brush)FindResource("BrushWarning") : (Brush)FindResource("BrushDanger"));
+    }
+
+    private Grid CreateSwitchHealthRow(SwitchStats stats, double maxBarWidth)
+    {
+        var row = new Grid { Margin = new Thickness(0, 0, 0, 7) };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(115) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(95) });
+
+        var nameTb = new TextBlock
+        {
+            Text = stats.Name,
+            FontSize = 11.5,
+            Foreground = (Brush)FindResource("BrushTextSecondary"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(nameTb, 0);
+        row.Children.Add(nameTb);
+
+        var track = new Border
+        {
+            Height = 6,
+            CornerRadius = new CornerRadius(3),
+            Background = (Brush)FindResource("BrushBgElevated"),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(8, 0, 10, 0),
+            ClipToBounds = true
+        };
+
+        var fill = new Border
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Height = 6,
+            CornerRadius = new CornerRadius(3),
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(stats.HealthColorHex)),
+            Width = Math.Max(4.0, (stats.HealthPercentage / 100.0) * maxBarWidth)
+        };
+        track.Child = fill;
+        Grid.SetColumn(track, 1);
+        row.Children.Add(track);
+
+        var statTb = new TextBlock
+        {
+            Text = $"%{stats.HealthPercentage:0.0} ({stats.TotalClicks})",
+            FontSize = 11,
+            FontFamily = (FontFamily)FindResource("FontTacticalMono"),
+            Foreground = (Brush)FindResource("BrushTextPrimary"),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(statTb, 2);
+        row.Children.Add(statTb);
+
+        return row;
+    }
+
+    private void MiniHudAutoMinimize_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents || MiniHudAutoMinimize is null) return;
+        _miniHud.AutoShowOnMinimize = MiniHudAutoMinimize.IsChecked == true;
     }
 
     private void AngleSnappingToggle_Changed(object sender, RoutedEventArgs e)
@@ -3159,43 +3217,39 @@ public partial class MainWindow : Window
         }
     }
 
-    private void FluidRgbToggle_Changed(object sender, RoutedEventArgs e)
+    private void FluidRgbSettingsToggle_Changed(object sender, RoutedEventArgs e)
     {
-        if (_suppressUiEvents) return;
-        if (FluidRgbToggle is null) return;
-        _fluidRgbEnabled = FluidRgbToggle.IsChecked == true;
+        if (_suppressUiEvents || FluidRgbSettingsToggle is null) return;
+        _fluidRgbEnabled = FluidRgbSettingsToggle.IsChecked == true;
+        if (FluidRgbToggle is not null && FluidRgbToggle.IsChecked != _fluidRgbEnabled)
+        {
+            FluidRgbToggle.IsChecked = _fluidRgbEnabled;
+        }
         if (!_fluidRgbEnabled)
         {
-            var col = (Color)ColorConverter.ConvertFromString(_profiles[_activeProfileIndex].ColorHex); UpdateTintedSwoosh24Bit(col.R, col.G, col.B);
+            var col = (Color)ColorConverter.ConvertFromString(_profiles[_activeProfileIndex].ColorHex);
+            UpdateTintedSwoosh24Bit(col.R, col.G, col.B);
         }
         if (StatusFooterText is not null) StatusFooterText.Text = _fluidRgbEnabled ? "Önizlemede canlı sıvı RGB spektrum dalgası başlatıldı." : "Sıvı RGB spektrumu durduruldu.";
     }
 
-    private void AmbilightToggle_Changed(object sender, RoutedEventArgs e)
+    private void FluidRgbToggle_Changed(object sender, RoutedEventArgs e)
     {
-        if (_suppressUiEvents) return;
-        if (AmbilightToggle is null) return;
-        bool enable = AmbilightToggle.IsChecked == true;
-        if (enable)
+        if (_suppressUiEvents || FluidRgbToggle is null) return;
+        _fluidRgbEnabled = FluidRgbToggle.IsChecked == true;
+        if (FluidRgbSettingsToggle is not null && FluidRgbSettingsToggle.IsChecked != _fluidRgbEnabled)
         {
-            _ambilight.Start();
-            if (AmbilightStatusText is not null)
-            {
-                AmbilightStatusText.Text = $"DXGI Ambilight aktif ({_ambilight.TargetFps} FPS) · Ekran renkleri farenin LED'lerine senkronize";
-            }
-            if (StatusFooterText is not null) StatusFooterText.Text = "DXGI Ambilight ekran ortam rengi yansıtma başlatıldı.";
+            FluidRgbSettingsToggle.IsChecked = _fluidRgbEnabled;
         }
-        else
+        if (!_fluidRgbEnabled)
         {
-            _ambilight.Stop();
-            if (AmbilightStatusText is not null)
-            {
-                AmbilightStatusText.Text = "DXGI Ambilight devre dışı";
-            }
-            var col = (Color)ColorConverter.ConvertFromString(_profiles[_activeProfileIndex].ColorHex); UpdateTintedSwoosh24Bit(col.R, col.G, col.B);
-            if (StatusFooterText is not null) StatusFooterText.Text = "DXGI Ambilight durduruldu.";
+            var col = (Color)ColorConverter.ConvertFromString(_profiles[_activeProfileIndex].ColorHex);
+            UpdateTintedSwoosh24Bit(col.R, col.G, col.B);
         }
+        if (StatusFooterText is not null) StatusFooterText.Text = _fluidRgbEnabled ? "Önizlemede canlı sıvı RGB spektrum dalgası başlatıldı." : "Sıvı RGB spektrumu durduruldu.";
     }
+
+    
 
     private void AmbilightModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -3217,12 +3271,28 @@ public partial class MainWindow : Window
         if (AmbilightLeftOrb is not null) AmbilightLeftOrb.Background = new SolidColorBrush(left);
         if (AmbilightRightOrb is not null) AmbilightRightOrb.Background = new SolidColorBrush(right);
 
-        if (_ambilight.IsRunning && _activeViewIndex == 2 && !_fluidRgbEnabled)
+        if (_ambilight.IsRunning && _automation.ActiveRgbEffect == "ambilight")
         {
             byte r = (byte)((left.R + right.R) / 2);
             byte g = (byte)((left.G + right.G) / 2);
             byte b = (byte)((left.B + right.B) / 2);
-            UpdateTintedSwoosh24Bit(r, g, b);
+
+            if (_activeViewIndex == 2 && !_fluidRgbEnabled)
+            {
+                UpdateTintedSwoosh24Bit(r, g, b);
+                if (LiveColorPreviewOrb is not null) LiveColorPreviewOrb.Background = new SolidColorBrush(Color.FromRgb(r, g, b));
+                if (LiveTelemetryProgressFill is not null) LiveTelemetryProgressFill.Background = new SolidColorBrush(Color.FromRgb(r, g, b));
+                if (LiveTelemetryTitleText is not null) LiveTelemetryTitleText.Text = $"DXGI Ambilight ({_ambilight.TargetFps} FPS)";
+                if (ActiveColorLabel is not null) ActiveColorLabel.Text = $"#{r:X2}{g:X2}{b:X2}";
+            }
+
+            if (_device.IsConnected && hwColorIdx >= 0)
+            {
+                int hwR = (hwColorIdx & 1) != 0 ? 1 : 0;
+                int hwG = (hwColorIdx & 2) != 0 ? 1 : 0;
+                int hwB = (hwColorIdx & 4) != 0 ? 1 : 0;
+                try { _device.SetLiveLed(hwR, hwG, hwB); } catch { /* ignore */ }
+            }
         }
     }
 
