@@ -83,6 +83,7 @@ public sealed class HostAutomationService : IDisposable
 
     public event Action<int, string>? AutoProfileSwitched;
     public event Action<string>? MacroKeyTriggered;
+    public event Action<int>? PhysicalMacroButtonClicked;
     public event Action<bool, int>? GShiftStateChanged;
 
     public HostAutomationService(G300sHidDevice device)
@@ -452,6 +453,27 @@ public sealed class HostAutomationService : IDisposable
             _ => (0, 212, 255)
         };
 
+    private static (byte R, byte G, byte B) HsvToRgb(double hue, double saturation, double value)
+    {
+        double c = value * saturation;
+        double x = c * (1.0 - Math.Abs((hue / 60.0 % 2) - 1.0));
+        double m = value - c;
+
+        double r1 = 0, g1 = 0, b1 = 0;
+        if (hue < 60) { r1 = c; g1 = x; }
+        else if (hue < 120) { r1 = x; g1 = c; }
+        else if (hue < 180) { g1 = c; b1 = x; }
+        else if (hue < 240) { g1 = x; b1 = c; }
+        else if (hue < 300) { r1 = x; b1 = c; }
+        else { r1 = c; b1 = x; }
+
+        return (
+            (byte)Math.Clamp((r1 + m) * 255.0, 0, 255),
+            (byte)Math.Clamp((g1 + m) * 255.0, 0, 255),
+            (byte)Math.Clamp((b1 + m) * 255.0, 0, 255)
+        );
+    }
+
     /// <summary>
     /// Returns the natural 4-step Continuous-Anode Luminance Ladder for a given 3-bit color:
     /// Step 0: Deep/Dim (1 LED channel on)
@@ -510,54 +532,44 @@ public sealed class HostAutomationService : IDisposable
             switch (ActiveRgbEffect)
             {
                 case "spectrum":
+                case "rainbow":
                 case "cycle":
                 {
-                    double periodSec = Math.Max(1.6, RgbSpeedMs / 1000.0 * 2.0);
-                    double pos = ((elapsedSec / periodSec) % 1.0) * rainbowWheel.Length;
-                    int idxA = (int)Math.Floor(pos) % rainbowWheel.Length;
-                    int idxB = (idxA + 1) % rainbowWheel.Length;
-                    double frac = pos - Math.Floor(pos);
+                    double periodSec = Math.Max(1.2, RgbSpeedMs / 1000.0);
+                    double hue = ((elapsedSec / periodSec) % 1.0) * 360.0;
 
-                    stateA = rainbowWheel[idxA];
-                    var stateB = rainbowWheel[idxB];
+                    LivePreviewColor = HsvToRgb(hue, 1.0, 1.0);
+                    LiveTelemetryLevel = hue / 360.0;
 
-                    var c24A = MapBitTo24(stateA.R, stateA.G, stateA.B);
-                    var c24B = MapBitTo24(stateB.R, stateB.G, stateB.B);
-                    LivePreviewColor = (
-                        (byte)(c24A.R + (c24B.R - c24A.R) * frac),
-                        (byte)(c24A.G + (c24B.G - c24A.G) * frac),
-                        (byte)(c24A.B + (c24B.B - c24A.B) * frac)
-                    );
-                    LiveTelemetryLevel = pos / rainbowWheel.Length;
+                    int wheelIdx = (int)(hue / 60.0) % rainbowWheel.Length;
+                    stateA = rainbowWheel[wheelIdx];
                     string colorName = G300sProtocol.GetLedColorName(stateA.R, stateA.G, stateA.B);
-                    LiveTelemetryText = $"Gökkuşağı Döngüsü · {colorName}";
+                    LiveTelemetryText = $"Pürüzsüz Spektrum Dalgası · {colorName}";
                     break;
                 }
 
-                case "color_transition":
                 case "breathing":
+                case "pulse":
+                case "color_transition":
                 {
-                    var ladder = BuildContinuousAnodeLadder(RgbBaseColor, RgbSecondaryColor);
-                    double periodSec = Math.Max(1.2, RgbSpeedMs / 1000.0 * 1.6);
+                    double periodSec = Math.Max(1.0, RgbSpeedMs / 1000.0);
+                    // Continuous sine pulse wave (0.0 at minimum, 1.0 at peak)
                     double wave = (1.0 - Math.Cos(2.0 * Math.PI * elapsedSec / periodSec)) * 0.5;
+                    double intensity = 0.08 + 0.92 * (wave * wave);
 
-                    double scaled = wave * (ladder.Length - 1);
-                    int idxA = Math.Clamp((int)Math.Floor(scaled + 0.5), 0, ladder.Length - 1);
-                    int idxPrev = Math.Clamp((int)Math.Floor(scaled), 0, ladder.Length - 1);
-                    int idxNext = Math.Clamp(idxPrev + 1, 0, ladder.Length - 1);
-                    double frac = scaled - idxPrev;
-
-                    stateA = ladder[idxA];
-                    var c24A = MapBitTo24(ladder[idxPrev].R, ladder[idxPrev].G, ladder[idxPrev].B);
-                    var c24B = MapBitTo24(ladder[idxNext].R, ladder[idxNext].G, ladder[idxNext].B);
+                    var base24 = MapBitTo24(RgbBaseColor.R, RgbBaseColor.G, RgbBaseColor.B);
                     LivePreviewColor = (
-                        (byte)(c24A.R + (c24B.R - c24A.R) * frac),
-                        (byte)(c24A.G + (c24B.G - c24A.G) * frac),
-                        (byte)(c24A.B + (c24B.B - c24A.B) * frac)
+                        (byte)(base24.R * intensity),
+                        (byte)(base24.G * intensity),
+                        (byte)(base24.B * intensity)
                     );
-                    LiveTelemetryLevel = 0.15 + wave * 0.85;
-                    string colorName = G300sProtocol.GetLedColorName(stateA.R, stateA.G, stateA.B);
-                    LiveTelemetryText = $"Renk Geçişi · {colorName}";
+                    LiveTelemetryLevel = intensity;
+
+                    // Hardware 3-bit LED gating: turn ON around peak of breath wave, OFF at trough
+                    stateA = intensity >= 0.42 ? RgbBaseColor : (0, 0, 0);
+
+                    string colorName = G300sProtocol.GetLedColorName(RgbBaseColor.R, RgbBaseColor.G, RgbBaseColor.B);
+                    LiveTelemetryText = $"Nefes Alma (Pulse) · %{(int)(intensity * 100)} ({colorName})";
                     break;
                 }
             }
@@ -642,12 +654,18 @@ public sealed class HostAutomationService : IDisposable
 
             if (vkCode >= Win32.VK_F13 && vkCode <= Win32.VK_F24)
             {
+                bool isDown = msg == Win32.WM_KEYDOWN || msg == Win32.WM_SYSKEYDOWN;
+                bool isUp = msg == Win32.WM_KEYUP || msg == Win32.WM_SYSKEYUP;
+
+                if (isDown && vkCode <= Win32.VK_F13 + 5)
+                {
+                    int physicalBtn = 4 + (vkCode - Win32.VK_F13); // F13->4(G4), F14->5(G5), F15->6(G6), F16->7(G7), F17->8(G8), F18->9(G9)
+                    PhysicalMacroButtonClicked?.Invoke(physicalBtn);
+                }
+
                 string keyName = $"f{13 + (vkCode - Win32.VK_F13)}";
                 if (Macros.TryGetValue(keyName, out var macro))
                 {
-                    bool isDown = msg == Win32.WM_KEYDOWN || msg == Win32.WM_SYSKEYDOWN;
-                    bool isUp = msg == Win32.WM_KEYUP || msg == Win32.WM_SYSKEYUP;
-
                     if (isDown)
                     {
                         HandleMacroDown(vkCode, keyName, macro);

@@ -48,14 +48,41 @@
     <FontFamily x:Key="FontIcons">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
     <FontFamily x:Key="FontTacticalMono">Consolas, Cascadia Code, Lucida Console</FontFamily>
 
-    <!-- Matte Studio Panel -->
+    <!-- Matte Studio Panel with Fluid Hover Response -->
     <Style x:Key="StudioCardBorder" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource BrushBgSurface1}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BrushBorderSubtle}" />
+        <Setter Property="Background" Value="{DynamicResource BrushBgSurface1}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushBorderSubtle}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Padding" Value="20" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform Y="0" />
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource BrushAccentCyanBorder}" />
+                <Trigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                             To="-2.5" Duration="0:0:0.18" DecelerationRatio="0.8" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                             To="0" Duration="0:0:0.22" AccelerationRatio="0.8" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.ExitActions>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Fluid Interactive Studio Panel (Hover Lift & Neon Edge Response) -->

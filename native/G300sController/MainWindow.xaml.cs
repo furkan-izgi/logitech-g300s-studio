@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -72,10 +73,9 @@ public partial class MainWindow : Window
 
     private static readonly LightingModeMeta[] LightingModes =
     [
-        new("none",             "Sabit Donanım Rengi",           "Seçili profil rengini sıfır işlemci yüküyle doğrudan fare belleğinde tutar."),
-        new("spectrum",         "Gökkuşağı Döngüsü (Rainbow)",   "6 ana donanım tonu (Kırmızı → Sarı → Yeşil → Turkuaz → Mavi → Eflatun) arasında akıcı döngü."),
-        new("color_transition", "Renk Geçişi (İki Renk Arası)",  "Seçilen Ana Renk ile İkincil Geçiş Rengi arasında uyumlu ara tonlar üzerinden gidip gelen geçiş."),
-        new("ambilight",        "Ekran Ortam Rengi Yansıtma",    "Masaüstü ve oyun ekranındaki canlı renk tonlarını gerçek zamanlı analiz ederek farenin yan LED'lerine senkronize eder.")
+        new("none",      "Sabit Donanım Rengi",              "Seçili profil rengini sıfır işlemci yüküyle doğrudan fare belleğinde tutar."),
+        new("spectrum",  "Pürüzsüz Spektrum Dalgası (Rainbow)", "Tüm renk tayfı arasında 60 FPS ultra akıcı gökkuşağı akışı."),
+        new("breathing", "Nefes Alma (Breathing / Pulse)",   "Seçili profil rengini pürüzsüz sinüs dalgasıyla açıp karartan ritmik nefes alma efekti.")
     ];
 
     private readonly G300sHidDevice _device = new();
@@ -86,14 +86,10 @@ public partial class MainWindow : Window
     private readonly ClickHeatmapService _heatmap = new();
     private readonly DebounceFilterService _debounce = new();
     private readonly SniperModeService _sniper = new();
-    private readonly AmbilightService _ambilight = new();
     private readonly SwitchHealthService _switchHealth = new();
     private readonly AngleSnappingService _angleSnapping = new();
-    private readonly MiniHudOverlayService _miniHud = new();
     private bool _fluidRgbEnabled;
     private bool _microInteractionsEnabled = true;
-    private bool _tacticalTypographyEnabled;
-    private bool _miniHudManualOpen;
     private WindowBackdropMode _activeBackdropMode = WindowBackdropMode.Mica;
     private readonly DispatcherTimer _livePreviewTimer;
     private CancellationTokenSource? _rateTestCts;
@@ -121,8 +117,8 @@ public partial class MainWindow : Window
 
     private readonly Border[] _ledSwatchBorders = new Border[8];
     private readonly Border[] _secondarySwatchBorders = new Border[8];
-    private readonly Border[] _lightingModeBorders = new Border[4];
-    private readonly Ellipse[] _lightingModeDots = new Ellipse[4];
+    private readonly Border[] _lightingModeBorders = new Border[3];
+    private readonly Ellipse[] _lightingModeDots = new Ellipse[3];
 
     private readonly Slider[] _dpiSliders = new Slider[4];
     private readonly TextBlock[] _dpiValueLabels = new TextBlock[4];
@@ -174,6 +170,10 @@ public partial class MainWindow : Window
         DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
         int round = 2;
         DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));
+
+        // Immediately apply Windows 11 Mica / Acrylic backdrop on startup
+        WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
+        ApplyBackdropVisualStyles(_activeBackdropMode);
     }
 
     [DllImport("dwmapi.dll")]
@@ -200,6 +200,7 @@ public partial class MainWindow : Window
         BuildDpiStagesUi();
         BuildLightingStudioUi();
         BuildDaemonWorkspaceUi();
+        SetupAllCardMicroInteractions();
 
         string iconPath = Path.Combine(assetsDir, "g300s.ico");
         _tray.Initialize(this, iconPath);
@@ -242,24 +243,50 @@ public partial class MainWindow : Window
                 }
             });
         };
-        _debounce.ValidClickOccurred += btn =>
+        _debounce.ValidClickWithPointOccurred += (btn, ptX, ptY) =>
         {
             int bIdx = btn switch
             {
                 "Left" => 0,
                 "Right" => 1,
                 "Middle" => 2,
+                "XButton1" => 3, // G4 (Sol Üst)
+                "XButton2" => 4, // G5 (Sol Alt)
                 _ => -1
             };
             if (bIdx >= 0)
             {
-                _heatmap.RecordClick(bIdx);
+                _heatmap.RecordScreenClick(ptX, ptY, bIdx);
                 _switchHealth.RecordClick(bIdx + 1);
-                _miniHud.HighlightButton(bIdx + 1, true);
-                Task.Delay(120).ContinueWith(_ => _miniHud.HighlightButton(bIdx + 1, false));
             }
         };
         _debounce.Start();
+
+        // Hook physical hardware G-Key events (dpi-up, dpi-down, profile-cycle, dpi-cycle)
+        _device.HardwareEventReceived += evt =>
+        {
+            if (evt.IsPressed)
+            {
+                int btnIndex = evt.ActionName switch
+                {
+                    "dpi-down" => 6,      // G6 (Sağ Üst)
+                    "dpi-up" => 7,        // G7 (Sağ Alt)
+                    "profile-cycle" => 8, // G8 (Profil)
+                    "dpi-cycle" => 9,     // G9 (Mod)
+                    _ => -1
+                };
+                if (btnIndex > 0)
+                {
+                    Dispatcher.BeginInvoke(() => _switchHealth.RecordClick(btnIndex));
+                }
+            }
+        };
+
+        // Hook macro keystroke triggers (F13..F18)
+        _automation.PhysicalMacroButtonClicked += physicalBtn =>
+        {
+            Dispatcher.BeginInvoke(() => _switchHealth.RecordClick(physicalBtn));
+        };
 
         // Initialize Click Heatmap Analytics Service
         _heatmap.LoadStats();
@@ -285,12 +312,6 @@ public partial class MainWindow : Window
                         AngleSnappingStatusText.Text = $"Eksen sabitlendi: dx={dx}, dy={dy} (Düz Çizgi)";
                 });
             }
-        };
-
-        // Initialize DXGI Ambilight Service
-        _ambilight.ColorsSampled += (left, right, hwIdx) =>
-        {
-            Dispatcher.BeginInvoke(() => UpdateAmbilightTelemetry(left, right, hwIdx));
         };
 
         StateChanged += MainWindow_StateChanged;
@@ -353,6 +374,12 @@ public partial class MainWindow : Window
             await Task.Delay(200);
             CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_switchhealth{ext}"));
             CloseSwitchHealth_Click(this, new RoutedEventArgs());
+
+            // Capture Screen Click & Dwell Heatmap view
+            ScreenHeatmapBtn_Click(this, new RoutedEventArgs());
+            await Task.Delay(250);
+            CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_screen_heatmap{ext}"));
+            CloseScreenHeatmap_Click(this, new RoutedEventArgs());
 
             SwitchMainView(1);
             await Task.Delay(250);
@@ -987,7 +1014,6 @@ public partial class MainWindow : Window
         }
 
         LedSwatchesGrid.Children.Clear();
-        SecondaryLedSwatchesGrid.Children.Clear();
 
         for (int i = 0; i < PaletteSwatches.Length; i++)
         {
@@ -998,13 +1024,10 @@ public partial class MainWindow : Window
             _ledSwatchBorders[idx] = primaryOrb;
             LedSwatchesGrid.Children.Add(primaryOrb);
 
-            var secOrb = CreateColorOrb(sw.Hex, $"{sw.Name} (İkincil Renk)", () => SelectSecondaryLedColor(sw.R, sw.G, sw.B));
-            _secondarySwatchBorders[idx] = secOrb;
-            SecondaryLedSwatchesGrid.Children.Add(secOrb);
+
         }
 
         UpdateLightingModeSelectionVisuals("none");
-        UpdateSecondarySwatchVisuals();
     }
 
     private static Border CreateColorOrb(string hex, string tooltip, Action onClick)
@@ -2146,7 +2169,6 @@ public partial class MainWindow : Window
         _secondaryBreathColor = (r, g, b);
         var prof = _profiles[_activeProfileIndex];
         _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (prof.LedR, prof.LedG, prof.LedB), _secondaryBreathColor);
-        UpdateSecondarySwatchVisuals();
         if (StatusFooterText is not null) StatusFooterText.Text = "İkincil geçiş rengi güncellendi.";
     }
 
@@ -2166,27 +2188,14 @@ public partial class MainWindow : Window
         int speedMs = (int)BreathSpeedSlider.Value;
         _automation.SetRgbEffect(effectKey, speedMs, (prof.LedR, prof.LedG, prof.LedB), _secondaryBreathColor);
 
-        if (effectKey == "ambilight")
+        if (effectKey == "none" && _device.IsConnected)
         {
-            _ambilight.Start();
-            if (LightingSwatchesPanel is not null) LightingSwatchesPanel.Visibility = Visibility.Collapsed;
-            if (LightingAmbilightPanel is not null) LightingAmbilightPanel.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            _ambilight.Stop();
-            if (LightingSwatchesPanel is not null) LightingSwatchesPanel.Visibility = Visibility.Visible;
-            if (LightingAmbilightPanel is not null) LightingAmbilightPanel.Visibility = Visibility.Collapsed;
-
-            if (effectKey == "none" && _device.IsConnected)
-            {
-                try { _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB); } catch { /* ignore */ }
-            }
+            try { _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB); } catch { /* ignore */ }
         }
 
         UpdateLightingModeSelectionVisuals(effectKey);
         RefreshCurrentProfileToUi();
-        if (StatusFooterText is not null) StatusFooterText.Text = "Aydınlatma modu güncellendi.";
+        if (StatusFooterText is not null) StatusFooterText.Text = $"Aydınlatma modu '{effectKey}' olarak güncellendi.";
     }
 
     private void UpdateLightingModeSelectionVisuals(string activeKey)
@@ -2975,10 +2984,8 @@ public partial class MainWindow : Window
         _rateTestCts?.Cancel();
         _rateTestCts?.Dispose();
         _livePreviewTimer.Stop();
-        _ambilight.Dispose();
         _angleSnapping.Dispose();
         _switchHealth.SaveStats();
-        _miniHud.Dispose();
         _debounce.Dispose();
         _heatmap.SaveStats();
         _crosshair.Dispose();
@@ -3013,58 +3020,70 @@ public partial class MainWindow : Window
     }
 
     // =========================================================================
-    // NEW FEATURES: MINI-HUD, SWITCH HEALTH, ANGLE SNAPPING, AMBILIGHT, MICA
+    // FEATURES: SCREEN HEATMAP, SWITCH HEALTH, ANGLE SNAPPING, DYNAMIC ACRYLIC
     // =========================================================================
 
     private void MainWindow_StateChanged(object? sender, EventArgs e)
     {
-        if (WindowState == WindowState.Minimized)
+        // Window state change handler
+    }
+
+    private void ScreenHeatmapBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (ScreenHeatmapOverlayCard is null) return;
+        ScreenHeatmapOverlayCard.Visibility = ScreenHeatmapOverlayCard.Visibility == Visibility.Visible
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        if (ScreenHeatmapOverlayCard.Visibility == Visibility.Visible)
         {
-            if (_miniHud.IsEnabled && _miniHud.AutoShowOnMinimize)
-            {
-                UpdateMiniHudTelemetry();
-                _miniHud.Show();
-            }
-        }
-        else if (WindowState == WindowState.Normal)
-        {
-            if (!_miniHudManualOpen && _miniHud.AutoShowOnMinimize)
-            {
-                _miniHud.Hide();
-            }
+            RefreshScreenHeatmapVisual();
         }
     }
 
-    private void MiniHudHeaderBtn_Click(object sender, RoutedEventArgs e)
+    private void CloseScreenHeatmap_Click(object sender, RoutedEventArgs e)
     {
-        _miniHudManualOpen = !_miniHudManualOpen;
-        _miniHud.IsEnabled = _miniHudManualOpen;
-        if (MiniHudToggle is not null)
+        if (ScreenHeatmapOverlayCard is not null)
         {
-            MiniHudToggle.IsChecked = _miniHud.IsEnabled;
-        }
-
-        if (_miniHud.IsEnabled)
-        {
-            UpdateMiniHudTelemetry();
-            _miniHud.Show();
-            if (StatusFooterText is not null) StatusFooterText.Text = "Masaüstü kayan mini-HUD widget'ı açıldı.";
-        }
-        else
-        {
-            _miniHud.Hide();
-            if (StatusFooterText is not null) StatusFooterText.Text = "Mini-HUD kapatıldı.";
+            ScreenHeatmapOverlayCard.Visibility = Visibility.Collapsed;
         }
     }
 
-    private void UpdateMiniHudTelemetry()
+    private void HeatmapModeRadio_Changed(object sender, RoutedEventArgs e)
     {
-        var prof = _profiles[_activeProfileIndex];
-        string profName = $"Profil {_activeProfileIndex + 1}";
-        string hexColor = prof.ColorHex;
-        int dpi = prof.DpiStages[_activeDpiStageIndex];
-        int hz = prof.PollingRateHz;
-        _miniHud.UpdateTelemetry(profName, hexColor, dpi, hz);
+        if (_suppressUiEvents) return;
+        RefreshScreenHeatmapVisual();
+    }
+
+    private void RefreshScreenHeatmap_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshScreenHeatmapVisual();
+    }
+
+    private void ResetScreenHeatmap_Click(object sender, RoutedEventArgs e)
+    {
+        _heatmap.ResetStats();
+        RefreshScreenHeatmapVisual();
+        UpdateHeatmapHeaderStats();
+        if (StatusFooterText is not null) StatusFooterText.Text = "Ekran tıklama ve gezinme ısı haritası sıfırlandı.";
+    }
+
+    private void RefreshScreenHeatmapVisual()
+    {
+        if (ScreenHeatmapImage is null || ScreenHeatmapOverlayCard is null) return;
+        bool isDwell = HeatmapModeDwellRadio?.IsChecked == true;
+
+        var bmp = _heatmap.RenderHeatmapBitmap(960, 540, isDwell);
+        ScreenHeatmapImage.Source = bmp;
+
+        var (totalClicks, totalDwell, topZone) = _heatmap.GetScreenSummary();
+        int dwellMins = (int)(totalDwell / 60.0);
+        int dwellSecs = (int)(totalDwell % 60.0);
+
+        if (ScreenHeatmapSummaryText is not null)
+        {
+            ScreenHeatmapSummaryText.Text = $"Toplam Tıklama: {totalClicks:N0} · Toplam Durma Süresi: {dwellMins} dk {dwellSecs} sn · En Yoğun Bölge: {topZone}";
+        }
     }
 
     private void SwitchHealthBtn_Click(object sender, RoutedEventArgs e)
@@ -3130,64 +3149,73 @@ public partial class MainWindow : Window
             : (avgHealth > 60.0 ? (Brush)FindResource("BrushWarning") : (Brush)FindResource("BrushDanger"));
     }
 
-    private Grid CreateSwitchHealthRow(SwitchStats stats, double maxBarWidth)
+    private FrameworkElement CreateSwitchHealthRow(SwitchStats stats, double labelColWidth)
     {
-        var row = new Grid { Margin = new Thickness(0, 0, 0, 7) };
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(115) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(95) });
+        var grid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(labelColWidth, GridUnitType.Pixel) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(55, GridUnitType.Pixel) });
 
-        var nameTb = new TextBlock
+        var nameStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        nameStack.Children.Add(new TextBlock
         {
             Text = stats.Name,
-            FontSize = 11.5,
-            Foreground = (Brush)FindResource("BrushTextSecondary"),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        Grid.SetColumn(nameTb, 0);
-        row.Children.Add(nameTb);
-
-        var track = new Border
+            FontSize = 12.5,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)FindResource("BrushTextPrimary")
+        });
+        nameStack.Children.Add(new TextBlock
         {
-            Height = 6,
-            CornerRadius = new CornerRadius(3),
-            Background = (Brush)FindResource("BrushBgElevated"),
+            Text = $"{stats.TotalClicks:N0} / {stats.RatedLifespanClicks:N0} tık",
+            FontSize = 11,
+            Foreground = (Brush)FindResource("BrushTextMuted")
+        });
+        Grid.SetColumn(nameStack, 0);
+        grid.Children.Add(nameStack);
+
+        var trackBorder = new Border
+        {
+            Height = 8,
+            CornerRadius = new CornerRadius(4),
+            Background = (Brush)FindResource("BrushBgSurface2"),
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(8, 0, 10, 0),
+            Margin = new Thickness(10, 0, 10, 0),
             ClipToBounds = true
         };
 
-        var fill = new Border
-        {
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Height = 6,
-            CornerRadius = new CornerRadius(3),
-            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(stats.HealthColorHex)),
-            Width = Math.Max(4.0, (stats.HealthPercentage / 100.0) * maxBarWidth)
-        };
-        track.Child = fill;
-        Grid.SetColumn(track, 1);
-        row.Children.Add(track);
+        var trackGrid = new Grid();
+        double healthRatio = Math.Clamp(stats.HealthPercentage, 0.0, 100.0);
+        double wearRatio = Math.Max(0.001, 100.0 - healthRatio);
 
-        var statTb = new TextBlock
+        trackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(healthRatio, GridUnitType.Star) });
+        trackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(wearRatio, GridUnitType.Star) });
+
+        var healthBrush = (Brush)new BrushConverter().ConvertFromString(stats.HealthColorHex)!;
+        var fillBorder = new Border
         {
-            Text = $"%{stats.HealthPercentage:0.0} ({stats.TotalClicks})",
-            FontSize = 11,
-            FontFamily = (FontFamily)FindResource("FontTacticalMono"),
-            Foreground = (Brush)FindResource("BrushTextPrimary"),
+            CornerRadius = new CornerRadius(4),
+            Background = healthBrush
+        };
+        Grid.SetColumn(fillBorder, 0);
+        trackGrid.Children.Add(fillBorder);
+
+        trackBorder.Child = trackGrid;
+        Grid.SetColumn(trackBorder, 1);
+        grid.Children.Add(trackBorder);
+
+        var percentText = new TextBlock
+        {
+            Text = $"%{stats.HealthPercentage:0.#}",
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = healthBrush,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetColumn(statTb, 2);
-        row.Children.Add(statTb);
+        Grid.SetColumn(percentText, 2);
+        grid.Children.Add(percentText);
 
-        return row;
-    }
-
-    private void MiniHudAutoMinimize_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_suppressUiEvents || MiniHudAutoMinimize is null) return;
-        _miniHud.AutoShowOnMinimize = MiniHudAutoMinimize.IsChecked == true;
+        return grid;
     }
 
     private void AngleSnappingToggle_Changed(object sender, RoutedEventArgs e)
@@ -3250,49 +3278,83 @@ public partial class MainWindow : Window
     }
 
     
-
-    private void AmbilightModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void RegisterCardInteractions(Border card)
     {
-        if (_suppressUiEvents || AmbilightModeCombo?.SelectedItem is not ComboBoxItem item) return;
-        string tag = item.Tag?.ToString() ?? "split";
-        _ambilight.Mode = tag == "full" ? AmbilightSamplingMode.FullScreenAverage : AmbilightSamplingMode.LeftRightSplit;
-    }
+        if (card is null) return;
+        var tt = new TranslateTransform();
+        card.RenderTransform = tt;
+        card.RenderTransformOrigin = new Point(0.5, 0.5);
+        var defaultBorder = card.BorderBrush ?? (Brush)FindResource("BrushBorderSubtle");
+        var activeGlow = (Brush)FindResource("BrushAccentCyanBorder");
 
-    private void AmbilightFpsSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_suppressUiEvents || AmbilightFpsSlider is null || AmbilightFpsValueText is null) return;
-        int fps = (int)AmbilightFpsSlider.Value;
-        _ambilight.TargetFps = fps;
-        AmbilightFpsValueText.Text = $"{fps} FPS";
-    }
-
-    private void UpdateAmbilightTelemetry(Color left, Color right, int hwColorIdx)
-    {
-        if (AmbilightLeftOrb is not null) AmbilightLeftOrb.Background = new SolidColorBrush(left);
-        if (AmbilightRightOrb is not null) AmbilightRightOrb.Background = new SolidColorBrush(right);
-
-        if (_ambilight.IsRunning && _automation.ActiveRgbEffect == "ambilight")
+        card.MouseEnter += (s, e) =>
         {
-            byte r = (byte)((left.R + right.R) / 2);
-            byte g = (byte)((left.G + right.G) / 2);
-            byte b = (byte)((left.B + right.B) / 2);
+            if (!_microInteractionsEnabled) return;
+            var anim = new DoubleAnimation(-3.0, TimeSpan.FromMilliseconds(160)) { DecelerationRatio = 0.8 };
+            tt.BeginAnimation(TranslateTransform.YProperty, anim);
+            card.BorderBrush = activeGlow;
+        };
 
-            if (_activeViewIndex == 2 && !_fluidRgbEnabled)
-            {
-                UpdateTintedSwoosh24Bit(r, g, b);
-                if (LiveColorPreviewOrb is not null) LiveColorPreviewOrb.Background = new SolidColorBrush(Color.FromRgb(r, g, b));
-                if (LiveTelemetryProgressFill is not null) LiveTelemetryProgressFill.Background = new SolidColorBrush(Color.FromRgb(r, g, b));
-                if (LiveTelemetryTitleText is not null) LiveTelemetryTitleText.Text = $"DXGI Ambilight ({_ambilight.TargetFps} FPS)";
-                if (ActiveColorLabel is not null) ActiveColorLabel.Text = $"#{r:X2}{g:X2}{b:X2}";
-            }
+        card.MouseLeave += (s, e) =>
+        {
+            var anim = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(200)) { AccelerationRatio = 0.8 };
+            tt.BeginAnimation(TranslateTransform.YProperty, anim);
+            card.BorderBrush = defaultBorder;
+        };
+    }
 
-            if (_device.IsConnected && hwColorIdx >= 0)
+    private void SetupAllCardMicroInteractions()
+    {
+        // Recursively find and attach interactions to all StudioCardBorder panels
+        AttachCardInteractionsRecursive(this);
+    }
+
+    private void AttachCardInteractionsRecursive(DependencyObject parent)
+    {
+        int childCount = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < childCount; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is Border b && b.Style == (Style)FindResource("StudioCardBorder"))
             {
-                int hwR = (hwColorIdx & 1) != 0 ? 1 : 0;
-                int hwG = (hwColorIdx & 2) != 0 ? 1 : 0;
-                int hwB = (hwColorIdx & 4) != 0 ? 1 : 0;
-                try { _device.SetLiveLed(hwR, hwG, hwB); } catch { /* ignore */ }
+                RegisterCardInteractions(b);
             }
+            AttachCardInteractionsRecursive(child);
+        }
+    }
+
+    private void ApplyBackdropVisualStyles(WindowBackdropMode mode)
+    {
+        bool isTranslucent = mode is WindowBackdropMode.Mica or WindowBackdropMode.Acrylic or WindowBackdropMode.MicaAlt;
+
+        if (isTranslucent)
+        {
+            this.Background = Brushes.Transparent;
+            if (WindowOuterBorder is not null)
+            {
+                WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(0x28, 0x09, 0x09, 0x0B));
+                WindowOuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
+            }
+            Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(0x28, 0x09, 0x09, 0x0B));
+            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromArgb(0x38, 0x0E, 0x0E, 0x11));
+            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromArgb(0x4D, 0x14, 0x14, 0x18));
+            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromArgb(0x60, 0x1C, 0x1C, 0x22));
+            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromArgb(0x75, 0x26, 0x26, 0x2E));
+        }
+        else
+        {
+            var canvasBrush = new SolidColorBrush(Color.FromRgb(0x09, 0x09, 0x0B));
+            this.Background = canvasBrush;
+            if (WindowOuterBorder is not null)
+            {
+                WindowOuterBorder.Background = canvasBrush;
+                WindowOuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF));
+            }
+            Application.Current.Resources["BrushBgCanvas"] = canvasBrush;
+            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromRgb(0x0E, 0x0E, 0x11));
+            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x18));
+            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x22));
+            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromRgb(0x26, 0x26, 0x2E));
         }
     }
 
@@ -3304,15 +3366,13 @@ public partial class MainWindow : Window
         if (enable)
         {
             WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
-            WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(160, 9, 9, 11));
-            Background = Brushes.Transparent;
-            if (StatusFooterText is not null) StatusFooterText.Text = $"Windows 11 {_activeBackdropMode} cam efekti uygulandı.";
+            ApplyBackdropVisualStyles(_activeBackdropMode);
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Windows 11 {_activeBackdropMode} yarı saydam akrilik cam uygulandı.";
         }
         else
         {
             WindowBackdropService.ApplyBackdrop(this, WindowBackdropMode.Solid);
-            WindowOuterBorder.Background = (Brush)FindResource("BrushBgCanvas");
-            Background = (Brush)FindResource("BrushBgCanvas");
+            ApplyBackdropVisualStyles(WindowBackdropMode.Solid);
             if (StatusFooterText is not null) StatusFooterText.Text = "Mat karbon katı arka plan uygulandı.";
         }
     }
@@ -3325,21 +3385,8 @@ public partial class MainWindow : Window
         if (MicaBackdropToggle?.IsChecked == true)
         {
             WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
+            ApplyBackdropVisualStyles(_activeBackdropMode);
         }
-    }
-
-    private void TacticalTypographyToggle_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_suppressUiEvents) return;
-        if (TacticalTypographyToggle is null) return;
-        _tacticalTypographyEnabled = TacticalTypographyToggle.IsChecked == true;
-        var font = _tacticalTypographyEnabled
-            ? (FontFamily)FindResource("FontTacticalMono")
-            : (FontFamily)FindResource("FontSans");
-
-        TelemetryDpiText.FontFamily = font;
-        TelemetryRateText.FontFamily = font;
-        if (StatusFooterText is not null) StatusFooterText.Text = _tacticalTypographyEnabled ? "Siberpunk taktik tipografi aktif." : "Standart arayüz tipografisine dönüldü.";
     }
 
     private void MicroInteractionsToggle_Changed(object sender, RoutedEventArgs e)
@@ -3349,32 +3396,4 @@ public partial class MainWindow : Window
         _microInteractionsEnabled = MicroInteractionsToggle.IsChecked == true;
         if (StatusFooterText is not null) StatusFooterText.Text = _microInteractionsEnabled ? "Akıcı hover animasyonları aktif." : "Hover animasyonları devre dışı.";
     }
-
-    private void MiniHudToggle_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_suppressUiEvents) return;
-        if (MiniHudToggle is null) return;
-        _miniHud.IsEnabled = MiniHudToggle.IsChecked == true;
-        if (_miniHud.IsEnabled)
-        {
-            UpdateMiniHudTelemetry();
-            _miniHud.Show();
-        }
-        else
-        {
-            _miniHud.Hide();
-        }
-    }
-
-    private void MiniHudClickThrough_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_suppressUiEvents) return;
-        if (MiniHudClickThrough is null) return;
-        _miniHud.IsClickThrough = MiniHudClickThrough.IsChecked == true;
-        if (_miniHud.IsEnabled)
-        {
-            _miniHud.Show(); // Refresh Win32 styles
-        }
-    }
-
 }

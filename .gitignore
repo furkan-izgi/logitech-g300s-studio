@@ -24,3 +24,5 @@ tools/re_analyze.py
 native/**/bin/
 native/**/obj/
 **/crash.log
+
+scratch/
