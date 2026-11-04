@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace G300sController;
 
@@ -28,6 +30,10 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         bool isVerifyScreenshot = e.Args.Contains("--verify-screenshot", StringComparer.OrdinalIgnoreCase);
+        if (isVerifyScreenshot)
+        {
+            RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
+        }
 
         if (!isVerifyScreenshot)
         {

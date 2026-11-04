@@ -90,7 +90,7 @@ public partial class MainWindow : Window
     private readonly AngleSnappingService _angleSnapping = new();
     private bool _fluidRgbEnabled;
     private bool _microInteractionsEnabled = true;
-    private WindowBackdropMode _activeBackdropMode = WindowBackdropMode.Mica;
+    private WindowBackdropMode _activeBackdropMode = WindowBackdropMode.Acrylic;
     private bool _gShiftVisualFeedbackEnabled = true;
     private bool _gShiftAudioFeedbackEnabled = true;
     private readonly SmartAdvisorService _advisor;
@@ -126,7 +126,7 @@ public partial class MainWindow : Window
 
     private readonly Slider[] _dpiSliders = new Slider[4];
     private readonly Border[] _dpiStageCards = new Border[4];
-    private bool _isMicaBackdropEnabled = false;
+    private bool _isMicaBackdropEnabled = true;
     private (byte R, byte G, byte B)? _activeCustomColor24Bit;
     private readonly TextBlock[] _dpiValueLabels = new TextBlock[4];
     private readonly Button[] _dpiActivateButtons = new Button[4];
@@ -178,61 +178,18 @@ public partial class MainWindow : Window
         IntPtr hwnd = helper.Handle;
 
         int dark = 1;
+        DwmSetWindowAttribute(hwnd, 19, ref dark, sizeof(int));
         DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
         int round = 2;
         DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));
 
-        // Strip WS_SYSMENU from Win32 window style to prevent DWM from rendering duplicate native caption buttons
-        const int GWL_STYLE = -16;
-        const int WS_SYSMENU = 0x00080000;
-        int style = GetWindowLong(hwnd, GWL_STYLE);
-        SetWindowLong(hwnd, GWL_STYLE, style & ~WS_SYSMENU);
-
-        // Hook WndProc to suppress any OS non-client painting of caption buttons
-        var source = HwndSource.FromHwnd(hwnd);
-        source?.AddHook(WndProc);
-
-        // Apply backdrop according to user preference (defaults to Solid 100% matte carbon)
-        if (_isMicaBackdropEnabled)
-        {
-            WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
-            ApplyBackdropVisualStyles(_activeBackdropMode);
-        }
-        else
-        {
-            WindowBackdropService.ApplyBackdrop(this, WindowBackdropMode.Solid);
-            ApplyBackdropVisualStyles(WindowBackdropMode.Solid);
-        }
+        // Start with solid dark canvas during window construction for reliable layout initialization
+        WindowBackdropService.ApplyBackdrop(this, WindowBackdropMode.Solid);
+        ApplyBackdropVisualStyles(WindowBackdropMode.Solid);
     }
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-    {
-        const int WM_NCPAINT = 0x0085;
-        const int WM_NCACTIVATE = 0x0086;
-
-        if (msg == WM_NCPAINT)
-        {
-            handled = true;
-            return IntPtr.Zero;
-        }
-
-        if (msg == WM_NCACTIVATE)
-        {
-            handled = true;
-            return new IntPtr(1);
-        }
-
-        return IntPtr.Zero;
-    }
 
     public void RestoreWindowFromExternalLaunch()
     {
@@ -261,6 +218,12 @@ public partial class MainWindow : Window
             _suppressUiEvents = true;
             MicaBackdropToggle.IsChecked = _isMicaBackdropEnabled;
             _suppressUiEvents = false;
+
+            if (_isMicaBackdropEnabled)
+            {
+                WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
+                ApplyBackdropVisualStyles(_activeBackdropMode);
+            }
         }
 
         string iconPath = Path.Combine(assetsDir, "g300s.ico");
@@ -430,6 +393,8 @@ public partial class MainWindow : Window
             string baseName = Path.GetFileNameWithoutExtension(outPath);
             string ext = Path.GetExtension(outPath);
 
+            // Ensure solid visual state during verification screenshot capture for pristine PNG output
+            ApplyBackdropVisualStyles(WindowBackdropMode.Solid);
             await Task.Delay(500);
             CaptureWindowScreenshot(outPath);
 
@@ -1098,20 +1063,6 @@ public partial class MainWindow : Window
             LightingModesList.Children.Add(row);
         }
 
-        LedSwatchesGrid.Children.Clear();
-
-        for (int i = 0; i < PaletteSwatches.Length; i++)
-        {
-            var sw = PaletteSwatches[i];
-            int idx = i;
-
-            var primaryOrb = CreateColorOrb(sw.Hex, $"{sw.Name} (Ana Renk)", () => SelectLedColor(sw.R, sw.G, sw.B));
-            _ledSwatchBorders[idx] = primaryOrb;
-            LedSwatchesGrid.Children.Add(primaryOrb);
-
-
-        }
-
         UpdateLightingModeSelectionVisuals("none");
     }
 
@@ -1613,13 +1564,6 @@ public partial class MainWindow : Window
             _dpiDefaultButtons[i].Foreground = isDefault ? (Brush)FindResource("BrushTextPrimary") : (Brush)FindResource("BrushTextMuted");
         }
 
-        for (int i = 0; i < PaletteSwatches.Length; i++)
-        {
-            var sw = PaletteSwatches[i];
-            bool selected = prof.LedR == sw.R && prof.LedG == sw.G && prof.LedB == sw.B;
-            _ledSwatchBorders[i].BorderBrush = selected ? (Brush)FindResource("BrushActiveWhite") : Brushes.Transparent;
-        }
-
         int activeDpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
         TelemetryDpiText.Text = $"{activeDpi} DPI";
         TelemetryRateText.Text = $"{prof.PollingRateHz} Hz";
@@ -1638,8 +1582,6 @@ public partial class MainWindow : Window
         if (_activeCustomColor24Bit.HasValue && _automation.ActiveRgbEffect == "none")
         {
             UpdateTintedSwoosh24Bit(_activeCustomColor24Bit.Value.R, _activeCustomColor24Bit.Value.G, _activeCustomColor24Bit.Value.B);
-            if (CustomColorOrb is not null) CustomColorOrb.Background = new SolidColorBrush(Color.FromRgb(_activeCustomColor24Bit.Value.R, _activeCustomColor24Bit.Value.G, _activeCustomColor24Bit.Value.B));
-            if (CustomColorHexText is not null) CustomColorHexText.Text = $"#{_activeCustomColor24Bit.Value.R:X2}{_activeCustomColor24Bit.Value.G:X2}{_activeCustomColor24Bit.Value.B:X2}";
         }
         RefreshHexInspectorUi(prof);
         if (_heatmapModeEnabled)
@@ -3240,8 +3182,8 @@ public partial class MainWindow : Window
         try
         {
             UpdateLayout();
-            int w = (int)Math.Max(1, ActualWidth);
-            int h = (int)Math.Max(1, ActualHeight);
+            int w = (int)Math.Max(1, ActualWidth > 0 ? ActualWidth : Width);
+            int h = (int)Math.Max(1, ActualHeight > 0 ? ActualHeight : Height);
 
             var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
             rtb.Render(this);
@@ -3253,9 +3195,9 @@ public partial class MainWindow : Window
             using var fs = File.Create(outputPath);
             encoder.Save(fs);
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore screenshot error
+            try { File.AppendAllText("screenshot_error.txt", $"{outputPath}: {ex}\n"); } catch { }
         }
     }
 
@@ -3574,12 +3516,11 @@ public partial class MainWindow : Window
                 WindowOuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
             }
             Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(160, 0x09, 0x09, 0x0B));
-            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromArgb(185, 0x0E, 0x0E, 0x11));
-            // Header seamlessly adopts the modern Windows 11 Mica / Acrylic blur trend with deep dark tint
+            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromRgb(0x0E, 0x0E, 0x11));
             Application.Current.Resources["BrushBgHeader"] = new SolidColorBrush(Color.FromArgb(180, 0x0E, 0x0E, 0x11));
-            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromArgb(195, 0x14, 0x14, 0x18));
-            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromArgb(210, 0x1C, 0x1C, 0x22));
-            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromArgb(225, 0x26, 0x26, 0x2E));
+            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x18));
+            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x22));
+            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromRgb(0x26, 0x26, 0x2E));
         }
         else
         {
@@ -3636,40 +3577,6 @@ public partial class MainWindow : Window
         if (MicroInteractionsToggle is null) return;
         _microInteractionsEnabled = MicroInteractionsToggle.IsChecked == true;
         if (StatusFooterText is not null) StatusFooterText.Text = _microInteractionsEnabled ? "Akıcı hover animasyonları aktif." : "Hover animasyonları devre dışı.";
-    }
-
-    private void CustomHueSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_suppressUiEvents || CustomColorOrb is null || CustomColorHexText is null) return;
-        double hue = CustomHueSlider.Value;
-        var (r, g, b) = HostAutomationService.HsvToRgb(hue, 1.0, 1.0);
-
-        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-        CustomColorOrb.Background = brush;
-        string hex = $"#{r:X2}{g:X2}{b:X2}";
-        CustomColorHexText.Text = hex;
-
-        UpdateTintedSwoosh24Bit(r, g, b);
-        if (_activeViewIndex == 2 && LiveColorPreviewOrb is not null && LiveTelemetryTitleText is not null)
-        {
-            LiveColorPreviewOrb.Background = brush;
-            LiveTelemetryProgressFill.Background = brush;
-            LiveTelemetryTitleText.Text = $"Özel Renk ({hex})";
-            ActiveColorLabel.Text = hex;
-        }
-
-        var prof = _profiles[_activeProfileIndex];
-        int hwR = r >= 100 ? 1 : 0;
-        int hwG = g >= 100 ? 1 : 0;
-        int hwB = b >= 100 ? 1 : 0;
-        if (hwR == 0 && hwG == 0 && hwB == 0) { hwR = 1; hwG = 1; hwB = 1; }
-        prof.SetLed(hwR, hwG, hwB);
-
-        _automation.UpdateRgbParameters(2400, (hwR, hwG, hwB), _secondaryBreathColor, (r, g, b));
-        if (_device.IsConnected && _automation.ActiveRgbEffect == "none")
-        {
-            try { _device.SetLiveLed(hwR, hwG, hwB); } catch { }
-        }
     }
 
     private void HandleGShiftFeedback(bool isActive, int slot)

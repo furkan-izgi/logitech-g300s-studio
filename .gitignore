@@ -32,3 +32,4 @@ PROTOCOL.md
 native/**/bin/
 native/**/obj/
 **/crash.log
+screenshots/Mouser API.png

@@ -6,7 +6,6 @@
         Width="1420" Height="850"
         MinWidth="1160" MinHeight="720"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="None"
         Background="{DynamicResource BrushBgCanvas}"
         Foreground="{StaticResource BrushTextPrimary}"
         FontFamily="{StaticResource FontSans}"
@@ -16,7 +15,7 @@
         TextOptions.TextRenderingMode="ClearType">
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0"
+        <WindowChrome CaptionHeight="54"
                       CornerRadius="12"
                       GlassFrameThickness="0"
                       ResizeBorderThickness="6"
@@ -1106,7 +1105,6 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <StackPanel Grid.Row="0" Margin="0,0,0,16">
@@ -1118,66 +1116,6 @@
 
                                 <!-- Clean Borderless List of 3 Modes -->
                                 <StackPanel x:Name="LightingModesList" Grid.Row="1" />
-
-                                <!-- Unified Bottom Configuration Controls -->
-                                <Border Grid.Row="2" Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="18,16" Margin="0,12,0,0">
-                                    <StackPanel x:Name="LightingSwatchesPanel" Visibility="Visible">
-                                        <!-- Primary LED Color Swatches -->
-                                        <Grid Margin="0,0,0,14">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBlock Grid.Column="0" Text="Aydınlatma Rengi:" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
-                                            <UniformGrid x:Name="LedSwatchesGrid" Grid.Column="1" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
-                                        </Grid>
-
-                                                                                <!-- Continuous Color Spectrum / Custom Hue Slider -->
-                                        <Grid Margin="0,0,0,14">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="90" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Özel Renk Tekerleği:" FontSize="12.5" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
-
-                                            <!-- Spectrum Gradient Track with Custom Hue Slider -->
-                                            <Grid Grid.Column="1" VerticalAlignment="Center" Height="26" Margin="0,0,14,0">
-                                                <Border Height="8" CornerRadius="4" VerticalAlignment="Center" ClipToBounds="True">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                            <GradientStop Color="#FF0000" Offset="0.0" />
-                                                            <GradientStop Color="#FFFF00" Offset="0.166" />
-                                                            <GradientStop Color="#00FF00" Offset="0.333" />
-                                                            <GradientStop Color="#00FFFF" Offset="0.5" />
-                                                            <GradientStop Color="#0000FF" Offset="0.666" />
-                                                            <GradientStop Color="#FF00FF" Offset="0.833" />
-                                                            <GradientStop Color="#FF0000" Offset="1.0" />
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
-                                                </Border>
-                                                <Slider x:Name="CustomHueSlider" Minimum="0" Maximum="360" Value="180"
-                                                        VerticalAlignment="Center" ValueChanged="CustomHueSlider_ValueChanged" />
-                                            </Grid>
-
-                                            <!-- Live Color Indicator Orb & Hex Value -->
-                                            <Border Grid.Column="2" Background="{DynamicResource BrushBgCanvas}" CornerRadius="6" Padding="6,4" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Border x:Name="CustomColorOrb" Width="14" Height="14" CornerRadius="7"
-                                                            Background="#00FFFF" BorderBrush="{DynamicResource BrushActiveWhite}"
-                                                            BorderThickness="1" Margin="0,0,6,0" />
-                                                    <TextBlock x:Name="CustomColorHexText" Text="#00FFFF"
-                                                               FontSize="11" FontFamily="{StaticResource FontDisplay}"
-                                                               FontWeight="Medium" Foreground="{DynamicResource BrushTextPrimary}"
-                                                               VerticalAlignment="Center" />
-                                                                                                
-</StackPanel>
-                                            </Border>
-                                        </Grid>
-
-                                    </StackPanel>
-                                </Border>
                             </Grid>
                         </Border>
                     </Grid>
@@ -1346,6 +1284,7 @@
                                             <Grid Grid.Row="0">
                                                 <CheckBox x:Name="MicaBackdropToggle" Style="{StaticResource PillToggleSwitch}"
                                                           Content="Windows 11 Mica / Akrilik Cam"
+                                                          IsChecked="True"
                                                           Checked="MicaBackdropToggle_Changed" Unchecked="MicaBackdropToggle_Changed"
                                                           VerticalAlignment="Center"
                                                           ToolTip="Pencere arka planına Windows DWM sistemiyle yarı saydam akrilik veya mica cam efekti ekler" />
@@ -1353,8 +1292,8 @@
                                                 <ComboBox x:Name="MicaModeCombo" Width="120" Height="26" FontSize="11.5"
                                                           HorizontalAlignment="Right" VerticalAlignment="Center"
                                                           SelectionChanged="MicaModeCombo_SelectionChanged">
-                                                    <ComboBoxItem Content="Mica Efekti" Tag="1" IsSelected="True" />
-                                                    <ComboBoxItem Content="Akrilik Bulanıklık" Tag="2" />
+                                                    <ComboBoxItem Content="Akrilik Bulanıklık" Tag="2" IsSelected="True" />
+                                                    <ComboBoxItem Content="Mica Efekti" Tag="1" />
                                                     <ComboBoxItem Content="Mica Alt (Sekmeli)" Tag="3" />
                                                 </ComboBox>
                                             </Grid>
