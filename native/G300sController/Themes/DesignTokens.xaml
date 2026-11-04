@@ -406,4 +406,29 @@
         </Setter>
     </Style>
 
+    <!-- Modern Glass Acrylic ToolTip Style -->
+    <Style TargetType="ToolTip">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="HasDropShadow" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="#F0121419"
+                            BorderBrush="{StaticResource BrushAccentCyanBorder}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="10,6"
+                            SnapsToDevicePixels="True">
+                        <TextBlock Text="{TemplateBinding Content}"
+                                   Foreground="{StaticResource BrushTextPrimary}"
+                                   FontSize="11.5"
+                                   FontFamily="{StaticResource FontSans}"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="320" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

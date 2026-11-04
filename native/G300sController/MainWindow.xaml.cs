@@ -93,6 +93,11 @@ public partial class MainWindow : Window
     private WindowBackdropMode _activeBackdropMode = WindowBackdropMode.Mica;
     private bool _gShiftVisualFeedbackEnabled = true;
     private bool _gShiftAudioFeedbackEnabled = true;
+    private readonly SmartAdvisorService _advisor;
+    private DispatcherTimer? _toastTimer;
+    private WriteableBitmap? _radialWheelBitmap;
+    private double _radialBrightness = 1.0;
+    private Color _radialSelectedColor = Color.FromRgb(0, 240, 255);
     private readonly DispatcherTimer _livePreviewTimer;
     private CancellationTokenSource? _rateTestCts;
     private CancellationTokenSource? _hotplugDebounceCts;
@@ -146,6 +151,8 @@ public partial class MainWindow : Window
     {
         _suppressUiEvents = true;
         _automation = new HostAutomationService(_device);
+        _advisor = new SmartAdvisorService(_switchHealth, _debounce, _heatmap, _automation);
+        _advisor.RecommendationsUpdated += () => Dispatcher.BeginInvoke(UpdateSmartAdvisorUi);
         InitializeComponent();
         _suppressUiEvents = false;
 
@@ -309,6 +316,8 @@ public partial class MainWindow : Window
         // Hook G-Shift layer audio/visual feedback
         _automation.GShiftStateChanged += (isActive, slot) => Dispatcher.BeginInvoke(() => HandleGShiftFeedback(isActive, slot));
 
+// Smart Advisor hooked
+
         // Initialize Angle Snapping Service
         _angleSnapping.Start();
         _angleSnapping.MovementProcessed += (dx, dy, snapped) =>
@@ -390,6 +399,12 @@ public partial class MainWindow : Window
             CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_screen_heatmap{ext}"));
             CloseScreenHeatmap_Click(this, new RoutedEventArgs());
 
+            // Capture Smart Advisor Recommendations view
+            SmartAdvisorHeaderBtn_Click(this, new RoutedEventArgs());
+            await Task.Delay(250);
+            CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_smartadvisor{ext}"));
+            CloseSmartAdvisor_Click(this, new RoutedEventArgs());
+
             SwitchMainView(1);
             await Task.Delay(250);
             RenderDpiGraph();
@@ -400,6 +415,12 @@ public partial class MainWindow : Window
             SelectLightingMode("spectrum");
             await Task.Delay(400);
             CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_lighting{ext}"));
+
+            // Capture 2D Radial HSV Color Wheel Modal
+            OpenRadialColorWheel_Click(this, new RoutedEventArgs());
+            await Task.Delay(250);
+            CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_radialwheel{ext}"));
+            CloseRadialColorWheel_Click(this, new RoutedEventArgs());
 
             SwitchMainView(3);
             await Task.Delay(250);
@@ -1957,11 +1978,19 @@ public partial class MainWindow : Window
     private void SwitchMainView(int viewIdx)
     {
         _activeViewIndex = Math.Clamp(viewIdx, 0, 4);
-        ViewAssignmentsGrid.Visibility = _activeViewIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ViewSensitivityGrid.Visibility = _activeViewIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
-        ViewLightingGrid.Visibility = _activeViewIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
-        ViewAutomationGrid.Visibility = _activeViewIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
-        ViewSettingsGrid.Visibility = _activeViewIndex == 4 ? Visibility.Visible : Visibility.Collapsed;
+
+        FrameworkElement[] views = [ViewAssignmentsGrid, ViewSensitivityGrid, ViewLightingGrid, ViewAutomationGrid, ViewSettingsGrid];
+        for (int i = 0; i < views.Length; i++)
+        {
+            if (i == _activeViewIndex)
+            {
+                AnimateViewIn(views[i]);
+            }
+            else
+            {
+                views[i].Visibility = Visibility.Collapsed;
+            }
+        }
 
         Button[] navBtns = [NavBtnAssignments, NavBtnSensitivity, NavBtnLighting, NavBtnAutomation, NavBtnSettings];
         for (int i = 0; i < navBtns.Length; i++)
@@ -1979,6 +2008,25 @@ public partial class MainWindow : Window
         {
             UpdateSwitchHealthUi();
         }
+    }
+
+    private void AnimateViewIn(FrameworkElement view)
+    {
+        view.Visibility = Visibility.Visible;
+        if (!_microInteractionsEnabled)
+        {
+            view.Opacity = 1.0;
+            return;
+        }
+
+        var tt = new TranslateTransform(0, 12);
+        view.RenderTransform = tt;
+        view.Opacity = 0.0;
+
+        var animOpacity = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(160)) { DecelerationRatio = 0.8 };
+        var animSlide = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(160)) { DecelerationRatio = 0.8 };
+        view.BeginAnimation(UIElement.OpacityProperty, animOpacity);
+        tt.BeginAnimation(TranslateTransform.YProperty, animSlide);
     }
 
     private void DrawerCategoryTab_Click(object sender, RoutedEventArgs e)
@@ -3561,6 +3609,392 @@ public partial class MainWindow : Window
                 MessageBox.Show($"Yedek geri yüklenirken hata oluştu:\n{ex.Message}", "Geri Yükleme Hatası", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+    }
+
+
+    private void PulseCalloutCard(int buttonIndex)
+    {
+        if (buttonIndex < 0 || buttonIndex >= _calloutBorders.Length) return;
+        var border = _calloutBorders[buttonIndex];
+        if (border is null || !_microInteractionsEnabled) return;
+
+        var animGlow = new ColorAnimation
+        {
+            From = Color.FromRgb(0, 240, 255),
+            To = Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF),
+            Duration = TimeSpan.FromMilliseconds(420),
+            DecelerationRatio = 0.8
+        };
+        var brush = new SolidColorBrush(Color.FromRgb(0, 240, 255));
+        border.BorderBrush = brush;
+        brush.BeginAnimation(SolidColorBrush.ColorProperty, animGlow);
+    }
+
+    public void ShowToast(string message, string hexColor = "#00F0FF")
+    {
+        if (ToastBanner is null || ToastMessageText is null || ToastDot is null) return;
+        ToastMessageText.Text = message;
+        ToastDot.Background = (Brush)new BrushConverter().ConvertFromString(hexColor)!;
+
+        ToastBanner.Visibility = Visibility.Visible;
+        var tt = new TranslateTransform(0, 18);
+        ToastBanner.RenderTransform = tt;
+        ToastBanner.Opacity = 0.0;
+
+        var animIn = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(180)) { DecelerationRatio = 0.8 };
+        var animSlide = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(180)) { DecelerationRatio = 0.8 };
+        ToastBanner.BeginAnimation(UIElement.OpacityProperty, animIn);
+        tt.BeginAnimation(TranslateTransform.YProperty, animSlide);
+
+        _toastTimer?.Stop();
+        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2600) };
+        _toastTimer.Tick += (s, e) =>
+        {
+            _toastTimer.Stop();
+            var animOut = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(220)) { AccelerationRatio = 0.8 };
+            animOut.Completed += (_, _) => ToastBanner.Visibility = Visibility.Collapsed;
+            ToastBanner.BeginAnimation(UIElement.OpacityProperty, animOut);
+        };
+        _toastTimer.Start();
+    }
+
+    private void SmartAdvisorHeaderBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (SmartAdvisorOverlayCard is null) return;
+        SmartAdvisorOverlayCard.Visibility = SmartAdvisorOverlayCard.Visibility == Visibility.Visible
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        if (SmartAdvisorOverlayCard.Visibility == Visibility.Visible)
+        {
+            _advisor.EvaluateTelemetry(_profiles, _activeProfileIndex);
+            UpdateSmartAdvisorUi();
+        }
+    }
+
+    private void CloseSmartAdvisor_Click(object sender, RoutedEventArgs e)
+    {
+        if (SmartAdvisorOverlayCard is not null) SmartAdvisorOverlayCard.Visibility = Visibility.Collapsed;
+    }
+
+    private void RefreshSmartAdvisor_Click(object sender, RoutedEventArgs e)
+    {
+        _advisor.EvaluateTelemetry(_profiles, _activeProfileIndex);
+        UpdateSmartAdvisorUi();
+        ShowToast("Kullanım telemetrisi yeniden analiz edildi.");
+    }
+
+    private void UpdateSmartAdvisorUi()
+    {
+        if (SmartAdvisorCardsPanel is null || SmartAdvisorCountText is null || SmartAdvisorEmptyText is null) return;
+        SmartAdvisorCardsPanel.Children.Clear();
+
+        var recs = _advisor.Recommendations;
+        SmartAdvisorCountText.Text = $"{recs.Count} Öneri";
+        SmartAdvisorBadgeDot.Visibility = recs.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        if (recs.Count == 0)
+        {
+            SmartAdvisorEmptyText.Visibility = Visibility.Visible;
+            return;
+        }
+
+        SmartAdvisorEmptyText.Visibility = Visibility.Collapsed;
+        foreach (var rec in recs)
+        {
+            var card = CreateRecommendationCard(rec);
+            SmartAdvisorCardsPanel.Children.Add(card);
+        }
+    }
+
+    private FrameworkElement CreateRecommendationCard(SmartRecommendation rec)
+    {
+        var border = new Border
+        {
+            Background = (Brush)FindResource("BrushBgSurface2"),
+            BorderBrush = (Brush)FindResource("BrushBorderSubtle"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(16, 12, 16, 12),
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+
+        var grid = new Grid();
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        // Header: Category Badge & Title
+        var headerStack = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var badge = new Border
+        {
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(7, 2, 7, 2),
+            Margin = new Thickness(0, 0, 8, 0),
+            Background = rec.Category switch
+            {
+                RecommendationCategory.HardwareHealth => (Brush)FindResource("BrushWarning"),
+                RecommendationCategory.AppAutomation => (Brush)FindResource("BrushAccentCyanBorder"),
+                RecommendationCategory.UnusedKey => (Brush)FindResource("BrushSuccess"),
+                _ => (Brush)FindResource("BrushBgElevated")
+            }
+        };
+        badge.Child = new TextBlock
+        {
+            Text = rec.CategoryTitle,
+            FontSize = 10.5,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(9, 9, 11))
+        };
+        headerStack.Children.Add(badge);
+
+        headerStack.Children.Add(new TextBlock
+        {
+            Text = rec.Title,
+            FontSize = 13,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)FindResource("BrushTextPrimary"),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        Grid.SetRow(headerStack, 0);
+        grid.Children.Add(headerStack);
+
+        // Description
+        var descText = new TextBlock
+        {
+            Text = rec.Description,
+            FontSize = 11.5,
+            Foreground = (Brush)FindResource("BrushTextMuted"),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 6, 0, 10)
+        };
+        Grid.SetRow(descText, 1);
+        grid.Children.Add(descText);
+
+        // Actions: Apply and Dismiss
+        var actionsPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var applyBtn = new Button
+        {
+            Content = rec.ActionButtonText,
+            Style = (Style)FindResource("PrimaryAccentButton"),
+            Height = 26,
+            Padding = new Thickness(14, 0, 14, 0),
+            Margin = new Thickness(0, 0, 8, 0)
+        };
+        applyBtn.Click += (_, _) => ApplyRecommendation(rec);
+        actionsPanel.Children.Add(applyBtn);
+
+        var dismissBtn = new Button
+        {
+            Content = "Gizle",
+            Style = (Style)FindResource("ToolbarActionButton"),
+            Height = 26,
+            Padding = new Thickness(10, 0, 10, 0)
+        };
+        dismissBtn.Click += (_, _) =>
+        {
+            _advisor.DismissRecommendation(rec.Id);
+            UpdateSmartAdvisorUi();
+        };
+        actionsPanel.Children.Add(dismissBtn);
+
+        Grid.SetRow(actionsPanel, 2);
+        grid.Children.Add(actionsPanel);
+
+        border.Child = grid;
+        return border;
+    }
+
+    private void ApplyRecommendation(SmartRecommendation rec)
+    {
+        switch (rec.ActionKey)
+        {
+            case "enable_adaptive_debounce":
+                _debounce.AdaptiveDebounce = true;
+                _debounce.DebounceThresholdMs = 12;
+                if (AdaptiveChatterToggle is not null) AdaptiveChatterToggle.IsChecked = true;
+                ShowToast("Akıllı uyarlamalı chatter koruması açıldı (12 ms).");
+                break;
+
+            case "set_debounce_threshold":
+                if (rec.ActionParams.TryGetValue("threshold", out string? thStr) && int.TryParse(thStr, out int th))
+                {
+                    _debounce.DebounceThresholdMs = th;
+                    ShowToast($"Debounce süresi {th} ms olarak ayarlandı.");
+                }
+                break;
+
+            case "add_app_rule":
+                if (rec.ActionParams.TryGetValue("process", out string? proc) &&
+                    rec.ActionParams.TryGetValue("slot", out string? sStr) && int.TryParse(sStr, out int slot))
+                {
+                    var existing = _automation.AppRules.FirstOrDefault(r => string.Equals(r.ExecutableName, proc, StringComparison.OrdinalIgnoreCase));
+                    if (existing is not null) existing.ProfileIndex = slot;
+                    else _automation.AppRules.Add(new AppProfileRule { ExecutableName = proc, ProfileIndex = slot });
+                    _automation.SaveConfig();
+                    RefreshAppRulesListUi();
+                    ShowToast($"Otomatik geçiş kuralı eklendi: {proc} → Profil {slot + 1}");
+                }
+                break;
+
+            case "assign_button_action":
+                if (rec.ActionParams.TryGetValue("buttonIndex", out string? bStr) && int.TryParse(bStr, out int bIdx) &&
+                    rec.ActionParams.TryGetValue("action", out string? act))
+                {
+                    var prof = _profiles[_activeProfileIndex];
+                    prof.Buttons[bIdx] = act;
+                    MarkModified($"G{bIdx + 1} tuşuna {act} atandı.");
+                    RefreshCurrentProfileToUi();
+                    ShowToast($"G{bIdx + 1} tuşuna kısayol atandı!");
+                }
+                break;
+
+            case "set_dpi_preset":
+                if (rec.ActionParams.TryGetValue("stageIndex", out string? stStr) && int.TryParse(stStr, out int stIdx))
+                {
+                    ActivateDpiStage(stIdx);
+                    ShowToast($"DPI Kademe {stIdx + 1} olarak optimize edildi.");
+                }
+                break;
+        }
+
+        _advisor.MarkApplied(rec.Id);
+        UpdateSmartAdvisorUi();
+    }
+
+    // 2D Radial Color Wheel Implementation
+    private void OpenRadialColorWheel_Click(object sender, RoutedEventArgs e)
+    {
+        if (RadialColorWheelCard is null) return;
+        RadialColorWheelCard.Visibility = RadialColorWheelCard.Visibility == Visibility.Visible
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        if (RadialColorWheelCard.Visibility == Visibility.Visible)
+        {
+            RenderRadialColorWheel();
+        }
+    }
+
+    private void CloseRadialColorWheel_Click(object sender, RoutedEventArgs e)
+    {
+        if (RadialColorWheelCard is not null) RadialColorWheelCard.Visibility = Visibility.Collapsed;
+    }
+
+    private void RenderRadialColorWheel()
+    {
+        if (RadialColorWheelImage is null) return;
+        int size = 180;
+        int radius = size / 2;
+        int stride = size * 4;
+        byte[] pixels = new byte[size * stride];
+
+        for (int y = 0; y < size; y++)
+        {
+            int dy = y - radius;
+            for (int x = 0; x < size; x++)
+            {
+                int dx = x - radius;
+                double dist = Math.Sqrt(dx * dx + dy * dy);
+                int offset = (y * stride) + (x * 4);
+
+                if (dist <= radius)
+                {
+                    double angle = Math.Atan2(-dy, dx) * (180.0 / Math.PI);
+                    if (angle < 0) angle += 360.0;
+
+                    double sat = Math.Clamp(dist / radius, 0.0, 1.0);
+                    var (r, g, b) = HostAutomationService.HsvToRgb(angle, sat, _radialBrightness);
+
+                    // Smooth edge anti-aliasing
+                    byte alpha = dist > radius - 1.5
+                        ? (byte)(Math.Clamp((radius - dist) / 1.5, 0.0, 1.0) * 255)
+                        : (byte)255;
+
+                    pixels[offset + 0] = b;
+                    pixels[offset + 1] = g;
+                    pixels[offset + 2] = r;
+                    pixels[offset + 3] = alpha;
+                }
+                else
+                {
+                    pixels[offset + 0] = 0;
+                    pixels[offset + 1] = 0;
+                    pixels[offset + 2] = 0;
+                    pixels[offset + 3] = 0;
+                }
+            }
+        }
+
+        _radialWheelBitmap = new WriteableBitmap(size, size, 96, 96, PixelFormats.Bgra32, null);
+        _radialWheelBitmap.WritePixels(new Int32Rect(0, 0, size, size), pixels, stride, 0);
+        _radialWheelBitmap.Freeze();
+        RadialColorWheelImage.Source = _radialWheelBitmap;
+    }
+
+    private void RadialBrightnessSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_suppressUiEvents || RadialBrightnessSlider is null) return;
+        _radialBrightness = RadialBrightnessSlider.Value;
+        RenderRadialColorWheel();
+    }
+
+    private void RadialColorWheel_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        PickColorFromRadialWheel(e.GetPosition(RadialColorWheelImage));
+    }
+
+    private void RadialColorWheel_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            PickColorFromRadialWheel(e.GetPosition(RadialColorWheelImage));
+        }
+    }
+
+    private void PickColorFromRadialWheel(Point pt)
+    {
+        if (RadialSelectedOrb is null || RadialSelectedHexText is null) return;
+        int radius = 90;
+        double dx = pt.X - radius;
+        double dy = pt.Y - radius;
+        double dist = Math.Sqrt(dx * dx + dy * dy);
+
+        if (dist <= radius)
+        {
+            double angle = Math.Atan2(-dy, dx) * (180.0 / Math.PI);
+            if (angle < 0) angle += 360.0;
+            double sat = Math.Clamp(dist / radius, 0.0, 1.0);
+
+            var (r, g, b) = HostAutomationService.HsvToRgb(angle, sat, _radialBrightness);
+            _radialSelectedColor = Color.FromRgb(r, g, b);
+
+            RadialSelectedOrb.Background = new SolidColorBrush(_radialSelectedColor);
+            string hex = $"#{r:X2}{g:X2}{b:X2}";
+            RadialSelectedHexText.Text = hex;
+
+            UpdateTintedSwoosh24Bit(r, g, b);
+        }
+    }
+
+    private void ApplyRadialColor_Click(object sender, RoutedEventArgs e)
+    {
+        byte r = _radialSelectedColor.R;
+        byte g = _radialSelectedColor.G;
+        byte b = _radialSelectedColor.B;
+        string hex = $"#{r:X2}{g:X2}{b:X2}";
+
+        if (CustomColorOrb is not null) CustomColorOrb.Background = new SolidColorBrush(_radialSelectedColor);
+        if (CustomColorHexText is not null) CustomColorHexText.Text = hex;
+
+        int hwR = r >= 100 ? 1 : 0;
+        int hwG = g >= 100 ? 1 : 0;
+        int hwB = b >= 100 ? 1 : 0;
+        if (hwR == 0 && hwG == 0 && hwB == 0) { hwR = 1; hwG = 1; hwB = 1; }
+
+        SelectLedColor(hwR, hwG, hwB);
+        if (RadialColorWheelCard is not null) RadialColorWheelCard.Visibility = Visibility.Collapsed;
+        ShowToast($"Özel renk uygulandı: {hex}");
     }
 
 }
