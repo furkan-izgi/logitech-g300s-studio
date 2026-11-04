@@ -1,0 +1,208 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Badges Gradients -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00D4FF" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#2979FF" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="badgeBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.8"/>
+      <stop offset="40%" stop-color="#27272A" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#18181B" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#00E676" stop-opacity="0.7"/>
+    </linearGradient>
+
+    <linearGradient id="badgeBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#141418"/>
+      <stop offset="50%" stop-color="#0E0E12"/>
+      <stop offset="100%" stop-color="#08080A"/>
+    </linearGradient>
+
+    <!-- Mouse Shell Gradients -->
+    <linearGradient id="mouseBody" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#18181C"/>
+      <stop offset="25%" stop-color="#24242B"/>
+      <stop offset="50%" stop-color="#2C2C35"/>
+      <stop offset="75%" stop-color="#24242B"/>
+      <stop offset="100%" stop-color="#18181C"/>
+    </linearGradient>
+
+    <linearGradient id="mouseCenterSpine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E1E24"/>
+      <stop offset="100%" stop-color="#121216"/>
+    </linearGradient>
+
+    <!-- Neon Light Strips Glow (Swoosh) -->
+    <linearGradient id="swooshLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="50%" stop-color="#00D4FF"/>
+      <stop offset="100%" stop-color="#2979FF"/>
+    </linearGradient>
+
+    <linearGradient id="swooshRight" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="50%" stop-color="#00D4FF"/>
+      <stop offset="100%" stop-color="#2979FF"/>
+    </linearGradient>
+
+    <!-- Wing Button Accent Gradient -->
+    <linearGradient id="wingBtnGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3A3A45"/>
+      <stop offset="100%" stop-color="#1F1F26"/>
+    </linearGradient>
+
+    <!-- Wheel Gradient -->
+    <linearGradient id="wheelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00D4FF"/>
+      <stop offset="40%" stop-color="#E4E4E7"/>
+      <stop offset="60%" stop-color="#71717A"/>
+      <stop offset="100%" stop-color="#00D4FF"/>
+    </linearGradient>
+
+    <!-- Drop Shadows & Glow Filters -->
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="intenseGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.85"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#00D4FF" flood-opacity="0.15"/>
+    </filter>
+
+    <!-- Hexagon Pattern for Side Grip -->
+    <pattern id="hexGrip" width="12" height="20.78" patternUnits="userSpaceOnUse">
+      <path d="M 6,0 L 12,3.46 L 12,10.39 L 6,13.85 L 0,10.39 L 0,3.46 Z M 0,10.39 L 6,13.85 L 6,20.78 L 0,17.32 Z M 12,10.39 L 12,17.32 L 6,20.78 L 6,13.85 Z"
+            fill="none" stroke="#2D2D38" stroke-width="0.8" opacity="0.45"/>
+    </pattern>
+  </defs>
+
+  <!-- Base Squircle Canvas Badge -->
+  <rect x="24" y="24" width="464" height="464" rx="108" ry="108" fill="url(#badgeBg)" stroke="url(#badgeBorder)" stroke-width="2.5" filter="url(#badgeShadow)"/>
+  <circle cx="256" cy="235" r="210" fill="url(#bgGlow)"/>
+
+  <!-- Subtle Tactical Crosshair Reticle in Background -->
+  <g opacity="0.18">
+    <circle cx="256" cy="235" r="160" fill="none" stroke="#00D4FF" stroke-width="1" stroke-dasharray="6,8"/>
+    <circle cx="256" cy="235" r="110" fill="none" stroke="#38BDF8" stroke-width="1.2"/>
+    <line x1="256" y1="55" x2="256" y2="105" stroke="#00D4FF" stroke-width="1.5"/>
+    <line x1="256" y1="365" x2="256" y2="415" stroke="#00D4FF" stroke-width="1.5"/>
+    <line x1="76" y1="235" x2="126" y2="235" stroke="#00D4FF" stroke-width="1.5"/>
+    <line x1="386" y1="235" x2="436" y2="235" stroke="#00D4FF" stroke-width="1.5"/>
+  </g>
+
+  <!-- ==================== G300S MOUSE SILHOUETTE ==================== -->
+  <g transform="translate(0, -6)">
+    <!-- Ambient Neon Underglow Beneath Mouse -->
+    <path d="M 175,120 C 130,170 125,260 148,340 C 168,395 210,418 256,418 C 302,418 344,395 364,340 C 387,260 382,170 337,120 C 315,95 285,82 256,82 C 227,82 197,95 175,120 Z"
+          fill="#00D4FF" opacity="0.12" filter="url(#intenseGlow)"/>
+
+    <!-- Left & Right Honeycomb Textured Thumb Grips -->
+    <!-- Left Grip Flange -->
+    <path d="M 188,145 C 152,195 142,270 156,335 C 165,370 188,396 215,408 C 190,395 170,360 162,320 C 150,260 158,198 188,145 Z"
+          fill="url(#hexGrip)"/>
+    <!-- Right Grip Flange -->
+    <path d="M 324,145 C 360,195 370,270 356,335 C 347,370 324,396 297,408 C 322,395 342,360 350,320 C 362,260 354,198 324,145 Z"
+          fill="url(#hexGrip)"/>
+
+    <!-- Main Symmetrical Ergonomic Body Outer Shell -->
+    <path d="M 185,120 C 145,170 138,255 158,332 C 176,386 214,412 256,412 C 298,412 336,386 354,332 C 374,255 367,170 327,120 C 308,96 282,85 256,85 C 230,85 204,96 185,120 Z"
+          fill="url(#mouseBody)" stroke="#3F3F46" stroke-width="2"/>
+
+    <!-- Dual Signature Curved LED Swoosh Wings (G300s Lights) -->
+    <!-- Left Swoosh Strip -->
+    <path d="M 194,188 C 172,235 168,285 178,335 C 182,352 191,368 204,380 C 198,368 191,350 188,332 C 179,285 183,238 202,195 Z"
+          fill="url(#swooshLeft)" filter="url(#neonGlow)"/>
+    <path d="M 195,190 C 174,236 170,284 180,333 C 183,348 190,362 201,372 C 197,362 192,348 189,332 C 181,286 185,240 203,196 Z"
+          fill="#E0F7FF" opacity="0.6"/>
+
+    <!-- Right Swoosh Strip -->
+    <path d="M 318,188 C 340,235 344,285 334,335 C 330,352 321,368 308,380 C 314,368 321,350 324,332 C 333,285 329,238 310,195 Z"
+          fill="url(#swooshRight)" filter="url(#neonGlow)"/>
+    <path d="M 317,190 C 338,236 342,284 332,333 C 329,348 322,362 311,372 C 315,362 320,348 323,332 C 331,286 327,240 309,196 Z"
+          fill="#E0F7FF" opacity="0.6"/>
+
+    <!-- Central Sculpted Spine Plate -->
+    <path d="M 224,142 C 220,180 220,240 222,300 C 224,350 236,390 256,396 C 276,390 288,350 290,300 C 292,240 292,180 288,142 Z"
+          fill="url(#mouseCenterSpine)" stroke="#27272A" stroke-width="1.2"/>
+
+    <!-- Front Click Splitter Groove -->
+    <line x1="256" y1="85" x2="256" y2="148" stroke="#121216" stroke-width="3"/>
+
+    <!-- ==================== G300S DUAL WING BUTTONS ==================== -->
+    <!-- G4 / G5 (Left Top Wing Flange Buttons) -->
+    <!-- G5: Left Front -->
+    <path d="M 170,126 C 182,112 198,102 215,96 L 210,140 C 196,143 182,150 172,160 Z"
+          fill="url(#wingBtnGrad)" stroke="#52525B" stroke-width="1.2"/>
+    <text x="187" y="132" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="bold" fill="#00D4FF">G5</text>
+
+    <!-- G4: Left Rear -->
+    <path d="M 168,168 C 180,155 194,147 210,143 L 206,192 C 192,197 180,207 172,220 Z"
+          fill="url(#wingBtnGrad)" stroke="#52525B" stroke-width="1.2"/>
+    <text x="184" y="186" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="bold" fill="#00D4FF">G4</text>
+
+    <!-- G7 / G6 (Right Top Wing Flange Buttons) -->
+    <!-- G7: Right Front -->
+    <path d="M 342,126 C 330,112 314,102 297,96 L 302,140 C 316,143 330,150 340,160 Z"
+          fill="url(#wingBtnGrad)" stroke="#52525B" stroke-width="1.2"/>
+    <text x="318" y="132" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="bold" fill="#00D4FF">G7</text>
+
+    <!-- G6: Right Rear -->
+    <path d="M 344,168 C 332,155 318,147 302,143 L 306,192 C 320,197 332,207 340,220 Z"
+          fill="url(#wingBtnGrad)" stroke="#52525B" stroke-width="1.2"/>
+    <text x="320" y="186" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="bold" fill="#00D4FF">G6</text>
+
+    <!-- G3: Tactile Scroll Wheel Well & Wheel -->
+    <rect x="246" y="112" width="20" height="48" rx="6" fill="#0D0D11" stroke="#27272A" stroke-width="1.5"/>
+    <rect x="249" y="118" width="14" height="36" rx="4" fill="url(#wheelGrad)"/>
+    <!-- Wheel Grip Ribs -->
+    <line x1="249" y1="126" x2="263" y2="126" stroke="#18181B" stroke-width="1.5"/>
+    <line x1="249" y1="133" x2="263" y2="133" stroke="#18181B" stroke-width="1.5"/>
+    <line x1="249" y1="140" x2="263" y2="140" stroke="#18181B" stroke-width="1.5"/>
+    <line x1="249" y1="147" x2="263" y2="147" stroke="#18181B" stroke-width="1.5"/>
+
+    <!-- G8 & G9 Central Mode/DPI Buttons -->
+    <!-- G9: Upper Center -->
+    <rect x="247" y="172" width="18" height="14" rx="3.5" fill="url(#wingBtnGrad)" stroke="#52525B" stroke-width="1"/>
+    <text x="251" y="183" font-family="'Segoe UI', Roboto, sans-serif" font-size="7.5" font-weight="bold" fill="#A1A1AA">G9</text>
+
+    <!-- G8: Lower Center -->
+    <rect x="247" y="192" width="18" height="14" rx="3.5" fill="url(#wingBtnGrad)" stroke="#52525B" stroke-width="1"/>
+    <text x="251" y="203" font-family="'Segoe UI', Roboto, sans-serif" font-size="7.5" font-weight="bold" fill="#A1A1AA">G8</text>
+
+    <!-- Glowing Gaming Logitech "G" Emblem on Palm Swell -->
+    <g transform="translate(256, 320) scale(0.92)" filter="url(#neonGlow)">
+      <!-- Iconic G Path -->
+      <path d="M 0,-24 C 13.25,-24 24,-13.25 24,0 C 24,13.25 13.25,24 0,24 C -13.25,24 -24,13.25 -24,0 C -24,-8.5 -19.5,-16 -12.5,-20.5 L -7,-14 C -11.5,-10.5 -14.5,-5.5 -14.5,0 C -14.5,8  -8,14.5 0,14.5 C 8,14.5 14.5,8 14.5,0 L 0,0 L 0,-8 L 22,-8 C 22.5,-5.5 22.8,-2.8 22.8,0 C 22.8,12.5 12.5,22.8 0,22.8 C -12.5,22.8 -22.8,12.5 -22.8,0 C -22.8,-12.5 -12.5,-22.8 0,-22.8 Z"
+            fill="#00D4FF"/>
+      <circle cx="0" cy="0" r="4" fill="#FFFFFF"/>
+    </g>
+  </g>
+
+  <!-- ==================== BOTTOM BRANDING & STATUS BADGE ==================== -->
+  <g transform="translate(256, 442)">
+    <text x="0" y="0" text-anchor="middle" font-family="'Segoe UI Variable Display', 'Segoe UI', sans-serif" font-size="20" font-weight="800" letter-spacing="4" fill="#FAFAFA">
+      LOGITECH G300S
+    </text>
+    <text x="0" y="18" text-anchor="middle" font-family="'Segoe UI Variable Display', 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="3" fill="#00D4FF">
+      HARDWARE CONTROL STUDIO
+    </text>
+
+    <!-- Precision Indicator Dots -->
+    <circle cx="-135" cy="-7" r="2.5" fill="#00E676"/>
+    <circle cx="135" cy="-7" r="2.5" fill="#00E676"/>
+  </g>
+</svg>
