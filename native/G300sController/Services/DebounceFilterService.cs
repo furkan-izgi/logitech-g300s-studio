@@ -32,6 +32,9 @@ public sealed class DebounceFilterService : IDisposable
     private long _filteredClicksCount;
     private long _leftFilteredClicksCount;
     private long _rightFilteredClicksCount;
+    private long _totalObservedClicks;
+    private long _chatterClicks;
+    private bool _adaptiveDebounce = true;
 
     private long _lastFilteredTimestamp;
     private volatile string? _lastFilteredButton;
@@ -135,6 +138,35 @@ public sealed class DebounceFilterService : IDisposable
     /// Gets the suppressed interval in milliseconds of the most recently suppressed false click.
     /// </summary>
     public int LastFilteredIntervalMs => Volatile.Read(ref _lastFilteredIntervalMs);
+
+    public bool AdaptiveDebounce
+    {
+        get => _adaptiveDebounce;
+        set => _adaptiveDebounce = value;
+    }
+
+    public long TotalObservedClicks => Interlocked.Read(ref _totalObservedClicks);
+    public long ChatterClicks => Interlocked.Read(ref _chatterClicks);
+
+    public double ChatterRiskPercentage
+    {
+        get
+        {
+            long tot = TotalObservedClicks;
+            if (tot < 5) return 0.0;
+            return Math.Min(100.0, Math.Round(((double)ChatterClicks / tot) * 100.0, 2));
+        }
+    }
+
+    public string ChatterRiskStatus => ChatterRiskPercentage switch
+    {
+        < 0.5 => "Mükemmel (Kusursuz)",
+        < 2.0 => "Düşük Aşınma (%0-2 chatter)",
+        < 5.0 => "Orta Aşınma (%2-5 chatter)",
+        _ => "Yüksek Chatter Riski (>%5 chatter)"
+    };
+
+    public event Action? ChatterStatsUpdated;
 
     /// <summary>
     /// Gets whether the low-level mouse hook thread and hook handle are currently active.
@@ -361,6 +393,8 @@ public sealed class DebounceFilterService : IDisposable
             if (ShouldSuppressClick(msg, isInjected, nowTicks, out string? buttonName, out int intervalMs))
             {
                 Interlocked.Increment(ref _filteredClicksCount);
+                Interlocked.Increment(ref _chatterClicks);
+                ChatterStatsUpdated?.Invoke();
                 if (string.Equals(buttonName, "Left", StringComparison.OrdinalIgnoreCase))
                 {
                     Interlocked.Increment(ref _leftFilteredClicksCount);
@@ -390,6 +424,8 @@ public sealed class DebounceFilterService : IDisposable
                     Win32.WM_XBUTTONDOWN => (xbuttonId == 1 ? "XButton1" : "XButton2"),
                     _ => "Left"
                 };
+                Interlocked.Increment(ref _totalObservedClicks);
+                ChatterStatsUpdated?.Invoke();
                 ValidClickOccurred?.Invoke(bName);
                 ValidClickWithPointOccurred?.Invoke(bName, ptX, ptY);
             }

@@ -5,6 +5,7 @@
         Width="1420" Height="850"
         MinWidth="1160" MinHeight="720"
         WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
         Background="{DynamicResource BrushBgCanvas}"
         Foreground="{StaticResource BrushTextPrimary}"
         FontFamily="{StaticResource FontSans}"
@@ -16,7 +17,7 @@
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="54"
                       CornerRadius="12"
-                      GlassFrameThickness="-1"
+                      GlassFrameThickness="0"
                       ResizeBorderThickness="6"
                       UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
@@ -30,6 +31,24 @@
                 <RowDefinition Height="56" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
+
+            <!-- G-Shift Visual Notification Overlay Badge -->
+            <Border x:Name="GShiftOverlayBadge"
+                    Grid.Row="1"
+                    Visibility="Collapsed"
+                    HorizontalAlignment="Center" VerticalAlignment="Top"
+                    Margin="0,16,0,0"
+                    Background="#EE00D4FF"
+                    CornerRadius="12"
+                    Padding="14,6"
+                    Panel.ZIndex="120">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="8" Height="8" Fill="#09090B" Margin="0,0,8,0" />
+                    <TextBlock Text="G-SHIFT AKTİF (Katman 2)"
+                               FontFamily="{StaticResource FontDisplay}"
+                               FontSize="12" FontWeight="Bold" Foreground="#09090B" />
+                </StackPanel>
+            </Border>
 
             <!-- ==================== INTEGRATED FRAMELESS HEADER ==================== -->
             <Border Grid.Row="0"
@@ -46,14 +65,16 @@
 
                     <!-- Left: Clean Wordmark + Subtle Live Status -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Iconic Cybernetic Apex Crest Icon -->
-                        <Viewbox Width="24" Height="24" Margin="0,0,10,0" VerticalAlignment="Center" ToolTip="Logitech G300s Studio Apex Core">
-                            <Canvas Width="512" Height="512">
-                                <Polygon Points="256,28 448,116 448,348 256,484 64,348 64,116" Fill="#12141C" Stroke="#00F0FF" StrokeThickness="16" StrokeLineJoin="Round" />
-                                <Polygon Points="256,58 420,132 420,332 256,450 92,332 92,132" Fill="#181B26" Stroke="#38BDF8" StrokeThickness="3" StrokeLineJoin="Round" />
-                                <Path Data="M 354,166 C 318,136 288,124 246,124 C 174,124 122,182 122,256 C 122,330 174,388 248,388 C 324,388 368,338 372,268 L 242,268 L 242,224 L 416,224 C 418,240 418,254 418,268 C 418,362 348,432 248,432 C 146,432 76,356 76,256 C 76,156 148,80 248,80 C 298,80 342,98 382,132 Z" Fill="#00F0FF" />
-                                <Polygon Points="256,182 296,246 256,310 216,246" Fill="#F59E0B" />
-                                <Ellipse Canvas.Left="250" Canvas.Top="240" Width="12" Height="12" Fill="#FFFFFF" />
+                        <!-- Iconic Minimalist Logitech G Vector Logo -->
+                        <Viewbox Width="22" Height="22" Margin="0,0,10,0" VerticalAlignment="Center" ToolTip="Logitech G300s Studio">
+                            <Canvas Width="48" Height="48">
+                                <Path Data="M 36,13 A 16,16 0 1 0 40,24 H 25"
+                                      Fill="Transparent"
+                                      Stroke="#00D4FF"
+                                      StrokeThickness="4.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" />
+                                <Ellipse Canvas.Left="21.5" Canvas.Top="21.5" Width="5" Height="5" Fill="#00F0FF" />
                             </Canvas>
                         </Viewbox>
 
@@ -143,7 +164,7 @@
                         <Border Width="1" Height="18" Background="{StaticResource BrushBorderSubtle}" Margin="0,0,6,0" />
 
                         <Button Click="MinimizeToTray_Click" Style="{StaticResource WindowCaptionButton}" ToolTip="Sistem tepsisine küçült">
-                            <TextBlock Text="&#xE748;" FontFamily="{StaticResource FontIcons}" FontSize="11.5" />
+                            <TextBlock Text="&#xE74B;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
                         </Button>
                         <Button Click="CaptionMinimize_Click" Style="{StaticResource WindowCaptionButton}" ToolTip="Simge durumuna küçült">
                             <TextBlock Text="&#xE921;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
@@ -935,7 +956,48 @@
                                             <UniformGrid x:Name="LedSwatchesGrid" Grid.Column="1" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
                                         </Grid>
 
-                                        <!-- Cycle / Breath Speed Slider -->
+                                                                                <!-- Continuous Color Spectrum / Custom Hue Slider -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Özel Renk Tekerleği:" FontSize="12.5" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
+
+                                            <!-- Spectrum Gradient Track with Custom Hue Slider -->
+                                            <Grid Grid.Column="1" VerticalAlignment="Center" Height="26" Margin="0,0,14,0">
+                                                <Border Height="8" CornerRadius="4" VerticalAlignment="Center" ClipToBounds="True">
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                            <GradientStop Color="#FF0000" Offset="0.0" />
+                                                            <GradientStop Color="#FFFF00" Offset="0.166" />
+                                                            <GradientStop Color="#00FF00" Offset="0.333" />
+                                                            <GradientStop Color="#00FFFF" Offset="0.5" />
+                                                            <GradientStop Color="#0000FF" Offset="0.666" />
+                                                            <GradientStop Color="#FF00FF" Offset="0.833" />
+                                                            <GradientStop Color="#FF0000" Offset="1.0" />
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                </Border>
+                                                <Slider x:Name="CustomHueSlider" Minimum="0" Maximum="360" Value="180"
+                                                        VerticalAlignment="Center" ValueChanged="CustomHueSlider_ValueChanged" />
+                                            </Grid>
+
+                                            <!-- Live Color Indicator Orb & Hex Value -->
+                                            <Border Grid.Column="2" Background="{DynamicResource BrushBgCanvas}" CornerRadius="6" Padding="6,4" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border x:Name="CustomColorOrb" Width="14" Height="14" CornerRadius="7"
+                                                            Background="#00FFFF" BorderBrush="{DynamicResource BrushActiveWhite}"
+                                                            BorderThickness="1" Margin="0,0,6,0" />
+                                                    <TextBlock x:Name="CustomColorHexText" Text="#00FFFF"
+                                                               FontSize="11" FontFamily="{StaticResource FontDisplay}"
+                                                               FontWeight="Medium" Foreground="{DynamicResource BrushTextPrimary}"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+<!-- Cycle / Breath Speed Slider -->
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -1171,6 +1233,29 @@
                                                        FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,5,0,0" />
                                         </Grid>
                                     </Border>
+                                    <!-- G-Shift Visual & Audio Feedback Toggles -->
+                                    <Border Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                                <CheckBox x:Name="GShiftVisualToggle" Style="{StaticResource PillToggleSwitch}"
+                                                          Content="G-Shift Görsel Rozet" IsChecked="True"
+                                                          Checked="GShiftVisualToggle_Changed" Unchecked="GShiftVisualToggle_Changed"
+                                                          VerticalAlignment="Center" Margin="0,0,16,0"
+                                                          ToolTip="G-Shift tuşuna basıldığında ekranda katman rozetini gösterir" />
+                                                <CheckBox x:Name="GShiftAudioToggle" Style="{StaticResource PillToggleSwitch}"
+                                                          Content="Sesli Geri Bildirim" IsChecked="True"
+                                                          Checked="GShiftAudioToggle_Changed" Unchecked="GShiftAudioToggle_Changed"
+                                                          VerticalAlignment="Center"
+                                                          ToolTip="G-Shift tuşuna basıldığında hafif ses tonu çalar" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="1" Text="G-Shift ikincil katman tuşuna basıldığında görsel ve işitsel teyit sağlar."
+                                                       FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,5,0,0" />
+                                        </Grid>
+                                    </Border>
                                 </StackPanel>
                             </ScrollViewer>
                         </Border>
@@ -1194,6 +1279,47 @@
                                     <!-- 9 Switches Live Wear Table -->
                                     <Border Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="16,14" Margin="0,0,0,14">
                                         <StackPanel x:Name="SwitchHealthFullPanel" />
+                                    </Border>
+                                    <!-- Adaptive Switch Chatter Suppression -->
+                                    <Border Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,12">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid Grid.Row="0">
+                                                <CheckBox x:Name="AdaptiveChatterToggle" Style="{StaticResource PillToggleSwitch}"
+                                                          Content="Akıllı Uyarlamalı Çift Tıklama (Chatter) Koruması" IsChecked="True"
+                                                          Checked="AdaptiveChatterToggle_Changed" Unchecked="AdaptiveChatterToggle_Changed"
+                                                          VerticalAlignment="Center"
+                                                          ToolTip="Aşınmış switch'lerin sıçrama (bounce) anomalilerini otomatik tespit edip süzer" />
+                                                <Button Click="ResetChatterStats_Click" Style="{StaticResource ToolbarActionButton}"
+                                                        Height="22" Padding="8,0" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                    <TextBlock Text="Sıfırla" />
+                                                </Button>
+                                            </Grid>
+                                            <TextBlock Grid.Row="1" x:Name="ChatterStatusText"
+                                                       Text="Engellenen Sıçrama: 0 tık · Risk Seviyesi: Mükemmel"
+                                                       FontSize="11.5" Foreground="{DynamicResource BrushTextSecondary}" Margin="0,5,0,0" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Profile Backup & Restore Wizard -->
+                                    <Border Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="16,14" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <TextBlock Text="Yerel Profil Yedekleme &amp; Geri Yükleme"
+                                                       FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextPrimary}" />
+                                            <TextBlock Text="Tüm tuş atamalarını, makroları ve renkleri tek tıklamayla JSON dosyası olarak yedekleyin veya geri yükleyin."
+                                                       FontSize="11.5" Foreground="{DynamicResource BrushTextMuted}" Margin="0,3,0,10" TextWrapping="Wrap" />
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Click="ExportProfiles_Click" Style="{StaticResource ToolbarActionButton}" Height="30" Padding="14,0" Margin="0,0,10,0">
+                                                    <TextBlock Text="💾 Profilleri Yedekle" FontSize="12" />
+                                                </Button>
+                                                <Button Click="ImportProfiles_Click" Style="{StaticResource ToolbarActionButton}" Height="30" Padding="14,0">
+                                                    <TextBlock Text="📂 Yedeği Geri Yükle" FontSize="12" />
+                                                </Button>
+                                            </StackPanel>
+                                        </StackPanel>
                                     </Border>
 
                                     <!-- System & Startup Options -->
