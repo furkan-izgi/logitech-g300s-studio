@@ -49,21 +49,19 @@ public static class WindowBackdropService
                     WindowBackdropMode.Mica => 2,
                     WindowBackdropMode.Acrylic => 3,
                     WindowBackdropMode.MicaAlt => 4,
-                    _ => 1 // Solid
+                    _ => 1 // Solid (DWMSBT_NONE / DWMSBT_MAINWINDOW)
                 };
 
                 int hr = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
                 return hr == 0;
             }
-            else if (mode == WindowBackdropMode.Mica)
+            else
             {
                 // Fallback for Windows 11 Build 22000
-                int trueValue = 1;
-                int hr = DwmSetWindowAttribute(hwnd, DWMWA_MICA_EFFECT, ref trueValue, sizeof(int));
+                int micaVal = mode == WindowBackdropMode.Mica ? 1 : 0;
+                int hr = DwmSetWindowAttribute(hwnd, DWMWA_MICA_EFFECT, ref micaVal, sizeof(int));
                 return hr == 0;
             }
-
-            return false;
         }
         catch
         {
