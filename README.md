@@ -5,7 +5,7 @@ A lightweight, portable controller and firmware management utility for the **Log
 [![Build Status](https://img.shields.io/github/actions/workflow/status/furkan-izgi/logitech-g300s-studio/build-release.yml?branch=master&style=flat-square)](https://github.com/furkan-izgi/logitech-g300s-studio/actions)
 [![Latest Release](https://img.shields.io/github/v/release/furkan-izgi/logitech-g300s-studio?style=flat-square&color=00F0FF)](https://github.com/furkan-izgi/logitech-g300s-studio/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg?style=flat-square)](https://github.com/furkan-izgi/logitech-g300s-studio)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-lightgrey.svg?style=flat-square)](https://github.com/furkan-izgi/logitech-g300s-studio)
 
 ---
 
@@ -13,7 +13,7 @@ A lightweight, portable controller and firmware management utility for the **Log
 
 Logitech Gaming Software (LGS) is a legacy ~150MB suite that hasn't received meaningful updates for the G300s in years, and Logitech G HUB does not support this mouse at all. 
 
-**Logitech G300s Studio** is a clean, modern replacement built in C# (.NET 10 / WPF) and Python. It interacts directly with the mouse's vendor HID endpoint (`0xFF80`), eliminating the need for any Logitech background daemons, drivers, or system hooks.
+**Logitech G300s Studio** is a clean, modern replacement built in C# (.NET 10 / WPF). It interacts directly with the mouse's vendor HID endpoint (`0xFF80`), eliminating the need for any Logitech background daemons, drivers, or system hooks.
 
 ### [Direct Download: LogitechG300sStudio.exe](https://github.com/furkan-izgi/logitech-g300s-studio/releases/latest/download/LogitechG300sStudio.exe)
 > Single-file portable executable (~60MB). Zero installation, no runtime dependencies required. Download and run.
@@ -22,23 +22,38 @@ Logitech Gaming Software (LGS) is a legacy ~150MB suite that hasn't received mea
 
 ## Screenshots
 
-### Main Interface
-![Main Hardware Stage](screenshots/verify_v15.png)
+<p align="center">
+  <img src="screenshots/verify_v15.png" alt="Logitech G300s Studio Main Stage" width="100%" />
+</p>
 
-### Sensor & Lighting
-| Sensor & DPI Curves (250–2500 DPI) | RGB Lighting Studio & 2D Radial Wheel |
-| :---: | :---: |
-| ![Sensor Tuning](screenshots/verify_v15_sensor.png) | ![Lighting & Wheel](screenshots/verify_v15_radialwheel.png) |
+### Feature Showcases
 
-### Automation & Switch Analytics
-| Host Automation & Macro Engine | Omron Switch Health & Mechanical Wear |
-| :---: | :---: |
-| ![Host Automation](screenshots/verify_v15_automation.png) | ![Switch Health](screenshots/verify_v15_switchhealth.png) |
-
-### Heatmaps & Telemetry
-| Screen Click & Dwell Heatmap | Physical Button Click Distribution |
-| :---: | :---: |
-| ![Screen Heatmap](screenshots/verify_v15_screen_heatmap.png) | ![Button Heatmap](screenshots/verify_v15_heatmap.png) |
+<table>
+  <tr>
+    <td align="center" width="50%"><b>Sensör &amp; DPI Kademe Ayarları (250–2500 DPI)</b></td>
+    <td align="center" width="50%"><b>RGB Aydınlatma Studio &amp; Renk Profilleri</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/verify_v15_sensor.png" width="100%" /></td>
+    <td align="center"><img src="screenshots/verify_v15_lighting.png" width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><b>Otomasyon, Tuş Haritalama &amp; Makro Motoru</b></td>
+    <td align="center" width="50%"><b>Omron Mekanik Switch Sağlık &amp; Aşınma Takibi</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/verify_v15_automation.png" width="100%" /></td>
+    <td align="center"><img src="screenshots/verify_v15_switchhealth.png" width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><b>Ekran Tıklama &amp; Durma Isı Haritası (Heatmap)</b></td>
+    <td align="center" width="50%"><b>Fiziksel Donanım Tuş Tıklama Dağılımı</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/verify_v15_screen_heatmap.png" width="100%" /></td>
+    <td align="center"><img src="screenshots/verify_v15_heatmap.png" width="100%" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -48,7 +63,7 @@ Logitech Gaming Software (LGS) is a legacy ~150MB suite that hasn't received mea
 * **Zero-Wear RAM Operations**:
   * **Live LED (`0xF1`)**: Updates the RGB LED color in volatile RAM instantly without burning through EEPROM write cycles.
   * **Live Report Rate (`0xF2`)**: Switches USB polling rates (125, 250, 500, 1000 Hz) on the fly.
-* **2D Radial Color Wheel**: Full 24-bit intermediate hue selection with smooth breathing and rainbow color transitions.
+* **Ready-to-Use Preset Templates**: One-click configuration for Web Browsing (Back, Forward, F5 Refresh, New Tab, Close Tab, Reopen Closed Tab), Software Development (VS Code, Git, Terminal), Office Productivity, and Competitive FPS/MOBA games.
 * **Switch Health Tracking & Debounce**: Tracks individual actuations for Left, Right, Middle, and G4–G9 buttons against the Omron D2FC 10M lifecycle rating. Includes a software debounce filter to eliminate chatter and accidental double-clicks on aging switches.
 * **High Function Keys (`F13`–`F24`)**: Bypasses the mouse's physical boot-keyboard limit by mapping hardware buttons to unassigned virtual keys (`F13..F24`), allowing custom Discord/in-game binds without hijacking standard keyboard shortcuts.
 * **Heatmap Analytics**:
@@ -107,31 +122,7 @@ dotnet publish native/G300sController/G300sController.csproj `
     -p:EnableCompressionInSingleFile=true `
     -o dist/
 ```
-The resulting binary will be created at `dist/G300sController.exe`.
-
----
-
-## Python CLI & Linux Usage
-
-A cross-platform Python CLI is also included for headless environments or Linux:
-
-```bash
-# Install package
-pip install -e .
-
-# CLI commands
-g300s info               # Display active profile, DPI, and report rate
-g300s dump               # Dump all 3 onboard memory profiles to stdout
-g300s save backup.json   # Backup profile configurations
-g300s load backup.json   # Restore profiles to mouse flash memory
-```
-
-### Linux udev Rules
-To allow non-root access to the mouse's HID device on Linux:
-```bash
-sudo cp udev/99-logitech-g300s.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && sudo udevadm trigger
-```
+The resulting binary will be created at `dist/LogitechG300sStudio.exe`.
 
 ---
 

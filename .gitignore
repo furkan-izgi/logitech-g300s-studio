@@ -10,10 +10,18 @@ build/
 # Large vendor installers and extracted app files (>300MB)
 vendor/
 
-# Temporary diagnostic logs and screenshots
-tools/*.png
-tools/*.log
-tools/re_analyze.py
+# Obsolete / experimental python prototype & test scripts
+tools/
+src/
+tests/
+udev/
+scratch/
+backup.json
+g300s.py
+pyproject.toml
+requirements.txt
+AGENTS.md
+screenshots/verify_v14*
 
 # Editor / IDE
 .vscode/
@@ -24,5 +32,3 @@ tools/re_analyze.py
 native/**/bin/
 native/**/obj/
 **/crash.log
-
-scratch/
