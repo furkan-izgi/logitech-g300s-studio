@@ -93,6 +93,9 @@ public sealed class SmartAdvisorService
         // 4. Cursor Dwell & DPI Ergonomics Suggestion
         EvaluateDpiErgonomics(discovered, profiles, activeProfileIndex);
 
+        // 5. Proactive Productivity & Web Browsing Tips
+        EvaluateGeneralProductivity(discovered, profiles, activeProfileIndex);
+
         // Merge discovered recommendations
         lock (_activeRecommendations)
         {
@@ -259,4 +262,54 @@ public sealed class SmartAdvisorService
         }
         RecommendationsUpdated?.Invoke();
     }
+
+    private void EvaluateGeneralProductivity(List<SmartRecommendation> list, G300sProfile[] profiles, int activeProfileIndex)
+    {
+        var prof = profiles[activeProfileIndex];
+
+        // 1. Web Browsing Template Recommendation
+        if (prof.Buttons[4] != "mouse:4" || prof.Buttons[5] != "key:f5")
+        {
+            list.Add(new SmartRecommendation
+            {
+                Id = "rec_web_template",
+                Category = RecommendationCategory.AppAutomation,
+                Title = "Web & Tarayıcı Gezinme Şablonu",
+                Description = "Geri (G5), İleri (G4), Sayfa Yenileme F5 (G6), Yeni Sekme Ctrl+T (G7) ve Sekme Kapatma Ctrl+W (G8) atamaları ile webde gezinmeyi hızlandırın.",
+                ActionButtonText = "Web Şablonunu Yükle",
+                ActionKey = "apply_template",
+                ActionParams = { ["template"] = "web" }
+            });
+        }
+
+        // 2. 1000 Hz Polling Rate Recommendation
+        if (prof.PollingRateHz < 1000)
+        {
+            list.Add(new SmartRecommendation
+            {
+                Id = "rec_polling_rate_1000",
+                Category = RecommendationCategory.ErgonomicsDpi,
+                Title = "1000 Hz / 1 ms Tepki Süresi Optimizasyonu",
+                Description = $"Mevcut profiliniz {prof.PollingRateHz} Hz ile çalışıyor. 1000 Hz seviyesine çıkararak gecikmeyi 1 ms'ye düşürebilir ve imleç akıcılığını artırabilirsiniz.",
+                ActionButtonText = "1000 Hz Yap",
+                ActionKey = "set_polling_rate",
+                ActionParams = { ["rate"] = "1000" }
+            });
+        }
+
+        // 3. G-Shift Secondary Layer Discovery
+        if (!prof.Buttons.Any(b => b.Contains("f18", StringComparison.OrdinalIgnoreCase)))
+        {
+            list.Add(new SmartRecommendation
+            {
+                Id = "rec_gshift_discovery",
+                Category = RecommendationCategory.UnusedKey,
+                Title = "G-Shift İkincil Tuş Katmanını Kullanın",
+                Description = "G-Shift tuşu sayesinde farenizin 6 ekstra makro tuşuna ikinci bir işlev katmanı bağlayarak toplam 12 farklı eylem tanımlayabilirsiniz.",
+                ActionButtonText = "Otomasyona Git",
+                ActionKey = "open_automation"
+            });
+        }
+    }
+
 }

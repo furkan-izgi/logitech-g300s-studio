@@ -53,7 +53,7 @@
 
             <!-- ==================== INTEGRATED FRAMELESS HEADER ==================== -->
             <Border Grid.Row="0"
-                    Background="{DynamicResource BrushBgRail}"
+                    Background="{DynamicResource BrushBgHeader}"
                     BorderBrush="{StaticResource BrushBorderSubtle}"
                     BorderThickness="0,0,0,1"
                     Padding="22,0,12,0"
@@ -186,7 +186,7 @@
                             <TextBlock Text="&#xE921;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
                         </Button>
                         <Button Click="CaptionMaximize_Click" Style="{StaticResource WindowCaptionButton}" ToolTip="Ekranı kapla">
-                            <TextBlock Text="&#xE922;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
+                            <TextBlock x:Name="CaptionMaximizeIcon" Text="&#xE922;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
                         </Button>
                         <Button Click="CaptionClose_Click" Style="{StaticResource WindowCaptionButton}" ToolTip="Kapat">
                             <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
@@ -327,12 +327,12 @@
                                           SelectionChanged="PresetTemplateCombo_SelectionChanged"
                                           ToolTip="Seçili profile yazılım, tasarım veya oyun şablonu uygula">
                                     <ComboBoxItem Content="Hazır Şablon Yükle..." IsSelected="True" IsEnabled="False" />
-                                    <ComboBoxItem Content="Yazılım (VS Code / Git / Terminal)" Tag="dev" />
-                                    <ComboBoxItem Content="3D Modelleme (Blender / CAD)" Tag="blender" />
-                                    <ComboBoxItem Content="Grafik &amp; UI Tasarım (Figma)" Tag="design" />
-                                    <ComboBoxItem Content="FPS Rekabetçi (CS2 / Valorant)" Tag="fps" />
-                                    <ComboBoxItem Content="MOBA &amp; Taktik (LoL / Dota 2)" Tag="moba" />
-                                    <ComboBoxItem Content="Genel Üretkenlik &amp; Ofis" Tag="productivity" />
+                                    <ComboBoxItem Content="🌐 Web &amp; Tarayıcı (Geri / İleri / Yenile / Sekmeler)" Tag="web" />
+                                    <ComboBoxItem Content="💻 Yazılım Geliştirme (VS Code / Terminal / Git)" Tag="dev" />
+                                    <ComboBoxItem Content="📄 Ofis &amp; Üretkenlik (Geri Al / Yapıştır / Bul)" Tag="office" />
+                                    <ComboBoxItem Content="🎯 FPS Rekabetçi (CS2 / Valorant / Apex)" Tag="fps" />
+                                    <ComboBoxItem Content="⚔️ MOBA &amp; MMO (LoL / Dota 2)" Tag="moba" />
+                                    <ComboBoxItem Content="🎵 Medya &amp; Müzik Kontrolü (Oynat / Ses)" Tag="media" />
                                 </ComboBox>
 
                                 <ComboBox x:Name="CopyProfileCombo" Width="155" Height="30" Margin="8,0,0,0"
@@ -656,10 +656,36 @@
                                                        Visibility="Collapsed" />
                                         </Grid>
                                     </Border>
-                    <!-- Smart Advisor Recommendations Modal Overlay -->
+
+
+                    
+
+                                    <!-- Footer Telemetry & Actions -->
+                                    <Grid Grid.Row="2" Margin="0,12,0,0">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock x:Name="ScreenHeatmapSummaryText"
+                                                       Text="Toplam Tıklama: 0 · Toplam Durma Süresi: 0 sn · En Yoğun: Merkez"
+                                                       FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <Button Click="RefreshScreenHeatmap_Click" Style="{StaticResource ToolbarActionButton}" Height="28" Padding="12,0" Margin="0,0,8,0">
+                                                <TextBlock Text="Yenile" />
+                                            </Button>
+                                            <Button Click="ResetScreenHeatmap_Click" Style="{StaticResource ToolbarActionButton}" Height="28" Padding="12,0">
+                                                <TextBlock Text="Sıfırla" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+
+
+<!-- Smart Advisor Recommendations Modal Overlay -->
                     <Border x:Name="SmartAdvisorOverlayCard" Visibility="Collapsed"
                             HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Width="620" Height="480" Panel.ZIndex="150"
+                            Width="640" Height="500" Panel.ZIndex="200"
                             Background="{DynamicResource BrushBgSurface1}"
                             BorderBrush="{StaticResource BrushAccentCyanBorder}" BorderThickness="1.5"
                             CornerRadius="14" Padding="22">
@@ -708,70 +734,6 @@
                         </Grid>
                     </Border>
 
-                    <!-- 2D Radial HSV Color Wheel Modal Overlay -->
-                    <Border x:Name="RadialColorWheelCard" Visibility="Collapsed"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Width="360" Height="420" Panel.ZIndex="160"
-                            Background="{DynamicResource BrushBgSurface1}"
-                            BorderBrush="{StaticResource BrushAccentCyanBorder}" BorderThickness="1.5"
-                            CornerRadius="14" Padding="20">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-
-                            <Grid Grid.Row="0" Margin="0,0,0,12">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="2D Dairesel Renk Çarkı"
-                                               FontFamily="{StaticResource FontDisplay}" FontSize="15" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource BrushTextPrimary}" />
-                                </StackPanel>
-                                <Button Click="CloseRadialColorWheel_Click" Style="{StaticResource WindowCaptionButton}"
-                                        Width="26" Height="26" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
-                                </Button>
-                            </Grid>
-
-                            <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Border Width="184" Height="184" CornerRadius="92" BorderBrush="{DynamicResource BrushBorderSubtle}" BorderThickness="2" ClipToBounds="True">
-                                    <Image x:Name="RadialColorWheelImage" Width="180" Height="180"
-                                           RenderOptions.BitmapScalingMode="HighQuality"
-                                           Cursor="Cross"
-                                           MouseDown="RadialColorWheel_MouseDown"
-                                           MouseMove="RadialColorWheel_MouseMove" />
-                                </Border>
-
-                                <Grid Margin="0,14,0,0" Width="240">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Parlaklık:" FontSize="11.5" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                    <Slider x:Name="RadialBrightnessSlider" Grid.Column="1" Minimum="0.1" Maximum="1.0" Value="1.0"
-                                            VerticalAlignment="Center" ValueChanged="RadialBrightnessSlider_ValueChanged" />
-                                </Grid>
-                            </StackPanel>
-
-                            <Grid Grid.Row="2" Margin="0,10,0,0">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Border x:Name="RadialSelectedOrb" Width="20" Height="20" CornerRadius="10"
-                                            Background="#00F0FF" BorderBrush="{DynamicResource BrushActiveWhite}"
-                                            BorderThickness="1.5" Margin="0,0,8,0" />
-                                    <TextBlock x:Name="RadialSelectedHexText" Text="#00F0FF"
-                                               FontSize="13" FontFamily="{StaticResource FontDisplay}" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button Click="ApplyRadialColor_Click" Style="{StaticResource PrimaryAccentButton}" Height="28" Padding="14,0">
-                                        <TextBlock Text="Uygula" />
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
-                        </Grid>
-                    </Border>
-
                     <!-- Toast Notification Banner -->
                     <Border x:Name="ToastBanner"
                             Visibility="Collapsed"
@@ -790,25 +752,7 @@
                         </StackPanel>
                     </Border>
 
-                                    <!-- Footer Telemetry & Actions -->
-                                    <Grid Grid.Row="2" Margin="0,12,0,0">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock x:Name="ScreenHeatmapSummaryText"
-                                                       Text="Toplam Tıklama: 0 · Toplam Durma Süresi: 0 sn · En Yoğun: Merkez"
-                                                       FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" />
-                                        </StackPanel>
 
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                            <Button Click="RefreshScreenHeatmap_Click" Style="{StaticResource ToolbarActionButton}" Height="28" Padding="12,0" Margin="0,0,8,0">
-                                                <TextBlock Text="Yenile" />
-                                            </Button>
-                                            <Button Click="ResetScreenHeatmap_Click" Style="{StaticResource ToolbarActionButton}" Height="28" Padding="12,0">
-                                                <TextBlock Text="Sıfırla" />
-                                            </Button>
-                                        </StackPanel>
-                                    </Grid>
-                                </Grid>
-                            </Border>
 
                             <!-- ==================== VIEW 1: SENSITIVITY & DPI STUDIO ==================== -->
                     <Grid x:Name="ViewSensitivityGrid" Grid.Row="0" Visibility="Collapsed" Margin="32,24,32,18">
@@ -1143,28 +1087,11 @@
                                                                FontSize="11" FontFamily="{StaticResource FontDisplay}"
                                                                FontWeight="Medium" Foreground="{DynamicResource BrushTextPrimary}"
                                                                VerticalAlignment="Center" />
-                                                                                                <Button Click="OpenRadialColorWheel_Click" Style="{StaticResource ToolbarActionButton}"
-                                                        Height="22" Padding="6,0" Margin="8,0,0,0" ToolTip="2D Dairesel Renk Çarkını Aç">
-                                                    <TextBlock Text="🎨 Çark" FontSize="10.5" />
-                                                </Button>
+                                                                                                
 </StackPanel>
                                             </Border>
                                         </Grid>
-<!-- Cycle / Breath Speed Slider -->
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="70" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Geçiş / Nefes Süresi" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
-                                            <Slider x:Name="BreathSpeedSlider" Grid.Column="1" Minimum="800" Maximum="6000" Value="2400"
-                                                    TickFrequency="200" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                                    ValueChanged="BreathSpeedSlider_ValueChanged" />
-                                            <TextBlock x:Name="BreathSpeedValueText" Grid.Column="2" Text="2.4 sn"
-                                                       FontSize="12.5" FontWeight="Medium"
-                                                       Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                        </Grid>
+
                                     </StackPanel>
                                 </Border>
                             </Grid>

@@ -8,12 +8,14 @@
     <!-- Neutral Matte Carbon Surfaces (Zinc / Graphite scale) -->
     <Color x:Key="ColorBgCanvas">#09090B</Color>
     <Color x:Key="ColorBgRail">#0E0E11</Color>
+    <Color x:Key="ColorBgHeader">#0E0E11</Color>
     <Color x:Key="ColorBgSurface1">#141418</Color>
     <Color x:Key="ColorBgSurface2">#1C1C22</Color>
     <Color x:Key="ColorBgElevated">#26262E</Color>
 
     <SolidColorBrush x:Key="BrushBgCanvas" Color="{StaticResource ColorBgCanvas}" />
     <SolidColorBrush x:Key="BrushBgRail" Color="{StaticResource ColorBgRail}" />
+    <SolidColorBrush x:Key="BrushBgHeader" Color="{StaticResource ColorBgHeader}" />
     <SolidColorBrush x:Key="BrushBgSurface1" Color="{StaticResource ColorBgSurface1}" />
     <SolidColorBrush x:Key="BrushBgSurface2" Color="{StaticResource ColorBgSurface2}" />
     <SolidColorBrush x:Key="BrushBgElevated" Color="{StaticResource ColorBgElevated}" />
