@@ -49,6 +49,8 @@ public sealed class SystemTrayService : IDisposable
     private string _activeLightingMode = "none";
     private bool _osdEnabled = true;
     private bool _crosshairEnabled;
+    private bool _debounceEnabled = true;
+    private bool _sniperEnabled;
 
     public event Action? RestoreRequested;
     public event Action<int>? ProfileSwitchRequested;
@@ -56,6 +58,8 @@ public sealed class SystemTrayService : IDisposable
     public event Action<string>? LightingModeSwitchRequested;
     public event Action? OsdToggleRequested;
     public event Action? CrosshairToggleRequested;
+    public event Action? DebounceToggleRequested;
+    public event Action? SniperToggleRequested;
     public event Action? DeviceChangeDetected;
     public event Action? ExitRequested;
 
@@ -97,7 +101,9 @@ public sealed class SystemTrayService : IDisposable
         int pollingRateHz,
         string lightingMode,
         bool osdEnabled,
-        bool crosshairEnabled = false)
+        bool crosshairEnabled = false,
+        bool debounceEnabled = true,
+        bool sniperEnabled = false)
     {
         _activeProfile = Math.Clamp(profileIndex, 0, 2);
         _activeDpiStage = Math.Clamp(activeDpiStage, 0, 3);
@@ -108,6 +114,8 @@ public sealed class SystemTrayService : IDisposable
         _activeLightingMode = lightingMode;
         _osdEnabled = osdEnabled;
         _crosshairEnabled = crosshairEnabled;
+        _debounceEnabled = debounceEnabled;
+        _sniperEnabled = sniperEnabled;
 
         if (!_added) return;
         int currentDpi = _dpiStages[_activeDpiStage];
@@ -182,6 +190,8 @@ public sealed class SystemTrayService : IDisposable
 
             AppendMenuW(hMenu, MF_STRING | (_osdEnabled ? MF_CHECKED : 0), 500, "Ekran Üstü Bildirim (OSD)");
             AppendMenuW(hMenu, MF_STRING | (_crosshairEnabled ? MF_CHECKED : 0), 501, "Ekran Nişangahı (Crosshair)");
+            AppendMenuW(hMenu, MF_STRING | (_debounceEnabled ? MF_CHECKED : 0), 502, "Çift Tıklama Koruması (Debounce)");
+            AppendMenuW(hMenu, MF_STRING | (_sniperEnabled ? MF_CHECKED : 0), 503, "G-Shift Sniper Modu");
             AppendMenuW(hMenu, MF_SEPARATOR, 0, null);
             AppendMenuW(hMenu, MF_STRING, 999, "Çıkış");
 
@@ -221,6 +231,12 @@ public sealed class SystemTrayService : IDisposable
                     break;
                 case 501:
                     CrosshairToggleRequested?.Invoke();
+                    break;
+                case 502:
+                    DebounceToggleRequested?.Invoke();
+                    break;
+                case 503:
+                    SniperToggleRequested?.Invoke();
                     break;
                 case 999:
                     ExitRequested?.Invoke();

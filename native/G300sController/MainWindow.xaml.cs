@@ -82,9 +82,14 @@ public partial class MainWindow : Window
     private readonly SystemTrayService _tray = new();
     private readonly OsdNotificationService _osd = new();
     private readonly CrosshairOverlayService _crosshair = new();
+    private readonly ClickHeatmapService _heatmap = new();
+    private readonly DebounceFilterService _debounce = new();
+    private readonly SniperModeService _sniper = new();
     private readonly DispatcherTimer _livePreviewTimer;
     private CancellationTokenSource? _rateTestCts;
     private CancellationTokenSource? _hotplugDebounceCts;
+    private bool _heatmapModeEnabled;
+    private int _selectedSniperDpi = 250;
 
     private readonly G300sProfile[] _profiles =
     [
@@ -200,11 +205,74 @@ public partial class MainWindow : Window
         {
             CrosshairToggle.IsChecked = !(CrosshairToggle.IsChecked == true);
         });
+        _tray.DebounceToggleRequested += () => Dispatcher.Invoke(() =>
+        {
+            DebounceToggle.IsChecked = !(DebounceToggle.IsChecked == true);
+        });
+        _tray.SniperToggleRequested += () => Dispatcher.Invoke(() =>
+        {
+            SniperToggle.IsChecked = !(SniperToggle.IsChecked == true);
+        });
         _tray.DeviceChangeDetected += OnUsbDeviceChangeDetected;
         _tray.ExitRequested += () =>
         {
             _isExiting = true;
             Dispatcher.Invoke(Close);
+        };
+
+        // Initialize Debounce Filter Service
+        _debounce.DoubleClickFiltered += (btn, ms) =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _osd.ShowNotification("Çift Tıklama Engellendi", $"{btn} tuşunda {ms}ms kontak sıçraması engellendi", "#FFC400");
+                if (DebounceStatusText is not null)
+                {
+                    DebounceStatusText.Text = $"Switch sekme koruması aktif · Engellenen: {_debounce.FilteredClicksCount} tık";
+                }
+            });
+        };
+        _debounce.ValidClickOccurred += btn =>
+        {
+            int bIdx = btn switch
+            {
+                "Left" => 0,
+                "Right" => 1,
+                "Middle" => 2,
+                _ => -1
+            };
+            if (bIdx >= 0)
+            {
+                _heatmap.RecordClick(bIdx);
+            }
+        };
+        _debounce.Start();
+
+        // Initialize Click Heatmap Analytics Service
+        _heatmap.LoadStats();
+        _heatmap.ClickRecorded += (_, _) =>
+        {
+            Dispatcher.BeginInvoke(UpdateHeatmapHeaderStats);
+        };
+        UpdateHeatmapHeaderStats();
+
+        // Initialize Sniper Mode Service
+        _sniper.TargetSniperDpi = _selectedSniperDpi;
+        _sniper.SniperStateChanged += (active, dpi) =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (SniperStatusText is not null)
+                {
+                    SniperStatusText.Text = active
+                        ? $"Sniper Modu Aktif: {dpi} DPI (Nişan Alınıyor)"
+                        : $"G-Shift basıldığında hedef hassasiyeti: {_selectedSniperDpi} DPI (Hazır)";
+                }
+                if (active)
+                {
+                    _osd.ShowNotification("Sniper DPI Aktif", $"{dpi} DPI hassasiyeti", "#00D4FF");
+                }
+            });
         };
 
         _automation.StartHookAndWatcher();
@@ -234,6 +302,12 @@ public partial class MainWindow : Window
 
             await Task.Delay(500);
             CaptureWindowScreenshot(outPath);
+
+            // Capture Heatmap Analytics view
+            HeatmapToggle.IsChecked = true;
+            await Task.Delay(200);
+            CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_heatmap{ext}"));
+            HeatmapToggle.IsChecked = false;
 
             SwitchMainView(1);
             await Task.Delay(250);
@@ -1359,9 +1433,15 @@ public partial class MainWindow : Window
             prof.PollingRateHz,
             _automation.ActiveRgbEffect,
             _automation.OsdNotificationsEnabled,
-            _crosshair.IsEnabled);
+            _crosshair.IsEnabled,
+            _debounce.IsEnabled,
+            SniperToggle?.IsChecked == true);
 
         RefreshHexInspectorUi(prof);
+        if (_heatmapModeEnabled)
+        {
+            UpdateCalloutHeatmapVisuals();
+        }
 
         if (_selectedButtonIndex >= 0)
         {
@@ -1455,11 +1535,129 @@ public partial class MainWindow : Window
             prof.PollingRateHz,
             _automation.ActiveRgbEffect,
             _automation.OsdNotificationsEnabled,
-            _crosshair.IsEnabled);
+            _crosshair.IsEnabled,
+            _debounce.IsEnabled,
+            SniperToggle?.IsChecked == true);
 
         StatusFooterText.Text = visible
             ? "Oyun içi ekran nişangahı (Crosshair) etkinleştirildi."
             : "Oyun içi ekran nişangahı kapatıldı.";
+    }
+
+    private void HeatmapToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        _heatmapModeEnabled = HeatmapToggle.IsChecked == true;
+        UpdateCalloutHeatmapVisuals();
+        StatusFooterText.Text = _heatmapModeEnabled
+            ? "Tuş aktivite ve tıklama ısı haritası görünümü açıldı."
+            : "Standart tuş atama görünümüne dönüldü.";
+    }
+
+    private void ResetHeatmapStats_Click(object sender, RoutedEventArgs e)
+    {
+        _heatmap.ResetStats();
+        UpdateHeatmapHeaderStats();
+        UpdateCalloutHeatmapVisuals();
+        StatusFooterText.Text = "Tıklama istatistikleri ve ısı haritası sıfırlandı.";
+        _osd.ShowNotification("İstatistikler Sıfırlandı", "Isı haritası ve sayaçlar temizlendi", "#00D4FF");
+    }
+
+    private void UpdateHeatmapHeaderStats()
+    {
+        if (HeatmapStatsText is null) return;
+        long total = _heatmap.TotalClicks;
+        double cpm = _heatmap.CurrentCpm;
+        HeatmapStatsText.Text = $"{cpm:0} CPM · {total:N0} Tık";
+
+        if (_heatmapModeEnabled)
+        {
+            UpdateCalloutHeatmapVisuals();
+        }
+    }
+
+    private void UpdateCalloutHeatmapVisuals()
+    {
+        if (OverlayCalloutsCanvas is null) return;
+        var prof = _profiles[_activeProfileIndex];
+
+        for (int i = 0; i < 9; i++)
+        {
+            if (_heatmapModeEnabled)
+            {
+                Color col = _heatmap.GetHeatmapColor(i);
+                var brush = new SolidColorBrush(col);
+                long cnt = _heatmap.GetClickCount(i);
+                double pct = _heatmap.GetNormalizedIntensity(i) * 100.0;
+
+                _calloutAccentBars[i].Background = brush;
+                _anchorDots[i].Fill = brush;
+                _leaderLines[i].Stroke = brush;
+                _calloutActionTexts[i].Text = $"{cnt:N0} Tık ({pct:0}%)";
+                _calloutBorders[i].Background = new SolidColorBrush(Color.FromArgb(32, col.R, col.G, col.B));
+            }
+            else
+            {
+                string spec = prof.Buttons[i];
+                _calloutActionTexts[i].Text = G300sProtocol.GetFriendlyActionTitle(spec);
+                _calloutBorders[i].Background = Brushes.Transparent;
+            }
+        }
+
+        if (!_heatmapModeEnabled)
+        {
+            UpdateCalloutHighlightVisuals();
+        }
+    }
+
+    private void SniperToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        bool enabled = SniperToggle.IsChecked == true;
+        StatusFooterText.Text = enabled
+            ? $"G-Shift Nişan (Sniper) Modu devrede: Hedef {_selectedSniperDpi} DPI."
+            : "G-Shift Nişan (Sniper) Modu kapatıldı.";
+    }
+
+    private void SniperDpiCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressUiEvents || SniperDpiCombo is null) return;
+        if (SniperDpiCombo.SelectedItem is ComboBoxItem { Tag: string t } && int.TryParse(t, out int dpi))
+        {
+            _selectedSniperDpi = dpi;
+            _sniper.TargetSniperDpi = dpi;
+            if (SniperStatusText is not null)
+            {
+                SniperStatusText.Text = $"G-Shift basıldığında hedef hassasiyeti: {_selectedSniperDpi} DPI (Hazır)";
+            }
+        }
+    }
+
+    private void DebounceToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        bool enabled = DebounceToggle.IsChecked == true;
+        _debounce.IsEnabled = enabled;
+        StatusFooterText.Text = enabled
+            ? $"Akıllı çift tıklama filtresi devrede ({_debounce.DebounceThresholdMs} ms)."
+            : "Çift tıklama filtresi devre dışı.";
+        if (DebounceStatusText is not null)
+        {
+            DebounceStatusText.Text = enabled
+                ? $"Switch sekme koruması aktif · Engellenen: {_debounce.FilteredClicksCount} tık"
+                : "Filtre devre dışı";
+        }
+    }
+
+    private void DebounceSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_suppressUiEvents || DebounceSlider is null) return;
+        int ms = (int)Math.Round(DebounceSlider.Value);
+        _debounce.DebounceThresholdMs = ms;
+        if (DebounceValueText is not null)
+        {
+            DebounceValueText.Text = $"{ms} ms";
+        }
     }
 
     private void DeselectButton()
@@ -1538,6 +1736,12 @@ public partial class MainWindow : Window
 
     private void UpdateCalloutHighlightVisuals()
     {
+        if (_heatmapModeEnabled)
+        {
+            UpdateCalloutHeatmapVisuals();
+            return;
+        }
+
         for (int i = 0; i < 9; i++)
         {
             bool isSelected = i == _selectedButtonIndex;
@@ -2540,6 +2744,19 @@ public partial class MainWindow : Window
 
     private void OnHardwareEventReceived(HardwareButtonEvent ev)
     {
+        if (ev.IsPressed)
+        {
+            var prof = _profiles[_activeProfileIndex];
+            for (int b = 0; b < 9; b++)
+            {
+                if (string.Equals(prof.Buttons[b], ev.ActionName, StringComparison.OrdinalIgnoreCase))
+                {
+                    _heatmap.RecordClick(b);
+                    break;
+                }
+            }
+        }
+
         Dispatcher.BeginInvoke(() =>
         {
             string stateLabel = ev.IsPressed ? "Basıldı" : "Bırakıldı";
@@ -2594,6 +2811,19 @@ public partial class MainWindow : Window
 
     private void OnGShiftStateChanged(bool isActive, int targetSlot)
     {
+        if (SniperToggle?.IsChecked == true && _device.IsConnected)
+        {
+            if (isActive)
+            {
+                _sniper.TargetSniperDpi = _selectedSniperDpi;
+                _sniper.ActivateSniper(_device, _profiles[_activeProfileIndex]);
+            }
+            else
+            {
+                _sniper.DeactivateSniper(_device);
+            }
+        }
+
         Dispatcher.BeginInvoke(() =>
         {
             _activeProfileIndex = Math.Clamp(targetSlot, 0, 2);
@@ -2648,6 +2878,8 @@ public partial class MainWindow : Window
         _rateTestCts?.Cancel();
         _rateTestCts?.Dispose();
         _livePreviewTimer.Stop();
+        _debounce.Dispose();
+        _heatmap.SaveStats();
         _crosshair.Dispose();
         _osd.Dispose();
         _tray.Dispose();
