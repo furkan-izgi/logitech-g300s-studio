@@ -1,116 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="100%" height="100%">
   <defs>
-    <!-- Background Radiant Aura -->
-    <radialGradient id="apexAura" cx="50%" cy="50%" r="55%">
-      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.32"/>
-      <stop offset="40%" stop-color="#7C3AED" stop-opacity="0.16"/>
-      <stop offset="75%" stop-color="#EC4899" stop-opacity="0.05"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-
-    <!-- Outer Faceted Titanium Shield Gradient -->
-    <linearGradient id="apexChassis" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1E222D"/>
-      <stop offset="35%" stop-color="#141720"/>
-      <stop offset="75%" stop-color="#0E1017"/>
-      <stop offset="100%" stop-color="#08090D"/>
-    </linearGradient>
-
-    <!-- Precision Neon Cyan / Ultraviolet Edge Beam -->
-    <linearGradient id="apexBorderBeam" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="gLogitechCyan" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#00F0FF"/>
-      <stop offset="32%" stop-color="#38BDF8"/>
-      <stop offset="68%" stop-color="#8B5CF6"/>
-      <stop offset="100%" stop-color="#D946EF"/>
+      <stop offset="100%" stop-color="#0099FF"/>
     </linearGradient>
-
-    <!-- Core Dynamic Energy Glyph Gradient -->
-    <linearGradient id="coreGlyphGrad" x1="0%" y1="0%" x2="100%" y2="90%">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="20%" stop-color="#00F0FF"/>
-      <stop offset="65%" stop-color="#6366F1"/>
-      <stop offset="100%" stop-color="#A855F7"/>
-    </linearGradient>
-
-    <!-- Inner Prismatic Shard Accent -->
-    <linearGradient id="shardPrism" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#F43F5E"/>
-      <stop offset="50%" stop-color="#FB923C"/>
-      <stop offset="100%" stop-color="#FBBF24"/>
-    </linearGradient>
-
-    <!-- Glow Bloom Filter -->
-    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-
-    <!-- Deep Chassis Shadow -->
-    <filter id="chassisShadow" x="-25%" y="-20%" width="150%" height="150%">
-      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.9"/>
-    </filter>
   </defs>
-
-  <!-- Ambient Glow Behind Chassis -->
-  <circle cx="256" cy="256" r="230" fill="url(#apexAura)" />
-
-  <!-- Master Cyber Crest Chassis (Hexagonal Faceted Shield) -->
-  <polygon points="256,28 448,116 448,348 256,484 64,348 64,116"
-           fill="url(#apexChassis)"
-           stroke="url(#apexBorderBeam)"
-           stroke-width="14"
-           stroke-linejoin="round"
-           filter="url(#chassisShadow)" />
-
-  <!-- Inner Inset Laser Line -->
-  <polygon points="256,54 424,130 424,334 256,454 88,334 88,130"
-           fill="none"
-           stroke="#2A3040"
-           stroke-width="2"
-           stroke-dasharray="14,8"
-           opacity="0.75" />
-
-  <!-- Corner Taktik Brackets (Precision Gaming Geometry) -->
-  <path d="M 120,140 L 104,148 L 104,180" fill="none" stroke="#00F0FF" stroke-width="4" stroke-linecap="round" />
-  <path d="M 392,140 L 408,148 L 408,180" fill="none" stroke="#00F0FF" stroke-width="4" stroke-linecap="round" />
-  <path d="M 104,284 L 104,316 L 120,324" fill="none" stroke="#8B5CF6" stroke-width="4" stroke-linecap="round" />
-  <path d="M 408,284 L 408,316 L 392,324" fill="none" stroke="#8B5CF6" stroke-width="4" stroke-linecap="round" />
-
-  <!-- Dynamic Iconic G-Nexus Glyph (Pure Geometric Vector Architecture) -->
-  <!-- Upper Arch & Outer Loop of the Cyber G -->
-  <path d="M 354,166 
-           C 318,136 288,124 246,124 
-           C 174,124 122,182 122,256 
-           C 122,330 174,388 248,388 
-           C 324,388 368,338 372,268 
-           L 242,268 
-           L 242,224 
-           L 416,224 
-           C 418,240 418,254 418,268 
-           C 418,362 348,432 248,432 
-           C 146,432 76,356 76,256 
-           C 76,156 148,80 248,80 
-           C 298,80 342,98 382,132 
-           Z"
-        fill="url(#coreGlyphGrad)"
-        filter="url(#neonGlow)" />
-
-  <!-- Central Prismatic Core Shard (Quantum Nexus Blade) -->
-  <polygon points="256,182 296,246 256,310 216,246"
-           fill="url(#shardPrism)"
-           opacity="0.92" />
-
-  <!-- Central Laser Core Dot -->
-  <circle cx="256" cy="246" r="10" fill="#FFFFFF" filter="url(#neonGlow)" />
-
-  <!-- Horizontal Axis Optics Guide Lines -->
-  <line x1="140" y1="246" x2="200" y2="246" stroke="#00F0FF" stroke-width="3" stroke-linecap="round" opacity="0.6" />
-  <line x1="312" y1="246" x2="350" y2="246" stroke="#00F0FF" stroke-width="3" stroke-linecap="round" opacity="0.6" />
-
-  <!-- Apex Top & Bottom Indicator Beacons -->
-  <polygon points="256,38 266,54 246,54" fill="#00F0FF" />
-  <polygon points="256,474 246,458 266,458" fill="#D946EF" />
+  <!-- Background Glow & Base Accent -->
+  <circle cx="24" cy="24" r="22" fill="#0C0D12" stroke="#1A1D26" stroke-width="1.5"/>
+  <!-- Minimalist Geometric Logitech G Glyph -->
+  <path d="M 36,13 A 16,16 0 1 0 40,24 H 25"
+        fill="none"
+        stroke="url(#gLogitechCyan)"
+        stroke-width="4.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+  <!-- Core Apex Dot -->
+  <circle cx="24" cy="24" r="2.5" fill="#00F0FF"/>
 </svg>

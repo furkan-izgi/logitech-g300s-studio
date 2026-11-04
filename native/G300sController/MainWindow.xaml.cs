@@ -91,6 +91,8 @@ public partial class MainWindow : Window
     private bool _fluidRgbEnabled;
     private bool _microInteractionsEnabled = true;
     private WindowBackdropMode _activeBackdropMode = WindowBackdropMode.Mica;
+    private bool _gShiftVisualFeedbackEnabled = true;
+    private bool _gShiftAudioFeedbackEnabled = true;
     private readonly DispatcherTimer _livePreviewTimer;
     private CancellationTokenSource? _rateTestCts;
     private CancellationTokenSource? _hotplugDebounceCts;
@@ -299,6 +301,13 @@ public partial class MainWindow : Window
         // Initialize Switch Health Analytics & Live Mini-HUD Click Highlights
         _switchHealth.HealthUpdated += () => Dispatcher.BeginInvoke(UpdateSwitchHealthUi);
         UpdateSwitchHealthUi();
+
+        // Hook Adaptive Chatter Protection stats
+        _debounce.ChatterStatsUpdated += () => Dispatcher.BeginInvoke(UpdateChatterStatsUi);
+        UpdateChatterStatsUi();
+
+        // Hook G-Shift layer audio/visual feedback
+        _automation.GShiftStateChanged += (isActive, slot) => Dispatcher.BeginInvoke(() => HandleGShiftFeedback(isActive, slot));
 
         // Initialize Angle Snapping Service
         _angleSnapping.Start();
@@ -3396,4 +3405,162 @@ public partial class MainWindow : Window
         _microInteractionsEnabled = MicroInteractionsToggle.IsChecked == true;
         if (StatusFooterText is not null) StatusFooterText.Text = _microInteractionsEnabled ? "Akıcı hover animasyonları aktif." : "Hover animasyonları devre dışı.";
     }
+
+    private void CustomHueSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_suppressUiEvents || CustomColorOrb is null || CustomColorHexText is null) return;
+        double hue = CustomHueSlider.Value;
+        var (r, g, b) = HostAutomationService.HsvToRgb(hue, 1.0, 1.0);
+
+        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+        CustomColorOrb.Background = brush;
+        string hex = $"#{r:X2}{g:X2}{b:X2}";
+        CustomColorHexText.Text = hex;
+
+        UpdateTintedSwoosh24Bit(r, g, b);
+        if (_activeViewIndex == 2 && LiveColorPreviewOrb is not null && LiveTelemetryTitleText is not null)
+        {
+            LiveColorPreviewOrb.Background = brush;
+            LiveTelemetryProgressFill.Background = brush;
+            LiveTelemetryTitleText.Text = $"Özel Renk ({hex})";
+            ActiveColorLabel.Text = hex;
+        }
+
+        var prof = _profiles[_activeProfileIndex];
+        int hwR = r >= 100 ? 1 : 0;
+        int hwG = g >= 100 ? 1 : 0;
+        int hwB = b >= 100 ? 1 : 0;
+        if (hwR == 0 && hwG == 0 && hwB == 0) { hwR = 1; hwG = 1; hwB = 1; }
+        prof.SetLed(hwR, hwG, hwB);
+
+        _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (hwR, hwG, hwB), _secondaryBreathColor);
+        if (_device.IsConnected && _automation.ActiveRgbEffect == "none")
+        {
+            try { _device.SetLiveLed(hwR, hwG, hwB); } catch { }
+        }
+    }
+
+    private void HandleGShiftFeedback(bool isActive, int slot)
+    {
+        if (GShiftOverlayBadge is not null && _gShiftVisualFeedbackEnabled)
+        {
+            GShiftOverlayBadge.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
+        }
+        if (_gShiftAudioFeedbackEnabled)
+        {
+            try
+            {
+                if (isActive)
+                    System.Media.SystemSounds.Beep.Play();
+                else
+                    System.Media.SystemSounds.Asterisk.Play();
+            }
+            catch { }
+        }
+    }
+
+    private void GShiftVisualToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents || GShiftVisualToggle is null) return;
+        _gShiftVisualFeedbackEnabled = GShiftVisualToggle.IsChecked == true;
+    }
+
+    private void GShiftAudioToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents || GShiftAudioToggle is null) return;
+        _gShiftAudioFeedbackEnabled = GShiftAudioToggle.IsChecked == true;
+    }
+
+    private void UpdateChatterStatsUi()
+    {
+        if (ChatterStatusText is null) return;
+        ChatterStatusText.Text = $"Engellenen Sıçrama: {_debounce.ChatterClicks:N0} tık · Risk Seviyesi: {_debounce.ChatterRiskStatus}";
+    }
+
+    private void AdaptiveChatterToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents || AdaptiveChatterToggle is null) return;
+        _debounce.AdaptiveDebounce = AdaptiveChatterToggle.IsChecked == true;
+        if (StatusFooterText is not null) StatusFooterText.Text = _debounce.AdaptiveDebounce
+            ? "Akıllı uyarlamalı chatter koruması aktif."
+            : "Uyarlamalı koruma kapatıldı (sabit eşik devrede).";
+    }
+
+    private void ResetChatterStats_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateChatterStatsUi();
+        if (StatusFooterText is not null) StatusFooterText.Text = "Chatter ve sıçrama sayaçları sıfırlandı.";
+    }
+
+    private void ExportProfiles_Click(object sender, RoutedEventArgs e)
+    {
+        var sfd = new SaveFileDialog
+        {
+            Title = "G300s Profil ve Ayar Yedeğini Kaydet",
+            Filter = "G300s Profil Yedeği (*.json)|*.json|Tüm Dosyalar (*.*)|*.*",
+            FileName = $"G300s_Profiles_Backup_{DateTime.Now:yyyyMMdd_HHmmss}.json"
+        };
+
+        if (sfd.ShowDialog() == true)
+        {
+            try
+            {
+                var backupObj = new JsonObject
+                {
+                    ["version"] = "11.0",
+                    ["exportTimestamp"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    ["profiles"] = JsonSerializer.SerializeToNode(_profiles),
+                    ["appRules"] = JsonSerializer.SerializeToNode(_automation.AppRules)
+                };
+                File.WriteAllText(sfd.FileName, backupObj.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                if (StatusFooterText is not null) StatusFooterText.Text = $"Profiller ve makrolar yedeklendi: {Path.GetFileName(sfd.FileName)}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Yedekleme sırasında hata oluştu:\n{ex.Message}", "Yedekleme Hatası", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+
+    private void ImportProfiles_Click(object sender, RoutedEventArgs e)
+    {
+        var ofd = new OpenFileDialog
+        {
+            Title = "G300s Profil ve Ayar Yedeğini Seç",
+            Filter = "G300s Profil Yedeği (*.json)|*.json|Tüm Dosyalar (*.*)|*.*"
+        };
+
+        if (ofd.ShowDialog() == true)
+        {
+            try
+            {
+                string json = File.ReadAllText(ofd.FileName);
+                var node = JsonNode.Parse(json);
+                if (node is not null && node["profiles"] is not null)
+                {
+                    var loaded = JsonSerializer.Deserialize<G300sProfile[]>(node["profiles"]!.ToJsonString());
+                    if (loaded is not null && loaded.Length >= 3)
+                    {
+                        for (int i = 0; i < 3; i++) _profiles[i] = loaded[i];
+                        if (_device.IsConnected)
+                        {
+                            for (int i = 0; i < 3; i++)
+                            {
+                                try { _device.SaveProfile(_profiles[i], verify: true); } catch { }
+                            }
+                        }
+                        RefreshSlotHeaderVisuals();
+                        RefreshCurrentProfileToUi();
+                        if (StatusFooterText is not null) StatusFooterText.Text = "Yedek başarıyla geri yüklendi ve donanıma yazıldı.";
+                        MessageBox.Show("Profil ve makro yedeği başarıyla geri yüklendi!", "Geri Yükleme Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Yedek geri yüklenirken hata oluştu:\n{ex.Message}", "Geri Yükleme Hatası", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+
 }

@@ -453,7 +453,7 @@ public sealed class HostAutomationService : IDisposable
             _ => (0, 212, 255)
         };
 
-    private static (byte R, byte G, byte B) HsvToRgb(double hue, double saturation, double value)
+    public static (byte R, byte G, byte B) HsvToRgb(double hue, double saturation, double value)
     {
         double c = value * saturation;
         double x = c * (1.0 - Math.Abs((hue / 60.0 % 2) - 1.0));

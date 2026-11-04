@@ -339,34 +339,65 @@
         </Setter>
     </Style>
 
-    <!-- Custom Minimalist Slider -->
-    <Style TargetType="Slider">
+    <!-- Minimalist Smooth Slider Styles with Full Drag & Click Track Support -->
+    <Style x:Key="SliderRepeatButtonStyle" TargetType="RepeatButton">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Rectangle Fill="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SliderThumbStyle" TargetType="Thumb">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="22" />
         <Setter Property="Height" Value="22" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Grid Width="22" Height="22" Background="Transparent">
+                        <Ellipse Width="16" Height="16"
+                                 Fill="{DynamicResource BrushActiveWhite}"
+                                 Stroke="#00D4FF"
+                                 StrokeThickness="2"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="Slider">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
                 <ControlTemplate TargetType="Slider">
-                    <Grid VerticalAlignment="Center">
-                        <Border Height="4" CornerRadius="2" Background="{StaticResource BrushBgElevated}" VerticalAlignment="Center" />
+                    <Grid VerticalAlignment="Center" Height="28">
+                        <Border Height="6" CornerRadius="3"
+                                Background="{DynamicResource BrushBgElevated}"
+                                VerticalAlignment="Center"
+                                Margin="2,0" />
                         <Track x:Name="PART_Track">
                             <Track.DecreaseRepeatButton>
-                                <RepeatButton Command="Slider.DecreaseLarge" Opacity="0" Focusable="False" />
+                                <RepeatButton Command="{x:Static Slider.DecreaseLarge}"
+                                              Style="{StaticResource SliderRepeatButtonStyle}" />
                             </Track.DecreaseRepeatButton>
                             <Track.IncreaseRepeatButton>
-                                <RepeatButton Command="Slider.IncreaseLarge" Opacity="0" Focusable="False" />
+                                <RepeatButton Command="{x:Static Slider.IncreaseLarge}"
+                                              Style="{StaticResource SliderRepeatButtonStyle}" />
                             </Track.IncreaseRepeatButton>
                             <Track.Thumb>
-                                <Thumb Width="16" Height="16">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Ellipse Width="16" Height="16"
-                                                     Fill="{StaticResource BrushActiveWhite}"
-                                                     Stroke="#09090B"
-                                                     StrokeThickness="2" />
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
+                                <Thumb Style="{StaticResource SliderThumbStyle}" />
                             </Track.Thumb>
                         </Track>
                     </Grid>
