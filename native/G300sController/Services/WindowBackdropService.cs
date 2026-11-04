@@ -21,20 +21,8 @@ public static class WindowBackdropService
     private const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
     private const int DWMWA_MICA_EFFECT = 1029;
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MARGINS
-    {
-        public int cxLeftWidth;
-        public int cxRightWidth;
-        public int cyTopHeight;
-        public int cyBottomHeight;
-    }
-
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
-
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMarInset);
 
     public static bool IsWindows11OrGreater => Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= 22000;
     public static bool SupportsSystemBackdrop => Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= 22621;
@@ -54,17 +42,6 @@ public static class WindowBackdropService
             if (!IsWindows11OrGreater)
             {
                 return false;
-            }
-
-            if (mode != WindowBackdropMode.Solid)
-            {
-                var margins = new MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
-                DwmExtendFrameIntoClientArea(hwnd, ref margins);
-            }
-            else
-            {
-                var margins = new MARGINS { cxLeftWidth = 0, cxRightWidth = 0, cyTopHeight = 0, cyBottomHeight = 0 };
-                DwmExtendFrameIntoClientArea(hwnd, ref margins);
             }
 
             if (SupportsSystemBackdrop)

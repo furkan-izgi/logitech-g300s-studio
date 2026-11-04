@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Logitech G300s"
-        Icon="Assets/g300s.ico"
+        Icon="pack://application:,,,/Assets/g300s.ico"
         Width="1420" Height="850"
         MinWidth="1160" MinHeight="720"
         WindowStartupLocation="CenterScreen"
@@ -17,7 +17,7 @@
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="54"
                       CornerRadius="12"
-                      GlassFrameThickness="0"
+                      GlassFrameThickness="-1"
                       ResizeBorderThickness="6"
                       UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
@@ -973,14 +973,14 @@
                                                   IsChecked="True"
                                                   Checked="DebounceToggle_Changed" Unchecked="DebounceToggle_Changed"
                                                   VerticalAlignment="Center"
-                                                  ToolTip="Eskiyen Omron mikro anahtarlardaki mekanik kontak sekmesi ve istemsiz çift tıklamaları engeller" />
+                                                  ToolTip="Eskiyen Omron mikro anahtarlardaki mekanik kontak sekmesini ve çift tıklamaları engeller (Yeni: 10-15ms · Eskiyen: 25-45ms)" />
 
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                             <TextBlock Text="Eşik:" FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                            <Slider x:Name="DebounceSlider" Width="100" Minimum="5" Maximum="40" Value="18"
+                                            <Slider x:Name="DebounceSlider" Width="105" Minimum="5" Maximum="75" Value="28"
                                                     TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"
                                                     ValueChanged="DebounceSlider_ValueChanged" />
-                                            <TextBlock x:Name="DebounceValueText" Text="18 ms"
+                                            <TextBlock x:Name="DebounceValueText" Text="28 ms"
                                                        FontSize="11.5" FontWeight="Medium" Foreground="{StaticResource BrushTextPrimary}"
                                                        VerticalAlignment="Center" Margin="6,0,0,0" Width="40" />
                                         </StackPanel>
@@ -1105,6 +1105,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <StackPanel Grid.Row="0" Margin="0,0,0,16">
@@ -1116,6 +1117,31 @@
 
                                 <!-- Clean Borderless List of 3 Modes -->
                                 <StackPanel x:Name="LightingModesList" Grid.Row="1" />
+
+                                <!-- 8 Fixed Hardware LED Colors (G300s Native EEPROM Colors) -->
+                                <Border Grid.Row="2" Background="{DynamicResource BrushBgSurface2}"
+                                        BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                        CornerRadius="10" Padding="18,14" Margin="0,14,0,0">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,12">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Sabit Donanım Rengi (8 Renk):"
+                                                           FontSize="12.5" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,10,0" />
+                                                <TextBlock Text="Fare belleğinde saklanan 8 orijinal LED rengi"
+                                                           FontSize="11" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <TextBlock x:Name="CurrentHardwareColorText"
+                                                       Text="Turkuaz (Cyan)"
+                                                       FontSize="12" FontWeight="Medium"
+                                                       Foreground="{StaticResource BrushAccentCyan}"
+                                                       HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- 8 Color Orbs in UniformGrid -->
+                                        <UniformGrid x:Name="LedSwatchesGrid" Columns="8" Height="36" HorizontalAlignment="Stretch" />
+                                    </StackPanel>
+                                </Border>
                             </Grid>
                         </Border>
                     </Grid>

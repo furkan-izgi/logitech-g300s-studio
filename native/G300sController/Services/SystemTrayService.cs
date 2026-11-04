@@ -40,6 +40,7 @@ public sealed class SystemTrayService : IDisposable
 
     private IntPtr _hwnd;
     private IntPtr _hIcon;
+    private System.Drawing.Icon? _trayIconRef;
     private NOTIFYICONDATAW _nid;
     private bool _added;
 
@@ -74,6 +75,39 @@ public sealed class SystemTrayService : IDisposable
         if (File.Exists(iconPath))
         {
             _hIcon = LoadImageW(IntPtr.Zero, iconPath, 1, 16, 16, 0x0010 | 0x0040);
+        }
+        if (_hIcon == IntPtr.Zero)
+        {
+            try
+            {
+                var sri = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/g300s.ico", UriKind.Absolute));
+                if (sri != null)
+                {
+                    using var stream = sri.Stream;
+                    using var ms = new MemoryStream();
+                    stream.CopyTo(ms);
+                    ms.Position = 0;
+                    _trayIconRef = new System.Drawing.Icon(ms, 16, 16);
+                    _hIcon = _trayIconRef.Handle;
+                }
+            }
+            catch { }
+        }
+        if (_hIcon == IntPtr.Zero)
+        {
+            try
+            {
+                string? proc = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(proc) && File.Exists(proc))
+                {
+                    _trayIconRef = System.Drawing.Icon.ExtractAssociatedIcon(proc);
+                    if (_trayIconRef != null)
+                    {
+                        _hIcon = _trayIconRef.Handle;
+                    }
+                }
+            }
+            catch { }
         }
         if (_hIcon == IntPtr.Zero)
         {
@@ -256,6 +290,8 @@ public sealed class SystemTrayService : IDisposable
             Shell_NotifyIconW(NIM_DELETE, ref _nid);
             _added = false;
         }
+        _trayIconRef?.Dispose();
+        _trayIconRef = null;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

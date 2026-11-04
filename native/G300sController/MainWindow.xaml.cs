@@ -101,6 +101,9 @@ public partial class MainWindow : Window
     private bool _heatmapModeEnabled;
     private int _selectedSniperDpi = 250;
 
+    private System.Drawing.Icon? _wndIconBig;
+    private System.Drawing.Icon? _wndIconSmall;
+
     private readonly G300sProfile[] _profiles =
     [
         new G300sProfile { Index = 0, LedR = 1, LedG = 0, LedB = 1, PollingRateHz = 1000, DefaultDpiStage = 1 },
@@ -186,7 +189,89 @@ public partial class MainWindow : Window
         // Start with solid dark canvas during window construction for reliable layout initialization
         WindowBackdropService.ApplyBackdrop(this, WindowBackdropMode.Solid);
         ApplyBackdropVisualStyles(WindowBackdropMode.Solid);
+
+        ApplyWindowIcons(hwnd);
     }
+
+    private void ApplyWindowIcons(IntPtr hwnd)
+    {
+        try
+        {
+            var sri = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/g300s.ico", UriKind.Absolute));
+            if (sri != null)
+            {
+                using var stream = sri.Stream;
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                ms.Position = 0;
+                _wndIconBig = new System.Drawing.Icon(ms, 32, 32);
+                ms.Position = 0;
+                _wndIconSmall = new System.Drawing.Icon(ms, 16, 16);
+            }
+        }
+        catch { }
+
+        if (_wndIconBig == null)
+        {
+            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "g300s.ico");
+            if (File.Exists(iconPath))
+            {
+                try
+                {
+                    _wndIconBig = new System.Drawing.Icon(iconPath, 32, 32);
+                    _wndIconSmall = new System.Drawing.Icon(iconPath, 16, 16);
+                }
+                catch { }
+            }
+        }
+
+        if (_wndIconBig == null)
+        {
+            try
+            {
+                string? proc = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(proc) && File.Exists(proc))
+                {
+                    _wndIconBig = System.Drawing.Icon.ExtractAssociatedIcon(proc);
+                    _wndIconSmall = _wndIconBig;
+                }
+            }
+            catch { }
+        }
+
+        if (_wndIconBig != null)
+        {
+            SendMessage(hwnd, WM_SETICON, new IntPtr(ICON_BIG), _wndIconBig.Handle);
+            SetClassLong(hwnd, GCLP_HICON, _wndIconBig.Handle);
+        }
+        if (_wndIconSmall != null)
+        {
+            SendMessage(hwnd, WM_SETICON, new IntPtr(ICON_SMALL), _wndIconSmall.Handle);
+            SetClassLong(hwnd, GCLP_HICONSM, _wndIconSmall.Handle);
+        }
+    }
+
+    private const int WM_SETICON = 0x0080;
+    private const int ICON_SMALL = 0;
+    private const int ICON_BIG = 1;
+    private const int GCLP_HICON = -14;
+    private const int GCLP_HICONSM = -34;
+
+    private static IntPtr SetClassLong(IntPtr hWnd, int nIndex, IntPtr dwNewLong)
+    {
+        if (IntPtr.Size == 8)
+            return SetClassLongPtr64(hWnd, nIndex, dwNewLong);
+        return new IntPtr(SetClassLong32(hWnd, nIndex, unchecked((uint)dwNewLong.ToInt64())));
+    }
+
+    [DllImport("user32.dll", EntryPoint = "SetClassLong")]
+    private static extern uint SetClassLong32(IntPtr hWnd, int nIndex, uint dwNewLong);
+
+    [DllImport("user32.dll", EntryPoint = "SetClassLongPtr")]
+    private static extern IntPtr SetClassLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
@@ -221,8 +306,16 @@ public partial class MainWindow : Window
 
             if (_isMicaBackdropEnabled)
             {
-                WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
-                ApplyBackdropVisualStyles(_activeBackdropMode);
+                bool ok = WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
+                if (ok)
+                {
+                    ApplyBackdropVisualStyles(_activeBackdropMode);
+                }
+                else
+                {
+                    WindowBackdropService.ApplyBackdrop(this, WindowBackdropMode.Solid);
+                    ApplyBackdropVisualStyles(WindowBackdropMode.Solid);
+                }
             }
         }
 
@@ -489,14 +582,36 @@ public partial class MainWindow : Window
 
     private static BitmapSource? LoadPng(string path)
     {
-        if (!File.Exists(path)) return null;
-        var bi = new BitmapImage();
-        bi.BeginInit();
-        bi.CacheOption = BitmapCacheOption.OnLoad;
-        bi.UriSource = new Uri(path, UriKind.Absolute);
-        bi.EndInit();
-        bi.Freeze();
-        return bi;
+        if (File.Exists(path))
+        {
+            try
+            {
+                var bi = new BitmapImage();
+                bi.BeginInit();
+                bi.CacheOption = BitmapCacheOption.OnLoad;
+                bi.UriSource = new Uri(path, UriKind.Absolute);
+                bi.EndInit();
+                bi.Freeze();
+                return bi;
+            }
+            catch { }
+        }
+
+        try
+        {
+            string fileName = Path.GetFileName(path);
+            var packUri = new Uri($"pack://application:,,,/Assets/{fileName}", UriKind.Absolute);
+            var bi = new BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = BitmapCacheOption.OnLoad;
+            bi.UriSource = packUri;
+            bi.EndInit();
+            bi.Freeze();
+            return bi;
+        }
+        catch { }
+
+        return null;
     }
 
     private static bool[,] ExtractHitMask(BitmapSource source)
@@ -1063,6 +1178,19 @@ public partial class MainWindow : Window
             LightingModesList.Children.Add(row);
         }
 
+        if (LedSwatchesGrid is not null)
+        {
+            LedSwatchesGrid.Children.Clear();
+            for (int i = 0; i < PaletteSwatches.Length; i++)
+            {
+                var sw = PaletteSwatches[i];
+                int idx = i;
+                var orb = CreateColorOrb(sw.Hex, $"{sw.Name} ({sw.Hex})", () => SelectLedColor(sw.R, sw.G, sw.B));
+                _ledSwatchBorders[idx] = orb;
+                LedSwatchesGrid.Children.Add(orb);
+            }
+        }
+
         UpdateLightingModeSelectionVisuals("none");
     }
 
@@ -1070,19 +1198,20 @@ public partial class MainWindow : Window
     {
         var outer = new Border
         {
-            Width = 28,
-            Height = 28,
-            CornerRadius = new CornerRadius(14),
+            Width = 32,
+            Height = 32,
+            CornerRadius = new CornerRadius(16),
             BorderThickness = new Thickness(2),
             BorderBrush = Brushes.Transparent,
             Padding = new Thickness(2),
             Cursor = Cursors.Hand,
-            ToolTip = tooltip
+            ToolTip = tooltip,
+            HorizontalAlignment = HorizontalAlignment.Center
         };
 
         var inner = new Border
         {
-            CornerRadius = new CornerRadius(11),
+            CornerRadius = new CornerRadius(13),
             Background = (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!,
             BorderBrush = new SolidColorBrush(Color.FromArgb(45, 255, 255, 255)),
             BorderThickness = new Thickness(1)
@@ -1583,6 +1712,30 @@ public partial class MainWindow : Window
         {
             UpdateTintedSwoosh24Bit(_activeCustomColor24Bit.Value.R, _activeCustomColor24Bit.Value.G, _activeCustomColor24Bit.Value.B);
         }
+
+        for (int i = 0; i < PaletteSwatches.Length; i++)
+        {
+            var sw = PaletteSwatches[i];
+            bool selected = prof.LedR == sw.R && prof.LedG == sw.G && prof.LedB == sw.B;
+            if (_ledSwatchBorders[i] is not null)
+            {
+                _ledSwatchBorders[i].BorderBrush = selected ? (Brush)FindResource("BrushActiveWhite") : Brushes.Transparent;
+            }
+        }
+
+        if (CurrentHardwareColorText is not null)
+        {
+            CurrentHardwareColorText.Text = prof.ColorName;
+            try
+            {
+                CurrentHardwareColorText.Foreground = (SolidColorBrush)new BrushConverter().ConvertFromString(prof.ColorHex)!;
+            }
+            catch
+            {
+                CurrentHardwareColorText.Foreground = (Brush)FindResource("BrushTextPrimary");
+            }
+        }
+
         RefreshHexInspectorUi(prof);
         if (_heatmapModeEnabled)
         {
@@ -2836,10 +2989,7 @@ public partial class MainWindow : Window
             shortcut.TargetPath = exePath;
             shortcut.WorkingDirectory = Path.GetDirectoryName(exePath);
             shortcut.Description = "Logitech G300s Studio — Donanım ve Otomasyon Kontrol Merkezi";
-            if (File.Exists(iconPath))
-            {
-                shortcut.IconLocation = iconPath;
-            }
+            shortcut.IconLocation = $"{exePath},0";
             shortcut.Save();
 
             if (StatusFooterText is not null) StatusFooterText.Text = "Masaüstüne 'Logitech G300s Studio' kısayolu oluşturuldu.";
@@ -3175,6 +3325,8 @@ public partial class MainWindow : Window
         _tray.Dispose();
         _automation.Dispose();
         _device.Dispose();
+        _wndIconBig?.Dispose();
+        _wndIconSmall?.Dispose();
     }
 
     private void CaptureWindowScreenshot(string outputPath)
@@ -3512,15 +3664,15 @@ public partial class MainWindow : Window
             this.Background = Brushes.Transparent;
             if (WindowOuterBorder is not null)
             {
-                WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(160, 0x09, 0x09, 0x0B));
+                WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(150, 0x09, 0x09, 0x0C));
                 WindowOuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
             }
-            Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(160, 0x09, 0x09, 0x0B));
-            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromRgb(0x0E, 0x0E, 0x11));
-            Application.Current.Resources["BrushBgHeader"] = new SolidColorBrush(Color.FromArgb(180, 0x0E, 0x0E, 0x11));
-            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x18));
-            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x22));
-            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromRgb(0x26, 0x26, 0x2E));
+            Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(150, 0x09, 0x09, 0x0C));
+            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromArgb(180, 0x0E, 0x0E, 0x13));
+            Application.Current.Resources["BrushBgHeader"] = new SolidColorBrush(Color.FromArgb(170, 0x0E, 0x0E, 0x13));
+            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromArgb(215, 0x14, 0x14, 0x1A));
+            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromArgb(225, 0x1C, 0x1C, 0x24));
+            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromArgb(238, 0x26, 0x26, 0x30));
         }
         else
         {
@@ -3547,9 +3699,18 @@ public partial class MainWindow : Window
         _isMicaBackdropEnabled = MicaBackdropToggle.IsChecked == true;
         if (_isMicaBackdropEnabled)
         {
-            WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
-            ApplyBackdropVisualStyles(_activeBackdropMode);
-            if (StatusFooterText is not null) StatusFooterText.Text = $"Windows 11 {_activeBackdropMode} yarı saydam akrilik cam uygulandı.";
+            bool ok = WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
+            if (ok)
+            {
+                ApplyBackdropVisualStyles(_activeBackdropMode);
+                if (StatusFooterText is not null) StatusFooterText.Text = $"Windows 11 {_activeBackdropMode} yarı saydam akrilik cam uygulandı.";
+            }
+            else
+            {
+                WindowBackdropService.ApplyBackdrop(this, WindowBackdropMode.Solid);
+                ApplyBackdropVisualStyles(WindowBackdropMode.Solid);
+                if (StatusFooterText is not null) StatusFooterText.Text = "Sistem donanım/Windows sürümü bu efekti desteklemediği için mat koyu tema uygulandı.";
+            }
         }
         else
         {
@@ -3566,8 +3727,16 @@ public partial class MainWindow : Window
         _activeBackdropMode = (WindowBackdropMode)modeVal;
         if (MicaBackdropToggle?.IsChecked == true)
         {
-            WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
-            ApplyBackdropVisualStyles(_activeBackdropMode);
+            bool ok = WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
+            if (ok)
+            {
+                ApplyBackdropVisualStyles(_activeBackdropMode);
+            }
+            else
+            {
+                WindowBackdropService.ApplyBackdrop(this, WindowBackdropMode.Solid);
+                ApplyBackdropVisualStyles(WindowBackdropMode.Solid);
+            }
         }
     }
 

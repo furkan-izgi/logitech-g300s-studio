@@ -14,6 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\**\*" />
     <Content Include="Assets\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

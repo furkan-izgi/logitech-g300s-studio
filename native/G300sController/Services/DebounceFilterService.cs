@@ -12,9 +12,9 @@ namespace G300sController.Services;
 /// </summary>
 public sealed class DebounceFilterService : IDisposable
 {
-    private const int DefaultDebounceThresholdMs = 18;
+    private const int DefaultDebounceThresholdMs = 28;
     private const int MinDebounceThresholdMs = 5;
-    private const int MaxDebounceThresholdMs = 50;
+    private const int MaxDebounceThresholdMs = 80;
 
     private readonly object _stateLock = new();
     private readonly ManualResetEventSlim _readyEvent = new(false);
@@ -27,7 +27,7 @@ public sealed class DebounceFilterService : IDisposable
     private int _debounceThresholdMs = DefaultDebounceThresholdMs;
     private volatile bool _filterInjectedClicks;
     private volatile bool _debounceMiddleButton = true;
-    private volatile bool _debounceReleaseEvents;
+    private volatile bool _debounceReleaseEvents = true;
 
     private long _filteredClicksCount;
     private long _leftFilteredClicksCount;
