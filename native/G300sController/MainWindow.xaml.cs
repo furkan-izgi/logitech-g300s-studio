@@ -3088,6 +3088,42 @@ public partial class MainWindow : Window
         Close();
     }
 
+    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            if (e.OriginalSource is DependencyObject depObj)
+            {
+                var parentButton = FindVisualParent<Button>(depObj);
+                if (parentButton is not null) return;
+            }
+
+            if (e.ClickCount == 2)
+            {
+                CaptionMaximize_Click(sender, e);
+            }
+            else
+            {
+                if (WindowState == WindowState.Maximized)
+                {
+                    Point mousePos = PointToScreen(e.GetPosition(this));
+                    WindowState = WindowState.Normal;
+                    Left = mousePos.X - (RestoreBounds.Width / 2);
+                    Top = mousePos.Y - 15;
+                }
+                DragMove();
+            }
+        }
+    }
+
+    private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+    {
+        DependencyObject? parentObject = VisualTreeHelper.GetParent(child);
+        if (parentObject == null) return null;
+        if (parentObject is T parent) return parent;
+        return FindVisualParent<T>(parentObject);
+    }
+
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         if (!_isExiting)

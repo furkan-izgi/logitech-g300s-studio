@@ -16,7 +16,7 @@
         TextOptions.TextRenderingMode="ClearType">
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="54"
+        <WindowChrome CaptionHeight="0"
                       CornerRadius="12"
                       GlassFrameThickness="0"
                       ResizeBorderThickness="6"
@@ -56,7 +56,8 @@
                     Background="{DynamicResource BrushBgRail}"
                     BorderBrush="{StaticResource BrushBorderSubtle}"
                     BorderThickness="0,0,0,1"
-                    Padding="22,0,12,0">
+                    Padding="22,0,12,0"
+                    MouseLeftButtonDown="Header_MouseLeftButtonDown">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
