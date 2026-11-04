@@ -3561,23 +3561,21 @@ public partial class MainWindow : Window
     {
         bool isTranslucent = mode is WindowBackdropMode.Mica or WindowBackdropMode.Acrylic or WindowBackdropMode.MicaAlt;
 
-        // Header always maintains a rich, solid dark matte carbon surface so native DWM buttons behind it can never show through
-        var headerBrush = new SolidColorBrush(Color.FromRgb(0x0E, 0x0E, 0x11));
-        Application.Current.Resources["BrushBgHeader"] = headerBrush;
-
         if (isTranslucent)
         {
             this.Background = Brushes.Transparent;
             if (WindowOuterBorder is not null)
             {
-                WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(0x28, 0x09, 0x09, 0x0B));
+                WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(0x18, 0x09, 0x09, 0x0B));
                 WindowOuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
             }
-            Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(0x28, 0x09, 0x09, 0x0B));
-            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromArgb(0x38, 0x0E, 0x0E, 0x11));
-            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromArgb(0x4D, 0x14, 0x14, 0x18));
-            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromArgb(0x60, 0x1C, 0x1C, 0x22));
-            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromArgb(0x75, 0x26, 0x26, 0x2E));
+            Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(0x18, 0x09, 0x09, 0x0B));
+            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromArgb(0x28, 0x0E, 0x0E, 0x11));
+            // Header seamlessly adopts the modern Windows 11 Mica / Acrylic blur trend
+            Application.Current.Resources["BrushBgHeader"] = new SolidColorBrush(Color.FromArgb(0x25, 0x0E, 0x0E, 0x11));
+            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromArgb(0x40, 0x14, 0x14, 0x18));
+            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromArgb(0x55, 0x1C, 0x1C, 0x22));
+            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromArgb(0x68, 0x26, 0x26, 0x2E));
         }
         else
         {
@@ -3590,6 +3588,7 @@ public partial class MainWindow : Window
             }
             Application.Current.Resources["BrushBgCanvas"] = canvasBrush;
             Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromRgb(0x0E, 0x0E, 0x11));
+            Application.Current.Resources["BrushBgHeader"] = new SolidColorBrush(Color.FromRgb(0x0E, 0x0E, 0x11));
             Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x18));
             Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x22));
             Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromRgb(0x26, 0x26, 0x2E));
