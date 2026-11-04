@@ -57,6 +57,11 @@ public sealed class DebounceFilterService : IDisposable
     public event Action<string>? ValidClickOccurred;
 
     /// <summary>
+    /// Occurs when a valid click passes through, providing button name and screen display coordinates (pt.x, pt.y).
+    /// </summary>
+    public event Action<string, int, int>? ValidClickWithPointOccurred;
+
+    /// <summary>
     /// Gets or sets whether the anti-double-click debounce filter is actively suppressing switch chatter.
     /// Default is true.
     /// </summary>
@@ -328,19 +333,27 @@ public sealed class DebounceFilterService : IDisposable
                 msg != Win32.WM_RBUTTONDOWN &&
                 msg != Win32.WM_RBUTTONUP &&
                 msg != Win32.WM_MBUTTONDOWN &&
-                msg != Win32.WM_MBUTTONUP)
+                msg != Win32.WM_MBUTTONUP &&
+                msg != Win32.WM_XBUTTONDOWN &&
+                msg != Win32.WM_XBUTTONUP)
             {
                 // Rapid pass-through for WM_MOUSEMOVE, WM_MOUSEWHEEL, etc.
                 return Win32.CallNextHookEx(_hookHandle, nCode, wParam, lParam);
             }
 
             bool isInjected = false;
+            int ptX = 0;
+            int ptY = 0;
+            int xbuttonId = 0;
             if (lParam != IntPtr.Zero)
             {
                 unsafe
                 {
                     Win32.MSLLHOOKSTRUCT* pStruct = (Win32.MSLLHOOKSTRUCT*)lParam;
                     isInjected = (pStruct->flags & (Win32.LLMHF_INJECTED | Win32.LLMHF_LOWER_IL_INJECTED)) != 0;
+                    ptX = pStruct->pt.x;
+                    ptY = pStruct->pt.y;
+                    xbuttonId = (int)((pStruct->mouseData >> 16) & 0xFFFF);
                 }
             }
 
@@ -367,10 +380,18 @@ public sealed class DebounceFilterService : IDisposable
                 return (IntPtr)1;
             }
 
-            if (msg is Win32.WM_LBUTTONDOWN or Win32.WM_RBUTTONDOWN or Win32.WM_MBUTTONDOWN)
+            if (msg is Win32.WM_LBUTTONDOWN or Win32.WM_RBUTTONDOWN or Win32.WM_MBUTTONDOWN or Win32.WM_XBUTTONDOWN)
             {
-                string bName = msg == Win32.WM_LBUTTONDOWN ? "Left" : (msg == Win32.WM_RBUTTONDOWN ? "Right" : "Middle");
+                string bName = msg switch
+                {
+                    Win32.WM_LBUTTONDOWN => "Left",
+                    Win32.WM_RBUTTONDOWN => "Right",
+                    Win32.WM_MBUTTONDOWN => "Middle",
+                    Win32.WM_XBUTTONDOWN => (xbuttonId == 1 ? "XButton1" : "XButton2"),
+                    _ => "Left"
+                };
                 ValidClickOccurred?.Invoke(bName);
+                ValidClickWithPointOccurred?.Invoke(bName, ptX, ptY);
             }
         }
         catch (Exception ex)
@@ -608,6 +629,8 @@ public sealed class DebounceFilterService : IDisposable
         public const int WM_RBUTTONUP = 0x0205;
         public const int WM_MBUTTONDOWN = 0x0207;
         public const int WM_MBUTTONUP = 0x0208;
+        public const int WM_XBUTTONDOWN = 0x020B;
+        public const int WM_XBUTTONUP = 0x020C;
 
         public const uint LLMHF_INJECTED = 0x00000001;
         public const uint LLMHF_LOWER_IL_INJECTED = 0x00000002;

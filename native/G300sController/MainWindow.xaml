@@ -5,7 +5,7 @@
         Width="1420" Height="850"
         MinWidth="1160" MinHeight="720"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BrushBgCanvas}"
+        Background="{DynamicResource BrushBgCanvas}"
         Foreground="{StaticResource BrushTextPrimary}"
         FontFamily="{StaticResource FontSans}"
         UseLayoutRounding="True"
@@ -22,7 +22,7 @@
     </WindowChrome.WindowChrome>
 
     <Border x:Name="WindowOuterBorder"
-            Background="{StaticResource BrushBgCanvas}"
+            Background="{DynamicResource BrushBgCanvas}"
             BorderBrush="{StaticResource BrushBorderSubtle}"
             BorderThickness="1">
         <Grid>
@@ -33,7 +33,7 @@
 
             <!-- ==================== INTEGRATED FRAMELESS HEADER ==================== -->
             <Border Grid.Row="0"
-                    Background="{StaticResource BrushBgRail}"
+                    Background="{DynamicResource BrushBgRail}"
                     BorderBrush="{StaticResource BrushBorderSubtle}"
                     BorderThickness="0,0,0,1"
                     Padding="22,0,12,0">
@@ -47,12 +47,13 @@
                     <!-- Left: Clean Wordmark + Subtle Live Status -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- Iconic Cybernetic Apex Crest Icon -->
-                        <Viewbox Width="22" Height="22" Margin="0,0,10,0" VerticalAlignment="Center" ToolTip="Logitech G300s Studio Apex Core">
+                        <Viewbox Width="24" Height="24" Margin="0,0,10,0" VerticalAlignment="Center" ToolTip="Logitech G300s Studio Apex Core">
                             <Canvas Width="512" Height="512">
-                                <Polygon Points="256,36 436,110 436,340 256,476 76,340 76,110" Fill="#121318" Stroke="#00F0FF" StrokeThickness="16" StrokeLineJoin="Round" />
-                                <Path Data="M 334,152 L 256,152 C 192,152 148,198 148,256 C 148,314 192,360 256,360 C 320,360 364,314 364,256 L 364,242 L 250,242 L 250,278 L 322,278 C 316,306 290,324 256,324 C 214,324 186,294 186,256 C 186,218 214,188 256,188 L 334,188 Z" Fill="#00F0FF" />
-                                <Polygon Points="256,204 290,256 256,308 222,256" Fill="#A855F7" />
-                                <Ellipse Canvas.Left="250" Canvas.Top="250" Width="12" Height="12" Fill="#FFFFFF" />
+                                <Polygon Points="256,28 448,116 448,348 256,484 64,348 64,116" Fill="#12141C" Stroke="#00F0FF" StrokeThickness="16" StrokeLineJoin="Round" />
+                                <Polygon Points="256,58 420,132 420,332 256,450 92,332 92,132" Fill="#181B26" Stroke="#38BDF8" StrokeThickness="3" StrokeLineJoin="Round" />
+                                <Path Data="M 354,166 C 318,136 288,124 246,124 C 174,124 122,182 122,256 C 122,330 174,388 248,388 C 324,388 368,338 372,268 L 242,268 L 242,224 L 416,224 C 418,240 418,254 418,268 C 418,362 348,432 248,432 C 146,432 76,356 76,256 C 76,156 148,80 248,80 C 298,80 342,98 382,132 Z" Fill="#00F0FF" />
+                                <Polygon Points="256,182 296,246 256,310 216,246" Fill="#F59E0B" />
+                                <Ellipse Canvas.Left="250" Canvas.Top="240" Width="12" Height="12" Fill="#FFFFFF" />
                             </Canvas>
                         </Viewbox>
 
@@ -65,7 +66,7 @@
 
                         <Border x:Name="ConnectionBadge"
                                 CornerRadius="8" Padding="10,4"
-                                Background="{StaticResource BrushBgSurface1}"
+                                Background="{DynamicResource BrushBgSurface1}"
                                 VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse x:Name="ConnectionDot" Width="6" Height="6" Fill="{StaticResource BrushSuccess}" Margin="0,0,8,0" VerticalAlignment="Center" />
@@ -92,7 +93,7 @@
 
                     <!-- Center: Segmented Onboard Profile Switcher -->
                     <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Background="{StaticResource BrushBgSurface1}"
+                            Background="{DynamicResource BrushBgSurface1}"
                             CornerRadius="9" Padding="3"
                             WindowChrome.IsHitTestVisibleInChrome="True">
                         <StackPanel Orientation="Horizontal">
@@ -126,14 +127,6 @@
                     <!-- Right: Clean Actions & Window Controls -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                 WindowChrome.IsHitTestVisibleInChrome="True">
-                        <Button x:Name="MiniHudHeaderBtn" Click="MiniHudHeaderBtn_Click"
-                                Style="{StaticResource ToolbarActionButton}" Padding="10,0" Margin="0,0,5,0"
-                                ToolTip="Masaüstü kayan mini-HUD widget modunu aç/kapat">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource FontIcons}" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center" Foreground="{StaticResource BrushAccentCyan}" />
-                                <TextBlock Text="HUD" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
                         <Button Click="ImportJson_Click" Style="{StaticResource ToolbarActionButton}" Padding="11,0" Margin="0,0,5,0" ToolTip="Profil yedeğini içe aktar">
                             <TextBlock Text="İçe Aktar" />
                         </Button>
@@ -174,7 +167,7 @@
 
                 <!-- LEFT NAVIGATION RAIL -->
                 <Border Grid.Column="0"
-                        Background="{StaticResource BrushBgRail}"
+                        Background="{DynamicResource BrushBgRail}"
                         BorderBrush="{StaticResource BrushBorderSubtle}"
                         BorderThickness="0,0,1,0"
                         Padding="0,16,0,14">
@@ -256,7 +249,7 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                                         Margin="0,24,32,0" Panel.ZIndex="10">
                                 <!-- Switch Health & Lifespan Analytics Badge -->
-                                <Border Background="{StaticResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                <Border Background="{DynamicResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
                                         CornerRadius="9" Padding="10,4" Margin="0,0,10,0" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <Button x:Name="SwitchHealthBtn" Click="SwitchHealthBtn_Click" Style="{StaticResource ToolbarActionButton}"
@@ -271,7 +264,7 @@
                                 </Border>
 
                                 <!-- Heatmap Toggle & Live CPM Badge -->
-                                <Border Background="{StaticResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                <Border Background="{DynamicResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
                                         CornerRadius="9" Padding="10,4" Margin="0,0,10,0" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <CheckBox x:Name="HeatmapToggle" Style="{StaticResource PillToggleSwitch}"
@@ -283,20 +276,26 @@
                                                    FontSize="11.5" Foreground="{StaticResource BrushTextSecondary}"
                                                    VerticalAlignment="Center" Margin="0,0,6,0" />
                                         <Button Click="ResetHeatmapStats_Click" Style="{StaticResource ToolbarActionButton}"
-                                                Height="22" Padding="6,0" FontSize="11" ToolTip="Tıklama istatistiklerini sıfırla">
+                                                 Height="22" Padding="6,0" FontSize="11" ToolTip="Tıklama istatistiklerini sıfırla">
                                             <TextBlock Text="Sıfırla" />
+                                        </Button>
+                                        <Button x:Name="ScreenHeatmapBtn" Click="ScreenHeatmapBtn_Click" Style="{StaticResource ToolbarActionButton}"
+                                                Height="22" Padding="7,0" FontSize="11" Margin="6,0,0,0" ToolTip="Ekran tıklama koordinatları ve imleç durma ısı haritasını görüntüle">
+                                            <TextBlock Text="Ekran Haritası 📊" />
                                         </Button>
                                     </StackPanel>
                                 </Border>
 
-                                <ComboBox x:Name="PresetTemplateCombo" Width="185" Height="30"
+                                <ComboBox x:Name="PresetTemplateCombo" Width="205" Height="30"
                                           SelectionChanged="PresetTemplateCombo_SelectionChanged"
-                                          ToolTip="Seçili profile oyun veya üretkenlik şablonu uygula">
+                                          ToolTip="Seçili profile yazılım, tasarım veya oyun şablonu uygula">
                                     <ComboBoxItem Content="Hazır Şablon Yükle..." IsSelected="True" IsEnabled="False" />
+                                    <ComboBoxItem Content="Yazılım (VS Code / Git / Terminal)" Tag="dev" />
+                                    <ComboBoxItem Content="3D Modelleme (Blender / CAD)" Tag="blender" />
+                                    <ComboBoxItem Content="Grafik &amp; UI Tasarım (Figma)" Tag="design" />
                                     <ComboBoxItem Content="FPS Rekabetçi (CS2 / Valorant)" Tag="fps" />
-                                    <ComboBoxItem Content="Battle Royale (Apex / PUBG)" Tag="br" />
                                     <ComboBoxItem Content="MOBA &amp; Taktik (LoL / Dota 2)" Tag="moba" />
-                                    <ComboBoxItem Content="Masaüstü &amp; Üretkenlik" Tag="productivity" />
+                                    <ComboBoxItem Content="Genel Üretkenlik &amp; Ofis" Tag="productivity" />
                                 </ComboBox>
 
                                 <ComboBox x:Name="CopyProfileCombo" Width="155" Height="30" Margin="8,0,0,0"
@@ -313,7 +312,7 @@
                             <Border x:Name="SwitchHealthOverlayCard" Visibility="Collapsed"
                                     HorizontalAlignment="Right" VerticalAlignment="Top"
                                     Margin="0,68,32,0" Width="360" Panel.ZIndex="30"
-                                    Background="{StaticResource BrushBgSurface1}"
+                                    Background="{DynamicResource BrushBgSurface1}"
                                     BorderBrush="{StaticResource BrushAccentCyanBorder}" BorderThickness="1.2"
                                     CornerRadius="12" Padding="16,14">
                                 <StackPanel>
@@ -396,7 +395,7 @@
                         <!-- Collapsible Contextual Right Drawer (Hidden on startup until a button is clicked!) -->
                         <Border x:Name="InspectorDrawerBorder" Grid.Column="1" Width="340"
                                 Visibility="Collapsed"
-                                Background="{StaticResource BrushBgRail}"
+                                Background="{DynamicResource BrushBgRail}"
                                 BorderBrush="{StaticResource BrushBorderSubtle}"
                                 BorderThickness="1,0,0,0"
                                 Padding="22,22,22,18">
@@ -412,7 +411,7 @@
                                     <Grid>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <Border Width="32" Height="32" CornerRadius="8"
-                                                    Background="{StaticResource BrushBgElevated}" Margin="0,0,12,0">
+                                                    Background="{DynamicResource BrushBgElevated}" Margin="0,0,12,0">
                                                 <TextBlock x:Name="InspectorBtnNumberText" Text="G1"
                                                            FontFamily="{StaticResource FontDisplay}" FontSize="13.5" FontWeight="SemiBold"
                                                            Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -434,7 +433,7 @@
                                     </Grid>
 
                                     <Border Margin="0,14,0,0" CornerRadius="8" Padding="14,10"
-                                            Background="{StaticResource BrushBgSurface1}">
+                                            Background="{DynamicResource BrushBgSurface1}">
                                         <Grid>
                                             <TextBlock Text="Atanan İşlev" FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" />
                                             <TextBlock x:Name="InspectorCurrentActionText" Text="Sol Tık"
@@ -445,7 +444,7 @@
                                 </StackPanel>
 
                                 <!-- Segmented Category Filter -->
-                                <Border Grid.Row="1" Background="{StaticResource BrushBgSurface1}"
+                                <Border Grid.Row="1" Background="{DynamicResource BrushBgSurface1}"
                                         CornerRadius="8" Padding="3" Margin="0,0,0,14">
                                     <UniformGrid Columns="3">
                                         <Button x:Name="DrawerTabMouseBtn" Click="DrawerCategoryTab_Click" Tag="0"
@@ -576,7 +575,72 @@
                         </Border>
                     </Grid>
 
-                    <!-- ==================== VIEW 1: SENSITIVITY & DPI STUDIO ==================== -->
+                    <!-- Screen Heatmap & Dwell Analytics Overlay Card -->
+                            <Border x:Name="ScreenHeatmapOverlayCard" Visibility="Collapsed"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Width="820" Height="520" Panel.ZIndex="40"
+                                    Background="{DynamicResource BrushBgSurface1}"
+                                    BorderBrush="{StaticResource BrushAccentCyanBorder}" BorderThickness="1.5"
+                                    CornerRadius="14" Padding="20">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Header -->
+                                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xE790;" FontFamily="{StaticResource FontIcons}" FontSize="16" Foreground="{StaticResource BrushAccentCyan}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="Ekran Tıklama &amp; İmleç Gezinme Isı Haritası"
+                                                       FontFamily="{StaticResource FontDisplay}" FontSize="15" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource BrushTextPrimary}" VerticalAlignment="Center" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <RadioButton x:Name="HeatmapModeClicksRadio" Content="Tıklama Yoğunluğu" IsChecked="True"
+                                                         Checked="HeatmapModeRadio_Changed" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="{StaticResource BrushTextSecondary}" />
+                                            <RadioButton x:Name="HeatmapModeDwellRadio" Content="İmleç Durma Süresi"
+                                                         Checked="HeatmapModeRadio_Changed" Margin="0,0,18,0" VerticalAlignment="Center" Foreground="{StaticResource BrushTextSecondary}" />
+                                            <Button Click="CloseScreenHeatmap_Click" Style="{StaticResource WindowCaptionButton}"
+                                                    Width="26" Height="26" VerticalAlignment="Center">
+                                                <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Center Screen Visualization Canvas / Image -->
+                                    <Border Grid.Row="1" Background="#0C0D11" CornerRadius="8" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1" ClipToBounds="True">
+                                        <Grid>
+                                            <Image x:Name="ScreenHeatmapImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                                            <TextBlock x:Name="ScreenHeatmapEmptyText" Text="Henüz ekran tıklama verisi toplanmadı. Tıklama yaptıkça ısı lekeleri burada belirecektir."
+                                                       Foreground="{StaticResource BrushTextMuted}" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       Visibility="Collapsed" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Footer Telemetry & Actions -->
+                                    <Grid Grid.Row="2" Margin="0,12,0,0">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock x:Name="ScreenHeatmapSummaryText"
+                                                       Text="Toplam Tıklama: 0 · Toplam Durma Süresi: 0 sn · En Yoğun: Merkez"
+                                                       FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <Button Click="RefreshScreenHeatmap_Click" Style="{StaticResource ToolbarActionButton}" Height="28" Padding="12,0" Margin="0,0,8,0">
+                                                <TextBlock Text="Yenile" />
+                                            </Button>
+                                            <Button Click="ResetScreenHeatmap_Click" Style="{StaticResource ToolbarActionButton}" Height="28" Padding="12,0">
+                                                <TextBlock Text="Sıfırla" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <!-- ==================== VIEW 1: SENSITIVITY & DPI STUDIO ==================== -->
                     <Grid x:Name="ViewSensitivityGrid" Grid.Row="0" Visibility="Collapsed" Margin="32,24,32,18">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -596,7 +660,7 @@
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                 <!-- Click-Through In-Game Crosshair Overlay -->
-                                <Border Background="{StaticResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                <Border Background="{DynamicResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
                                         CornerRadius="9" Padding="10,4" Margin="0,0,10,0" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <CheckBox x:Name="CrosshairToggle" Style="{StaticResource PillToggleSwitch}"
@@ -622,7 +686,7 @@
                                 </Border>
 
                                 <!-- Live Polling Rate & Jitter Tester -->
-                                <Border Background="{StaticResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
+                                <Border Background="{DynamicResource BrushBgSurface1}" BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
                                         CornerRadius="9" Padding="10,4" Margin="0,0,10,0" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock x:Name="LiveRateReadoutText" Text="Ölçüm: Hazır"
@@ -633,7 +697,7 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="{StaticResource BrushBgSurface1}" CornerRadius="9" Padding="3">
+                                <Border Background="{DynamicResource BrushBgSurface1}" CornerRadius="9" Padding="3">
                                     <StackPanel Orientation="Horizontal">
                                         <Button x:Name="RateBtn125" Content="125 Hz" Tag="125" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="28" BorderThickness="0" Margin="0,0,2,0" />
                                         <Button x:Name="RateBtn250" Content="250 Hz" Tag="250" Click="PollingRateBtn_Click" Style="{StaticResource ToolbarActionButton}" Height="28" BorderThickness="0" Margin="0,0,2,0" />
@@ -665,7 +729,7 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- Left: G-Shift Sniper DPI (Sniper Mode) Card -->
-                            <Border Grid.Column="0" Background="{StaticResource BrushBgSurface2}"
+                            <Border Grid.Column="0" Background="{DynamicResource BrushBgSurface2}"
                                     BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
                                     CornerRadius="10" Padding="16,12" Margin="0,0,8,0">
                                 <Grid>
@@ -697,7 +761,7 @@
                             </Border>
 
                             <!-- Right: Smart Microswitch Debounce / Anti-Double-Click Filter Card -->
-                            <Border Grid.Column="1" Background="{StaticResource BrushBgSurface2}"
+                            <Border Grid.Column="1" Background="{DynamicResource BrushBgSurface2}"
                                     BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
                                     CornerRadius="10" Padding="16,12" Margin="8,0,0,0">
                                 <Grid>
@@ -732,7 +796,7 @@
                             </Border>
 
                             <!-- Column 2: Angle Snapping & Straight Line Filter Card -->
-                            <Border Grid.Column="2" Background="{StaticResource BrushBgSurface2}"
+                            <Border Grid.Column="2" Background="{DynamicResource BrushBgSurface2}"
                                     BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
                                     CornerRadius="10" Padding="16,12" Margin="8,0,0,0">
                                 <Grid>
@@ -814,7 +878,7 @@
                                 </Viewbox>
 
                                 <!-- Live Color & Cycle Telemetry Box -->
-                                <Border Grid.Row="2" Background="{StaticResource BrushBgSurface2}"
+                                <Border Grid.Row="2" Background="{DynamicResource BrushBgSurface2}"
                                         CornerRadius="10" Padding="16,14">
                                     <StackPanel>
                                         <Grid Margin="0,0,0,10">
@@ -829,7 +893,7 @@
                                                        HorizontalAlignment="Right" VerticalAlignment="Center" />
                                         </Grid>
 
-                                        <Border Height="4" CornerRadius="2" Background="{StaticResource BrushBgCanvas}" ClipToBounds="True">
+                                        <Border Height="4" CornerRadius="2" Background="{DynamicResource BrushBgCanvas}" ClipToBounds="True">
                                             <Border x:Name="LiveTelemetryProgressFill" HorizontalAlignment="Left" Width="200"
                                                     CornerRadius="2" Background="{StaticResource BrushActiveWhite}" />
                                         </Border>
@@ -848,7 +912,7 @@
                                 </Grid.RowDefinitions>
 
                                 <StackPanel Grid.Row="0" Margin="0,0,0,16">
-                                    <TextBlock Text="Aydınlatma &amp; Renk Geçişleri"
+                                    <TextBlock Text="Aydınlatma &amp; Efektler"
                                                FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" />
                                     <TextBlock Text="Sabit profil rengi, gökkuşağı döngüsü veya renk geçişi ayarlarını yapılandırın"
                                                FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
@@ -858,76 +922,35 @@
                                 <StackPanel x:Name="LightingModesList" Grid.Row="1" />
 
                                 <!-- Unified Bottom Configuration Controls -->
-                                <Border Grid.Row="2" Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="18,16" Margin="0,12,0,0" MinHeight="110">
-                                    <Grid>
-                                        <!-- Panel A: Standard Swatches & Cycle Speed -->
-                                        <StackPanel x:Name="LightingSwatchesPanel" Visibility="Visible">
-                                            <!-- Primary & Secondary Color Swatches -->
-                                            <Grid Margin="0,0,0,14">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
+                                <Border Grid.Row="2" Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="18,16" Margin="0,12,0,0">
+                                    <StackPanel x:Name="LightingSwatchesPanel" Visibility="Visible">
+                                        <!-- Primary LED Color Swatches -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
 
-                                                <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="Ana Renk" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
-                                                    <UniformGrid x:Name="LedSwatchesGrid" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
-                                                </StackPanel>
+                                            <TextBlock Grid.Column="0" Text="Aydınlatma Rengi:" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                            <UniformGrid x:Name="LedSwatchesGrid" Grid.Column="1" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
+                                        </Grid>
 
-                                                <StackPanel Grid.Column="1" Margin="16,0,0,0">
-                                                    <TextBlock Text="İkincil Geçiş Rengi" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
-                                                    <UniformGrid x:Name="SecondaryLedSwatchesGrid" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <!-- Cycle Speed Slider -->
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="70" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Geçiş Süresi" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
-                                                <Slider x:Name="BreathSpeedSlider" Grid.Column="1" Minimum="1000" Maximum="6000" Value="2800"
-                                                        TickFrequency="200" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                                        ValueChanged="BreathSpeedSlider_ValueChanged" />
-                                                <TextBlock x:Name="BreathSpeedValueText" Grid.Column="2" Text="2.8 sn"
-                                                           FontSize="12.5" FontWeight="Medium"
-                                                           Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                            </Grid>
-                                        </StackPanel>
-
-                                        <!-- Panel B: DXGI Ambilight Active Controls -->
-                                        <StackPanel x:Name="LightingAmbilightPanel" Visibility="Collapsed" VerticalAlignment="Center">
-                                            <Grid Margin="0,0,0,10">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Border x:Name="AmbilightLeftOrb" Width="14" Height="14" CornerRadius="7" Background="#00F0FF" Margin="0,0,6,0" ToolTip="Sol Kenar Rengi" />
-                                                    <Border x:Name="AmbilightRightOrb" Width="14" Height="14" CornerRadius="7" Background="#A855F7" Margin="0,0,12,0" ToolTip="Sağ Kenar Rengi" />
-                                                    <TextBlock Text="Canlı Ekran Örnekleme" FontSize="12.5" FontWeight="Medium" VerticalAlignment="Center" />
-                                                </StackPanel>
-
-                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                    <TextBlock Text="Mod:" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                                    <ComboBox x:Name="AmbilightModeCombo" Width="145" Height="28" FontSize="11.5" Margin="0,0,14,0"
-                                                              SelectionChanged="AmbilightModeCombo_SelectionChanged">
-                                                        <ComboBoxItem Content="Sol/Sağ Kenar Ayrık" Tag="split" IsSelected="True" />
-                                                        <ComboBoxItem Content="Tam Ekran Ortalama" Tag="full" />
-                                                    </ComboBox>
-
-                                                    <TextBlock Text="FPS:" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                                    <Slider x:Name="AmbilightFpsSlider" Width="90" Minimum="5" Maximum="60" Value="20"
-                                                            TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                                            ValueChanged="AmbilightFpsSlider_ValueChanged" />
-                                                    <TextBlock x:Name="AmbilightFpsValueText" Text="20 FPS" FontSize="12" FontWeight="Medium"
-                                                               Foreground="{StaticResource BrushTextPrimary}" VerticalAlignment="Center" Margin="8,0,0,0" Width="44" />
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <TextBlock x:Name="AmbilightStatusText"
-                                                       Text="DXGI Ambilight aktif · Ekran ortam renkleri fare donanım LED'lerine canlı yansıtılıyor"
-                                                       FontSize="11.5" Foreground="{StaticResource BrushAccentCyan}" />
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Cycle / Breath Speed Slider -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="70" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Geçiş / Nefes Süresi" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                            <Slider x:Name="BreathSpeedSlider" Grid.Column="1" Minimum="800" Maximum="6000" Value="2400"
+                                                    TickFrequency="200" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                                    ValueChanged="BreathSpeedSlider_ValueChanged" />
+                                            <TextBlock x:Name="BreathSpeedValueText" Grid.Column="2" Text="2.4 sn"
+                                                       FontSize="12.5" FontWeight="Medium"
+                                                       Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </StackPanel>
                                 </Border>
                             </Grid>
                         </Border>
@@ -990,7 +1013,7 @@
                                                FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                                 </StackPanel>
 
-                                <Border Grid.Row="1" Background="{StaticResource BrushBgSurface2}"
+                                <Border Grid.Row="1" Background="{DynamicResource BrushBgSurface2}"
                                         CornerRadius="10" Padding="14,12" Margin="0,0,0,14">
                                     <StackPanel>
                                         <Grid Margin="0,0,0,10">
@@ -1039,7 +1062,7 @@
                                 </Grid>
 
                                 <!-- Live 35-Byte EEPROM & HID Protocol Hex Inspector -->
-                                <Border Grid.Row="4" Background="{StaticResource BrushBgSurface2}"
+                                <Border Grid.Row="4" Background="{DynamicResource BrushBgSurface2}"
                                         BorderBrush="{StaticResource BrushBorderSubtle}" BorderThickness="1"
                                         CornerRadius="10" Padding="14,10">
                                     <StackPanel>
@@ -1081,13 +1104,13 @@
                         <Border Grid.Column="0" Style="{StaticResource StudioCardBorder}" Margin="0,0,10,0" Padding="24,20">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel>
-                                    <TextBlock Text="Görsel Deneyim &amp; Streamer HUD"
+                                    <TextBlock Text="Görsel Deneyim &amp; Efektler"
                                                FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,3" />
-                                    <TextBlock Text="Pencere cam efektleri, akıcı animasyonlar ve masaüstü streamer widget ayarları"
+                                    <TextBlock Text="Pencere cam efektleri, akıcı animasyonlar ve renk dalgası ayarları"
                                                FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,0,0,16" />
 
                                     <!-- Windows 11 Mica / Acrylic Blur Card -->
-                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
+                                    <Border Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
@@ -1116,7 +1139,7 @@
                                     </Border>
 
                                     <!-- Hover Animations & Micro-Interactions -->
-                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
+                                    <Border Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
@@ -1132,26 +1155,8 @@
                                                        FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,5,0,0" />
                                         </Grid>
                                     </Border>
-
-                                    <!-- Cyberpunk Tactical Typography -->
-                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <CheckBox Grid.Row="0" x:Name="TacticalTypographyToggle" Style="{StaticResource PillToggleSwitch}"
-                                                      Content="Siberpunk Taktik Tipografi (DPI &amp; Hz)"
-                                                      Checked="TacticalTypographyToggle_Changed" Unchecked="TacticalTypographyToggle_Changed"
-                                                      VerticalAlignment="Center"
-                                                      ToolTip="Sensör DPI ve Hz göstergelerinde dijital segment ve taktik monospaced yazı tipi" />
-                                            <TextBlock Grid.Row="1" Text="Üst telemetri ve sensör göstergelerine yüksek kontrastlı taktik font uygular."
-                                                       FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,5,0,0" />
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- Fluid RGB Spectrum Wave in Preview -->
-                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
+                                    <!-- Fluid RGB Spectrum Toggle -->
+                                    <Border Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
@@ -1161,42 +1166,10 @@
                                                       Content="Fare Önizlemesinde Canlı Sıvı RGB Spektrum Dalgası"
                                                       Checked="FluidRgbSettingsToggle_Changed" Unchecked="FluidRgbSettingsToggle_Changed"
                                                       VerticalAlignment="Center"
-                                                      ToolTip="Fare yan LED'lerinde akan sıvı degrade dalgası animasyonunu çalıştırır" />
+                                                      ToolTip="Fare yan LED'lerinde pürüzsüzce akan sıvı degrade dalgası animasyonunu çalıştırır" />
                                             <TextBlock Grid.Row="1" Text="Işıklar sekmesindeki fare yan LED'lerine akan canlı degrade ekler."
                                                        FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,5,0,0" />
                                         </Grid>
-                                    </Border>
-
-                                    <!-- Desktop Floating Mini-HUD Widget Card -->
-                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,14">
-                                        <StackPanel>
-                                            <Grid Margin="0,0,0,8">
-                                                <CheckBox x:Name="MiniHudToggle" Style="{StaticResource PillToggleSwitch}"
-                                                          Content="Masaüstü Mini-HUD / Streamer Widget"
-                                                          Checked="MiniHudToggle_Changed" Unchecked="MiniHudToggle_Changed"
-                                                          VerticalAlignment="Center"
-                                                          ToolTip="Masaüstünde anlık DPI, Polling Rate ve aktif tuş basışlarını gösteren şeffaf widget" />
-                                                <Button Click="MiniHudHeaderBtn_Click" Style="{StaticResource ToolbarActionButton}"
-                                                        Height="24" Padding="10,0" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                    <TextBlock Text="Şimdi Aç/Kapat" FontSize="11" />
-                                                </Button>
-                                            </Grid>
-
-                                            <Border Height="1" Background="{StaticResource BrushBorderSubtle}" Margin="0,4,0,10" />
-
-                                            <Grid Margin="0,0,0,6">
-                                                <CheckBox x:Name="MiniHudClickThrough" Content="Tıklama İçinden Geçsin (Click-Through)"
-                                                          FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
-                                                          IsChecked="True" Checked="MiniHudClickThrough_Changed" Unchecked="MiniHudClickThrough_Changed"
-                                                          ToolTip="Etkin olduğunda tıklamalar mini widget'ın arkasındaki oyuna veya masaüstüne geçer" />
-                                            </Grid>
-                                            <Grid>
-                                                <CheckBox x:Name="MiniHudAutoMinimize" Content="Pencere Küçültüldüğünde Otomatik Aç"
-                                                          FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
-                                                          IsChecked="True" Checked="MiniHudAutoMinimize_Changed" Unchecked="MiniHudAutoMinimize_Changed"
-                                                          ToolTip="Ana pencere simge durumuna küçüldüğünde masaüstü streamer widget'ı otomatik görünür" />
-                                            </Grid>
-                                        </StackPanel>
                                     </Border>
                                 </StackPanel>
                             </ScrollViewer>
@@ -1219,7 +1192,7 @@
                                                FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,0,0,14" />
 
                                     <!-- 9 Switches Live Wear Table -->
-                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,14" Margin="0,0,0,14">
+                                    <Border Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="16,14" Margin="0,0,0,14">
                                         <StackPanel x:Name="SwitchHealthFullPanel" />
                                     </Border>
 
@@ -1227,7 +1200,7 @@
                                     <TextBlock Text="Sistem &amp; Bildirimler"
                                                FontFamily="{StaticResource FontDisplay}" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8" />
 
-                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,12">
+                                    <Border Background="{DynamicResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,12">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />

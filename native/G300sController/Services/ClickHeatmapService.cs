@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace G300sController.Services;
 
@@ -22,18 +25,26 @@ public sealed record ButtonHeatmapSnapshot(
     double Cpm);
 
 /// <summary>
-/// Thread-safe service for tracking button click telemetry, calculating real-time activity metrics (CPM, intensity),
-/// generating 4-stop thermal color gradients, and persisting analytics data for all 9 buttons (G1–G9) of the Logitech G300s.
+/// Visualization target mode for screen heatmap rendering.
 /// </summary>
-public sealed class ClickHeatmapService
+public enum HeatmapVisualizationMode
+{
+    ScreenClicks = 0,
+    CursorDwell = 1
+}
+
+/// <summary>
+/// Thread-safe service for tracking button click telemetry, calculating real-time activity metrics (CPM, intensity),
+/// tracking screen display click coordinates (X, Y) and cursor dwell times, generating thermal color maps,
+/// and persisting analytics data for Logitech G300s Studio.
+/// </summary>
+public sealed class ClickHeatmapService : IDisposable
 {
     public const int ButtonCount = 9;
+    public const int ScreenGridColumns = 96;
+    public const int ScreenGridRows = 54;
 
     // Heatmap color gradient stops:
-    // 0.00: Idle Slate  (#18181B)
-    // 0.33: Cool Cyan   (#00D4FF)
-    // 0.67: Amber       (#FFC400)
-    // 1.00: Hot Red     (#FF2D46)
     public static readonly Color IdleSlateColor = Color.FromRgb(0x18, 0x18, 0x1B);
     public static readonly Color CoolCyanColor  = Color.FromRgb(0x00, 0xD4, 0xFF);
     public static readonly Color AmberColor     = Color.FromRgb(0xFF, 0xC4, 0x00);
@@ -50,35 +61,26 @@ public sealed class ClickHeatmapService
     private readonly Queue<DateTime> _recentClicks = new();
     private readonly Stopwatch _sessionStopwatch = new();
 
+    private readonly long[,] _screenClickDensity = new long[ScreenGridColumns, ScreenGridRows];
+    private readonly double[,] _screenDwellSeconds = new double[ScreenGridColumns, ScreenGridRows];
+    private readonly List<(double X, double Y, int Button)> _recentScreenClicks = new();
+
+    private System.Threading.Timer? _dwellSampleTimer;
     private TimeSpan _accumulatedDuration = TimeSpan.Zero;
     private DateTime _sessionStartTimeUtc;
     private DateTime? _lastClickTimeUtc;
     private long _totalClicks;
+    private long _totalScreenClicks;
+    private double _totalDwellSeconds;
+    private bool _isDwellTrackingActive;
 
-    /// <summary>
-    /// Event triggered whenever a button click is recorded. (buttonIndex, newCount)
-    /// </summary>
     public event Action<int, long>? ClickRecorded;
-
-    /// <summary>
-    /// Event triggered when statistics are reset.
-    /// </summary>
+    public event Action<int, int, int>? ScreenClickRecorded;
     public event Action? StatsReset;
-
-    /// <summary>
-    /// Event triggered when statistics are saved to disk.
-    /// </summary>
     public event Action? StatsSaved;
-
-    /// <summary>
-    /// Event triggered when statistics are loaded from disk.
-    /// </summary>
     public event Action? StatsLoaded;
+    public event Action? HeatmapUpdated;
 
-    /// <summary>
-    /// Initializes a new instance of <see cref="ClickHeatmapService"/>.
-    /// </summary>
-    /// <param name="customStatsPath">Optional custom path for persisting JSON statistics. Defaults to AppData/Local/LogitechG300sStudio/heatmap_stats.json.</param>
     public ClickHeatmapService(string? customStatsPath = null)
     {
         _statsFilePath = string.IsNullOrWhiteSpace(customStatsPath)
@@ -87,16 +89,12 @@ public sealed class ClickHeatmapService
 
         _sessionStartTimeUtc = DateTime.UtcNow;
         _sessionStopwatch.Start();
+
+        StartDwellTracking();
     }
 
-    /// <summary>
-    /// Gets the absolute file path where heatmap statistics are stored.
-    /// </summary>
     public string StatsFilePath => _statsFilePath;
 
-    /// <summary>
-    /// Total duration of the active tracking session including previous persisted sessions.
-    /// </summary>
     public TimeSpan SessionDuration
     {
         get
@@ -108,9 +106,6 @@ public sealed class ClickHeatmapService
         }
     }
 
-    /// <summary>
-    /// UTC timestamp indicating when the current session tracking started.
-    /// </summary>
     public DateTime SessionStartTimeUtc
     {
         get
@@ -122,9 +117,6 @@ public sealed class ClickHeatmapService
         }
     }
 
-    /// <summary>
-    /// UTC timestamp of the most recent click recorded, or null if no clicks have occurred.
-    /// </summary>
     public DateTime? LastClickTimeUtc
     {
         get
@@ -136,9 +128,6 @@ public sealed class ClickHeatmapService
         }
     }
 
-    /// <summary>
-    /// Total number of clicks recorded across all 9 buttons.
-    /// </summary>
     public long TotalClicks
     {
         get
@@ -150,9 +139,28 @@ public sealed class ClickHeatmapService
         }
     }
 
-    /// <summary>
-    /// Highest click count recorded on any single button.
-    /// </summary>
+    public long TotalScreenClicks
+    {
+        get
+        {
+            lock (_syncLock)
+            {
+                return _totalScreenClicks > 0 ? _totalScreenClicks : _totalClicks;
+            }
+        }
+    }
+
+    public double TotalDwellSeconds
+    {
+        get
+        {
+            lock (_syncLock)
+            {
+                return _totalDwellSeconds;
+            }
+        }
+    }
+
     public long PeakClicks
     {
         get
@@ -164,9 +172,6 @@ public sealed class ClickHeatmapService
         }
     }
 
-    /// <summary>
-    /// Button index (0 to 8) that has received the most clicks, or 0 if all are 0.
-    /// </summary>
     public int MostActiveButtonIndex
     {
         get
@@ -188,59 +193,302 @@ public sealed class ClickHeatmapService
         }
     }
 
-    /// <summary>
-    /// Overall session clicks-per-minute (total clicks / total session minutes).
-    /// </summary>
     public double SessionCpm => GetSessionCpm();
-
-    /// <summary>
-    /// Real-time rolling clicks-per-minute over the last 60 seconds.
-    /// </summary>
     public double CurrentCpm => GetRecentCpm(TimeSpan.FromSeconds(60));
 
-    /// <summary>
-    /// Records a single click for the specified button index (0 for G1 to 8 for G9).
-    /// </summary>
-    /// <param name="buttonIndex">0-based button index (0 = G1, 1 = G2, ..., 8 = G9).</param>
+    public void StartDwellTracking()
+    {
+        lock (_syncLock)
+        {
+            if (_isDwellTrackingActive) return;
+            _isDwellTrackingActive = true;
+
+            _dwellSampleTimer = new System.Threading.Timer(_ =>
+            {
+                try
+                {
+                    if (Win32.GetCursorPos(out var pt))
+                    {
+                        int w = (int)SystemParameters.PrimaryScreenWidth;
+                        int h = (int)SystemParameters.PrimaryScreenHeight;
+                        if (w > 0 && h > 0)
+                        {
+                            AccumulateDwell(pt.x, pt.y, w, h, 0.1);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore transient Win32 coordinate query error
+                }
+            }, null, 100, 100);
+        }
+    }
+
+    public void StopDwellTracking()
+    {
+        lock (_syncLock)
+        {
+            _isDwellTrackingActive = false;
+            _dwellSampleTimer?.Dispose();
+            _dwellSampleTimer = null;
+        }
+    }
+
     public void RecordClick(int buttonIndex)
     {
         ValidateButtonIndex(buttonIndex);
-
+        DateTime nowUtc = DateTime.UtcNow;
         long newCount;
+
         lock (_syncLock)
         {
-            if (!_sessionStopwatch.IsRunning)
-            {
-                _sessionStopwatch.Start();
-            }
-
-            newCount = ++_clickCounts[buttonIndex];
+            _clickCounts[buttonIndex]++;
             _totalClicks++;
+            _lastClickTimeUtc = nowUtc;
+            newCount = _clickCounts[buttonIndex];
 
-            DateTime now = DateTime.UtcNow;
-            _lastClickTimeUtc = now;
-            _recentClicks.Enqueue(now);
-
-            PruneRecentClicksInternal(now - TimeSpan.FromMinutes(2));
+            _recentClicks.Enqueue(nowUtc);
+            PruneRecentClicksInternal(nowUtc.AddMinutes(-5));
         }
 
         ClickRecorded?.Invoke(buttonIndex, newCount);
     }
 
-    /// <summary>
-    /// Records a single click using a button name label (e.g. "G1" through "G9").
-    /// </summary>
-    /// <param name="buttonName">Button label, e.g. "G1", "g2", "G9".</param>
-    public void RecordClick(string buttonName)
+    public void RecordScreenClick(int screenX, int screenY, int buttonIndex = 0)
     {
-        int index = ParseButtonNameToIndex(buttonName);
-        RecordClick(index);
+        if (buttonIndex < 0 || buttonIndex >= ButtonCount) buttonIndex = 0;
+
+        int screenW = (int)SystemParameters.PrimaryScreenWidth;
+        int screenH = (int)SystemParameters.PrimaryScreenHeight;
+        if (screenW <= 0) screenW = 1920;
+        if (screenH <= 0) screenH = 1080;
+
+        double normX = Math.Clamp((double)screenX / screenW, 0.0, 0.9999);
+        double normY = Math.Clamp((double)screenY / screenH, 0.0, 0.9999);
+
+        int col = (int)(normX * ScreenGridColumns);
+        int row = (int)(normY * ScreenGridRows);
+
+        lock (_syncLock)
+        {
+            _screenClickDensity[col, row]++;
+            _totalScreenClicks++;
+            _recentScreenClicks.Add((normX, normY, buttonIndex));
+            if (_recentScreenClicks.Count > 1200)
+            {
+                _recentScreenClicks.RemoveAt(0);
+            }
+        }
+
+        RecordClick(buttonIndex);
+        ScreenClickRecorded?.Invoke(screenX, screenY, buttonIndex);
+        HeatmapUpdated?.Invoke();
     }
 
-    /// <summary>
-    /// Returns the total click count for the given button index.
-    /// </summary>
-    /// <param name="buttonIndex">0-based button index (0 to 8).</param>
+    public void AccumulateDwell(int screenX, int screenY, int screenW, int screenH, double seconds)
+    {
+        if (screenX < 0 || screenY < 0 || screenX >= screenW || screenY >= screenH) return;
+
+        double normX = Math.Clamp((double)screenX / screenW, 0.0, 0.9999);
+        double normY = Math.Clamp((double)screenY / screenH, 0.0, 0.9999);
+
+        int col = (int)(normX * ScreenGridColumns);
+        int row = (int)(normY * ScreenGridRows);
+
+        lock (_syncLock)
+        {
+            _screenDwellSeconds[col, row] += seconds;
+            _totalDwellSeconds += seconds;
+        }
+    }
+
+    public WriteableBitmap RenderHeatmapBitmap(int width = 960, int height = 540, bool showDwell = false)
+    {
+        width = Math.Max(320, width);
+        height = Math.Max(180, height);
+
+        var wb = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+        byte[] pixels = new byte[width * height * 4];
+
+        double[,] gridValues = new double[ScreenGridColumns, ScreenGridRows];
+        double peak = 0.0001;
+
+        lock (_syncLock)
+        {
+            for (int c = 0; c < ScreenGridColumns; c++)
+            {
+                for (int r = 0; r < ScreenGridRows; r++)
+                {
+                    double v = showDwell ? _screenDwellSeconds[c, r] : _screenClickDensity[c, r];
+                    gridValues[c, r] = v;
+                    if (v > peak) peak = v;
+                }
+            }
+        }
+
+        // Render thermal density field
+        for (int y = 0; y < height; y++)
+        {
+            double vY = (double)y / height * (ScreenGridRows - 1);
+            int r0 = (int)vY;
+            int r1 = Math.Min(r0 + 1, ScreenGridRows - 1);
+            double fY = vY - r0;
+
+            for (int x = 0; x < width; x++)
+            {
+                double vX = (double)x / width * (ScreenGridColumns - 1);
+                int c0 = (int)vX;
+                int c1 = Math.Min(c0 + 1, ScreenGridColumns - 1);
+                double fX = vX - c0;
+
+                // Bilinear interpolation of intensity
+                double top = gridValues[c0, r0] * (1.0 - fX) + gridValues[c1, r0] * fX;
+                double bot = gridValues[c0, r1] * (1.0 - fX) + gridValues[c1, r1] * fX;
+                double val = top * (1.0 - fY) + bot * fY;
+
+                double norm = Math.Clamp(val / peak, 0.0, 1.0);
+                var (b, g, r, a) = ThermalMapColor(norm);
+
+                int idx = (y * width + x) * 4;
+                pixels[idx + 0] = b;
+                pixels[idx + 1] = g;
+                pixels[idx + 2] = r;
+                pixels[idx + 3] = a;
+            }
+        }
+
+        // Draw crisp radiant points for recent clicks if in click mode
+        if (!showDwell)
+        {
+            lock (_syncLock)
+            {
+                foreach (var click in _recentScreenClicks)
+                {
+                    int cx = (int)(click.X * width);
+                    int cy = (int)(click.Y * height);
+
+                    int radius = 4;
+                    for (int dy = -radius; dy <= radius; dy++)
+                    {
+                        int py = cy + dy;
+                        if (py < 0 || py >= height) continue;
+
+                        for (int dx = -radius; dx <= radius; dx++)
+                        {
+                            int px = cx + dx;
+                            if (px < 0 || px >= width) continue;
+
+                            double distSq = dx * dx + dy * dy;
+                            if (distSq <= radius * radius)
+                            {
+                                int pIdx = (py * width + px) * 4;
+                                pixels[pIdx + 0] = 0xFF; // Cyan/White core
+                                pixels[pIdx + 1] = 0xF0;
+                                pixels[pIdx + 2] = 0x00;
+                                pixels[pIdx + 3] = 0xE0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        wb.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
+        return wb;
+    }
+
+    private static (byte B, byte G, byte R, byte A) ThermalMapColor(double t)
+    {
+        if (t <= 0.02)
+        {
+            // Dark elegant display glass base
+            return (0x17, 0x14, 0x12, 0xD0);
+        }
+
+        if (t < 0.25)
+        {
+            // Deep blue to cyan
+            double frac = t / 0.25;
+            byte r = (byte)(0 * (1 - frac) + 0 * frac);
+            byte g = (byte)(60 * (1 - frac) + 212 * frac);
+            byte b = (byte)(180 * (1 - frac) + 255 * frac);
+            return (b, g, r, 0xF0);
+        }
+        else if (t < 0.55)
+        {
+            // Cyan to bright emerald
+            double frac = (t - 0.25) / 0.30;
+            byte r = (byte)(0 * (1 - frac) + 34 * frac);
+            byte g = (byte)(212 * (1 - frac) + 225 * frac);
+            byte b = (byte)(255 * (1 - frac) + 94 * frac);
+            return (b, g, r, 0xF5);
+        }
+        else if (t < 0.82)
+        {
+            // Emerald to amber yellow
+            double frac = (t - 0.55) / 0.27;
+            byte r = (byte)(34 * (1 - frac) + 255 * frac);
+            byte g = (byte)(225 * (1 - frac) + 196 * frac);
+            byte b = (byte)(94 * (1 - frac) + 0 * frac);
+            return (b, g, r, 0xFA);
+        }
+        else
+        {
+            // Amber yellow to plasma hot red
+            double frac = (t - 0.82) / 0.18;
+            byte r = (byte)(255 * (1 - frac) + 255 * frac);
+            byte g = (byte)(196 * (1 - frac) + 45 * frac);
+            byte b = (byte)(0 * (1 - frac) + 70 * frac);
+            return (b, g, r, 0xFF);
+        }
+    }
+
+    public (long TotalClicks, double TotalDwellSec, string TopZoneName) GetScreenSummary()
+    {
+        lock (_syncLock)
+        {
+            long leftHalf = 0;
+            long rightHalf = 0;
+            long topHalf = 0;
+            long bottomHalf = 0;
+            long centerBox = 0;
+
+            int midCol = ScreenGridColumns / 2;
+            int midRow = ScreenGridRows / 2;
+
+            for (int c = 0; c < ScreenGridColumns; c++)
+            {
+                for (int r = 0; r < ScreenGridRows; r++)
+                {
+                    long v = _screenClickDensity[c, r];
+                    if (c < midCol) leftHalf += v; else rightHalf += v;
+                    if (r < midRow) topHalf += v; else bottomHalf += v;
+
+                    if (c >= ScreenGridColumns / 4 && c <= ScreenGridColumns * 3 / 4 &&
+                        r >= ScreenGridRows / 4 && r <= ScreenGridRows * 3 / 4)
+                    {
+                        centerBox += v;
+                    }
+                }
+            }
+
+            long total = leftHalf + rightHalf;
+            string topZone = "Merkez / Çalışma Alanı";
+            if (total > 0)
+            {
+                double centerPct = (double)centerBox / total;
+                if (centerPct > 0.40) topZone = $"Ekran Merkezi (%{centerPct * 100:0})";
+                else if (leftHalf > rightHalf * 1.4) topZone = "Sol Çalışma / Menü Bölgesi";
+                else if (rightHalf > leftHalf * 1.4) topZone = "Sağ Araç Paneli Bölgesi";
+                else if (bottomHalf > topHalf * 1.5) topZone = "Alt Görev Çubuğu & Alanı";
+                else topZone = "Dengeli Ekran Dağılımı";
+            }
+
+            return (_totalScreenClicks > 0 ? _totalScreenClicks : _totalClicks, _totalDwellSeconds, topZone);
+        }
+    }
+
     public long GetClickCount(int buttonIndex)
     {
         ValidateButtonIndex(buttonIndex);
@@ -250,377 +498,174 @@ public sealed class ClickHeatmapService
         }
     }
 
-    /// <summary>
-    /// Returns the total click count using a button name label.
-    /// </summary>
-    /// <param name="buttonName">Button label, e.g. "G1".</param>
-    public long GetClickCount(string buttonName)
-    {
-        int index = ParseButtonNameToIndex(buttonName);
-        return GetClickCount(index);
-    }
-
-    /// <summary>
-    /// Returns a normalized activity intensity score between 0.0 and 1.0 relative to the peak clicks across all buttons.
-    /// If no clicks have been recorded anywhere, returns 0.0.
-    /// </summary>
-    /// <param name="buttonIndex">0-based button index (0 to 8).</param>
     public double GetNormalizedIntensity(int buttonIndex)
     {
         ValidateButtonIndex(buttonIndex);
         lock (_syncLock)
         {
             long peak = CalculatePeakClicksInternal();
-            if (peak <= 0)
-            {
-                return 0.0;
-            }
-
-            double intensity = (double)_clickCounts[buttonIndex] / peak;
-            return Math.Clamp(intensity, 0.0, 1.0);
+            if (peak == 0) return 0.0;
+            return Math.Clamp((double)_clickCounts[buttonIndex] / peak, 0.0, 1.0);
         }
     }
 
-    /// <summary>
-    /// Returns a normalized activity intensity score between 0.0 and 1.0 using a button name label.
-    /// </summary>
-    /// <param name="buttonName">Button label, e.g. "G1".</param>
-    public double GetNormalizedIntensity(string buttonName)
-    {
-        int index = ParseButtonNameToIndex(buttonName);
-        return GetNormalizedIntensity(index);
-    }
-
-    /// <summary>
-    /// Calculates the heatmap color for the specified button index by interpolating across the 4-stop thermal palette:
-    /// Idle Slate (#18181B) -> Cool Cyan (#00D4FF) -> Amber (#FFC400) -> Hot Red (#FF2D46).
-    /// </summary>
-    /// <param name="buttonIndex">0-based button index (0 to 8).</param>
     public Color GetHeatmapColor(int buttonIndex)
     {
         double intensity = GetNormalizedIntensity(buttonIndex);
-        return InterpolateHeatmapColor(intensity);
+        return InterpolateThermalColor(intensity);
     }
 
-    /// <summary>
-    /// Calculates the heatmap color using a button name label.
-    /// </summary>
-    /// <param name="buttonName">Button label, e.g. "G1".</param>
-    public Color GetHeatmapColor(string buttonName)
+    public static Color InterpolateThermalColor(double intensity)
     {
-        int index = ParseButtonNameToIndex(buttonName);
-        return GetHeatmapColor(index);
+        intensity = Math.Clamp(intensity, 0.0, 1.0);
+
+        if (intensity < 0.33)
+        {
+            double f = intensity / 0.33;
+            return LerpColor(IdleSlateColor, CoolCyanColor, f);
+        }
+        else if (intensity < 0.67)
+        {
+            double f = (intensity - 0.33) / 0.34;
+            return LerpColor(CoolCyanColor, AmberColor, f);
+        }
+        else
+        {
+            double f = (intensity - 0.67) / 0.33;
+            return LerpColor(AmberColor, HotRedColor, f);
+        }
     }
 
-    /// <summary>
-    /// Returns the hex color string (e.g. "#00D4FF") representing the button's heatmap intensity.
-    /// </summary>
-    /// <param name="buttonIndex">0-based button index (0 to 8).</param>
-    public string GetHeatmapColorHex(int buttonIndex)
-    {
-        Color color = GetHeatmapColor(buttonIndex);
-        return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
-    }
-
-    /// <summary>
-    /// Returns the overall session clicks-per-minute (total clicks / total session minutes).
-    /// </summary>
     public double GetSessionCpm()
     {
         lock (_syncLock)
         {
-            TimeSpan duration = _sessionStopwatch.Elapsed + _accumulatedDuration;
-            double minutes = duration.TotalMinutes;
-            if (minutes <= 0.0 || _totalClicks <= 0)
-            {
-                return 0.0;
-            }
-
-            return Math.Round(_totalClicks / minutes, 2);
+            double minutes = (_sessionStopwatch.Elapsed + _accumulatedDuration).TotalMinutes;
+            if (minutes <= 0.001) return 0.0;
+            return Math.Round(_totalClicks / minutes, 1);
         }
     }
 
-    /// <summary>
-    /// Calculates the rolling clicks-per-minute over the specified recent time window.
-    /// </summary>
-    /// <param name="window">Rolling window span (defaults to 60 seconds if null).</param>
-    public double GetRecentCpm(TimeSpan? window = null)
+    public double GetRecentCpm(TimeSpan window)
     {
-        TimeSpan effectiveWindow = window ?? TimeSpan.FromSeconds(60);
-        if (effectiveWindow <= TimeSpan.Zero)
-        {
-            return 0.0;
-        }
+        DateTime nowUtc = DateTime.UtcNow;
+        DateTime cutoffUtc = nowUtc - window;
 
-        DateTime cutoff = DateTime.UtcNow - effectiveWindow;
         lock (_syncLock)
         {
-            PruneRecentClicksInternal(cutoff);
-            if (_recentClicks.Count == 0)
-            {
-                return 0.0;
-            }
-
-            double minutes = effectiveWindow.TotalMinutes;
-            if (minutes <= 0.0)
-            {
-                return 0.0;
-            }
-
-            return Math.Round(_recentClicks.Count / minutes, 2);
+            PruneRecentClicksInternal(cutoffUtc);
+            double windowMinutes = window.TotalMinutes;
+            if (windowMinutes <= 0.001) return 0.0;
+            return Math.Round(_recentClicks.Count / windowMinutes, 1);
         }
     }
 
-    /// <summary>
-    /// Returns the average clicks-per-minute for a specific button over the session duration.
-    /// </summary>
-    /// <param name="buttonIndex">0-based button index (0 to 8).</param>
-    public double GetButtonCpm(int buttonIndex)
-    {
-        ValidateButtonIndex(buttonIndex);
-        lock (_syncLock)
-        {
-            TimeSpan duration = _sessionStopwatch.Elapsed + _accumulatedDuration;
-            double minutes = duration.TotalMinutes;
-            if (minutes <= 0.0 || _clickCounts[buttonIndex] <= 0)
-            {
-                return 0.0;
-            }
-
-            return Math.Round(_clickCounts[buttonIndex] / minutes, 2);
-        }
-    }
-
-    /// <summary>
-    /// Returns a copy of all 9 button click counts.
-    /// </summary>
-    public long[] GetAllClickCounts()
-    {
-        lock (_syncLock)
-        {
-            return (long[])_clickCounts.Clone();
-        }
-    }
-
-    /// <summary>
-    /// Captures a complete analytical snapshot of all 9 buttons.
-    /// </summary>
-    public IReadOnlyList<ButtonHeatmapSnapshot> GetAllSnapshots()
-    {
-        var list = new List<ButtonHeatmapSnapshot>(ButtonCount);
-        for (int i = 0; i < ButtonCount; i++)
-        {
-            list.Add(GetSnapshot(i));
-        }
-        return list.AsReadOnly();
-    }
-
-    /// <summary>
-    /// Captures a complete analytical snapshot of a specific button.
-    /// </summary>
-    /// <param name="buttonIndex">0-based button index (0 to 8).</param>
-    public ButtonHeatmapSnapshot GetSnapshot(int buttonIndex)
-    {
-        ValidateButtonIndex(buttonIndex);
-        long count = GetClickCount(buttonIndex);
-        double intensity = GetNormalizedIntensity(buttonIndex);
-        Color color = GetHeatmapColor(buttonIndex);
-        string hex = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
-        double cpm = GetButtonCpm(buttonIndex);
-        string name = GetButtonName(buttonIndex);
-
-        return new ButtonHeatmapSnapshot(buttonIndex, name, count, intensity, color, hex, cpm);
-    }
-
-    /// <summary>
-    /// Resets all button activity counters, recent click queues, and session duration to zero.
-    /// </summary>
     public void ResetStats()
     {
         lock (_syncLock)
         {
             Array.Clear(_clickCounts, 0, _clickCounts.Length);
+            Array.Clear(_screenClickDensity, 0, _screenClickDensity.Length);
+            Array.Clear(_screenDwellSeconds, 0, _screenDwellSeconds.Length);
+            _recentScreenClicks.Clear();
             _recentClicks.Clear();
             _totalClicks = 0;
+            _totalScreenClicks = 0;
+            _totalDwellSeconds = 0;
             _lastClickTimeUtc = null;
             _accumulatedDuration = TimeSpan.Zero;
             _sessionStartTimeUtc = DateTime.UtcNow;
             _sessionStopwatch.Restart();
         }
 
+        SaveStats();
         StatsReset?.Invoke();
+        HeatmapUpdated?.Invoke();
     }
 
-    /// <summary>
-    /// Persists current analytics state into the JSON storage file atomically.
-    /// </summary>
     public void SaveStats()
     {
-        string? directory = Path.GetDirectoryName(_statsFilePath);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        HeatmapPersistenceDto dto;
-        lock (_syncLock)
-        {
-            TimeSpan currentDuration = _sessionStopwatch.Elapsed + _accumulatedDuration;
-            dto = new HeatmapPersistenceDto
-            {
-                Version = 1,
-                SavedAtUtc = DateTime.UtcNow,
-                SessionStartTimeUtc = _sessionStartTimeUtc,
-                AccumulatedSessionSeconds = Math.Round(currentDuration.TotalSeconds, 2),
-                TotalClicks = _totalClicks,
-                ButtonClicks = (long[])_clickCounts.Clone()
-            };
-        }
-
-        string tempFilePath = $"{_statsFilePath}.tmp.{Guid.NewGuid():N}";
         try
         {
-            string json = JsonSerializer.Serialize(dto, new JsonSerializerOptions
+            HeatmapPersistenceDto dto;
+            lock (_syncLock)
             {
-                WriteIndented = true
-            });
+                long[] copy = new long[ButtonCount];
+                Array.Copy(_clickCounts, copy, ButtonCount);
 
-            File.WriteAllText(tempFilePath, json, Encoding.UTF8);
-            File.Move(tempFilePath, _statsFilePath, overwrite: true);
+                dto = new HeatmapPersistenceDto
+                {
+                    Version = 2,
+                    SavedAtUtc = DateTime.UtcNow,
+                    SessionStartTimeUtc = _sessionStartTimeUtc,
+                    AccumulatedSessionSeconds = (_sessionStopwatch.Elapsed + _accumulatedDuration).TotalSeconds,
+                    TotalClicks = _totalClicks,
+                    ButtonClicks = copy,
+                    TotalScreenClicks = _totalScreenClicks,
+                    TotalDwellSeconds = _totalDwellSeconds
+                };
+            }
+
+            string? dir = Path.GetDirectoryName(_statsFilePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            string json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_statsFilePath, json, Encoding.UTF8);
+            StatsSaved?.Invoke();
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[ClickHeatmapService] Failed to save stats to '{_statsFilePath}': {ex}");
-            if (File.Exists(tempFilePath))
-            {
-                try { File.Delete(tempFilePath); } catch { /* best effort cleanup */ }
-            }
-            throw;
         }
-
-        StatsSaved?.Invoke();
     }
 
-    /// <summary>
-    /// Loads persisted analytics from the JSON storage file, restoring button click counts and session duration.
-    /// If the file does not exist, the operation completes without error.
-    /// </summary>
     public void LoadStats()
     {
-        if (!File.Exists(_statsFilePath))
-        {
-            return;
-        }
-
         try
         {
+            if (!File.Exists(_statsFilePath)) return;
+
             string json = File.ReadAllText(_statsFilePath, Encoding.UTF8);
             var dto = JsonSerializer.Deserialize<HeatmapPersistenceDto>(json);
-            if (dto is null)
-            {
-                return;
-            }
+            if (dto is null) return;
 
             lock (_syncLock)
             {
-                if (dto.ButtonClicks is { Length: > 0 })
+                if (dto.ButtonClicks is not null)
                 {
-                    int maxButtons = Math.Min(dto.ButtonClicks.Length, ButtonCount);
-                    for (int i = 0; i < maxButtons; i++)
+                    for (int i = 0; i < Math.Min(ButtonCount, dto.ButtonClicks.Length); i++)
                     {
-                        _clickCounts[i] = Math.Max(0, dto.ButtonClicks[i]);
+                        _clickCounts[i] = dto.ButtonClicks[i];
                     }
                 }
 
-                _accumulatedDuration = TimeSpan.FromSeconds(Math.Max(0.0, dto.AccumulatedSessionSeconds));
-                _sessionStartTimeUtc = dto.SessionStartTimeUtc != default ? dto.SessionStartTimeUtc : DateTime.UtcNow;
-                _sessionStopwatch.Restart();
-
-                long sum = 0;
-                for (int i = 0; i < ButtonCount; i++)
-                {
-                    sum += _clickCounts[i];
-                }
-                _totalClicks = sum;
-                _recentClicks.Clear();
+                _totalClicks = dto.TotalClicks;
+                _totalScreenClicks = dto.TotalScreenClicks;
+                _totalDwellSeconds = dto.TotalDwellSeconds;
+                _accumulatedDuration = TimeSpan.FromSeconds(dto.AccumulatedSessionSeconds);
             }
 
             StatsLoaded?.Invoke();
+            HeatmapUpdated?.Invoke();
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[ClickHeatmapService] Failed to load stats from '{_statsFilePath}': {ex}");
-            throw;
         }
     }
 
-    /// <summary>
-    /// Translates a 0.0 to 1.0 normalized intensity into a 4-stop thermal color gradient.
-    /// 0.00 -> Idle Slate  (#18181B)
-    /// 0.33 -> Cool Cyan   (#00D4FF)
-    /// 0.67 -> Amber       (#FFC400)
-    /// 1.00 -> Hot Red     (#FF2D46)
-    /// </summary>
-    /// <param name="intensity">Normalized intensity factor (0.0 to 1.0).</param>
-    public static Color InterpolateHeatmapColor(double intensity)
+    public void Dispose()
     {
-        intensity = Math.Clamp(intensity, 0.0, 1.0);
-        if (intensity <= 0.0)
-        {
-            return IdleSlateColor;
-        }
-        if (intensity >= 1.0)
-        {
-            return HotRedColor;
-        }
-
-        const double stop1 = 1.0 / 3.0; // ~0.3333
-        const double stop2 = 2.0 / 3.0; // ~0.6667
-
-        if (intensity < stop1)
-        {
-            double factor = intensity / stop1;
-            return LerpColor(IdleSlateColor, CoolCyanColor, factor);
-        }
-
-        if (intensity < stop2)
-        {
-            double factor = (intensity - stop1) / (stop2 - stop1);
-            return LerpColor(CoolCyanColor, AmberColor, factor);
-        }
-
-        {
-            double factor = (intensity - stop2) / (1.0 - stop2);
-            return LerpColor(AmberColor, HotRedColor, factor);
-        }
+        StopDwellTracking();
     }
 
-    /// <summary>
-    /// Converts a button index (0–8) to its canonical hardware label ("G1"–"G9").
-    /// </summary>
     public static string GetButtonName(int buttonIndex)
     {
         ValidateButtonIndex(buttonIndex);
         return $"G{buttonIndex + 1}";
-    }
-
-    /// <summary>
-    /// Parses a button label ("G1"–"G9") to its 0-based button index (0–8).
-    /// </summary>
-    public static int ParseButtonNameToIndex(string buttonName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(buttonName);
-        string trimmed = buttonName.Trim().ToUpperInvariant();
-        if (trimmed.StartsWith('G') && int.TryParse(trimmed.AsSpan(1), out int number))
-        {
-            int index = number - 1;
-            if (index >= 0 && index < ButtonCount)
-            {
-                return index;
-            }
-        }
-
-        throw new ArgumentException($"Invalid button name '{buttonName}'. Expected 'G1' through 'G9'.", nameof(buttonName));
     }
 
     private static Color LerpColor(Color from, Color to, double factor)
@@ -664,10 +709,24 @@ public sealed class ClickHeatmapService
         }
     }
 
+    private static class Win32
+    {
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetCursorPos(out POINT lpPoint);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int x;
+            public int y;
+        }
+    }
+
     private sealed class HeatmapPersistenceDto
     {
         [JsonPropertyName("version")]
-        public int Version { get; set; } = 1;
+        public int Version { get; set; } = 2;
 
         [JsonPropertyName("saved_at_utc")]
         public DateTime SavedAtUtc { get; set; }
@@ -683,5 +742,11 @@ public sealed class ClickHeatmapService
 
         [JsonPropertyName("button_clicks")]
         public long[] ButtonClicks { get; set; } = [];
+
+        [JsonPropertyName("total_screen_clicks")]
+        public long TotalScreenClicks { get; set; }
+
+        [JsonPropertyName("total_dwell_seconds")]
+        public double TotalDwellSeconds { get; set; }
     }
 }
