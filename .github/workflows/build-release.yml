@@ -1,0 +1,84 @@
+name: Build & Release Logitech G300s Studio
+
+on:
+  push:
+    branches: [ master, main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Standalone Executable
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore native/G300sController/G300sController.csproj
+
+      - name: Publish Self-Contained Portable Executable
+        shell: powershell
+        run: |
+          dotnet publish native/G300sController/G300sController.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:IncludeAllContentForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -o dist
+
+          # Duplicate to friendly name and create zip
+          Copy-Item dist/G300sController.exe dist/LogitechG300sStudio.exe -Force
+          Compress-Archive -Path dist/LogitechG300sStudio.exe -DestinationPath dist/LogitechG300sStudio.zip -Force
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: LogitechG300sStudio-win-x64
+          path: |
+            dist/LogitechG300sStudio.exe
+            dist/LogitechG300sStudio.zip
+          if-no-files-found: error
+
+      - name: Publish or Update GitHub Release
+        if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) && github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'Logitech G300s Studio (Latest)' }}
+          body: |
+            ## 🚀 Automated Build Release
+
+            Automated standalone build compiled directly from commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) on branch `${{ github.ref_name }}`.
+
+            ### 📦 Download Links
+            * **[`LogitechG300sStudio.exe`](${{ github.server_url }}/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}/LogitechG300sStudio.exe)**: Standalone single-file portable executable (Zero installation, no runtime required).
+            * **[`LogitechG300sStudio.zip`](${{ github.server_url }}/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}/LogitechG300sStudio.zip)**: Compressed archive.
+
+            ### 💻 System Requirements
+            * Windows 10 (1809+) or Windows 11 (Build 22000+) 64-bit
+            * Logitech G300s Optical Gaming Mouse connected via USB
+          draft: false
+          prerelease: false
+          files: |
+            dist/LogitechG300sStudio.exe
+            dist/LogitechG300sStudio.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
