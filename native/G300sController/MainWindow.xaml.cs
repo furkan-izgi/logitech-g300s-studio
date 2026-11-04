@@ -98,6 +98,7 @@ public partial class MainWindow : Window
     private WriteableBitmap? _radialWheelBitmap;
     private double _radialBrightness = 1.0;
     private Color _radialSelectedColor = Color.FromRgb(0, 240, 255);
+    private bool _radialColorPickingActive = false;
     private readonly DispatcherTimer _livePreviewTimer;
     private CancellationTokenSource? _rateTestCts;
     private CancellationTokenSource? _hotplugDebounceCts;
@@ -128,6 +129,9 @@ public partial class MainWindow : Window
     private readonly Ellipse[] _lightingModeDots = new Ellipse[3];
 
     private readonly Slider[] _dpiSliders = new Slider[4];
+    private readonly Border[] _dpiStageCards = new Border[4];
+    private bool _isMicaBackdropEnabled = false;
+    private (byte R, byte G, byte B)? _activeCustomColor24Bit;
     private readonly TextBlock[] _dpiValueLabels = new TextBlock[4];
     private readonly Button[] _dpiActivateButtons = new Button[4];
     private readonly Button[] _dpiDefaultButtons = new Button[4];
@@ -180,9 +184,17 @@ public partial class MainWindow : Window
         int round = 2;
         DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));
 
-        // Immediately apply Windows 11 Mica / Acrylic backdrop on startup
-        WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
-        ApplyBackdropVisualStyles(_activeBackdropMode);
+        // Apply backdrop according to user preference (defaults to Solid 100% matte carbon)
+        if (_isMicaBackdropEnabled)
+        {
+            WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
+            ApplyBackdropVisualStyles(_activeBackdropMode);
+        }
+        else
+        {
+            WindowBackdropService.ApplyBackdrop(this, WindowBackdropMode.Solid);
+            ApplyBackdropVisualStyles(WindowBackdropMode.Solid);
+        }
     }
 
     [DllImport("dwmapi.dll")]
@@ -210,6 +222,12 @@ public partial class MainWindow : Window
         BuildLightingStudioUi();
         BuildDaemonWorkspaceUi();
         SetupAllCardMicroInteractions();
+        if (MicaBackdropToggle is not null)
+        {
+            _suppressUiEvents = true;
+            MicaBackdropToggle.IsChecked = _isMicaBackdropEnabled;
+            _suppressUiEvents = false;
+        }
 
         string iconPath = Path.Combine(assetsDir, "g300s.ico");
         _tray.Initialize(this, iconPath);
@@ -795,6 +813,15 @@ public partial class MainWindow : Window
 
             stack.Children.Add(ctrlGrid);
             card.Child = stack;
+            card.Cursor = Cursors.Hand;
+            card.MouseLeftButtonDown += (s, ev) =>
+            {
+                if (ev.OriginalSource is not Slider && (ev.OriginalSource as FrameworkElement)?.Parent is not Slider)
+                {
+                    ActivateDpiStage(stageIdx);
+                }
+            };
+            _dpiStageCards[stageIdx] = card;
             DpiStagesContainer.Children.Add(card);
         }
     }
@@ -1539,8 +1566,15 @@ public partial class MainWindow : Window
             _dpiValueLabels[i].Text = $"{dpiVal} DPI";
 
             bool isCurrentStage = i == _activeDpiStageIndex;
+            if (_dpiStageCards[i] is not null)
+            {
+                _dpiStageCards[i].BorderBrush = isCurrentStage ? (Brush)FindResource("BrushAccentCyanBorder") : (Brush)FindResource("BrushBorderSubtle");
+                _dpiStageCards[i].BorderThickness = new Thickness(isCurrentStage ? 2 : 1);
+                _dpiStageCards[i].Background = isCurrentStage ? new SolidColorBrush(Color.FromArgb(0x22, 0x00, 0xF0, 0xFF)) : (Brush)FindResource("BrushBgSurface1");
+            }
             _dpiActivateButtons[i].Background = isCurrentStage ? (Brush)FindResource("BrushActiveWhite") : (Brush)FindResource("BrushBgSurface2");
             _dpiActivateButtons[i].Foreground = isCurrentStage ? new SolidColorBrush(Color.FromRgb(9, 9, 11)) : (Brush)FindResource("BrushTextSecondary");
+            _dpiActivateButtons[i].Content = isCurrentStage ? $"Kademe {i + 1} (AKTİF)" : $"Kademe {i + 1}";
 
             bool isDefault = i == prof.DefaultDpiStage;
             _dpiDefaultButtons[i].Background = isDefault ? (Brush)FindResource("BrushBgElevated") : Brushes.Transparent;
@@ -1569,6 +1603,12 @@ public partial class MainWindow : Window
             _debounce.IsEnabled,
             SniperToggle?.IsChecked == true);
 
+        if (_activeCustomColor24Bit.HasValue && _automation.ActiveRgbEffect == "none")
+        {
+            UpdateTintedSwoosh24Bit(_activeCustomColor24Bit.Value.R, _activeCustomColor24Bit.Value.G, _activeCustomColor24Bit.Value.B);
+            if (CustomColorOrb is not null) CustomColorOrb.Background = new SolidColorBrush(Color.FromRgb(_activeCustomColor24Bit.Value.R, _activeCustomColor24Bit.Value.G, _activeCustomColor24Bit.Value.B));
+            if (CustomColorHexText is not null) CustomColorHexText.Text = $"#{_activeCustomColor24Bit.Value.R:X2}{_activeCustomColor24Bit.Value.G:X2}{_activeCustomColor24Bit.Value.B:X2}";
+        }
         RefreshHexInspectorUi(prof);
         if (_heatmapModeEnabled)
         {
@@ -2167,6 +2207,12 @@ public partial class MainWindow : Window
         prof.SetDpiStage(stageIdx, newValue);
         MarkModified($"Kademe {stageIdx + 1} hassasiyeti {prof.DpiStages[stageIdx]} DPI yapıldı.");
         RefreshCurrentProfileToUi();
+
+        if (stageIdx == _activeDpiStageIndex)
+        {
+            TelemetryDpiText.Text = $"{newValue} DPI";
+            ShowToast($"Kademe {stageIdx + 1}: {newValue} DPI (Kalıcı yapmak için Belleğe Kaydet)");
+        }
     }
 
     private void StepDpiStage(int stageIdx, int delta)
@@ -2181,19 +2227,31 @@ public partial class MainWindow : Window
     private void ActivateDpiStage(int stageIdx)
     {
         _activeDpiStageIndex = Math.Clamp(stageIdx, 0, 3);
+        var prof = _profiles[_activeProfileIndex];
+        int activeDpi = prof.DpiStages[_activeDpiStageIndex];
+
         if (_device.IsConnected)
         {
             try
             {
                 _device.SetActiveDpiStage(_activeDpiStageIndex);
-                if (StatusFooterText is not null) StatusFooterText.Text = $"Donanım hassasiyeti Kademe {_activeDpiStageIndex + 1} ({_profiles[_activeProfileIndex].DpiStages[_activeDpiStageIndex]} DPI) yapıldı.";
             }
             catch (Exception ex)
             {
-                if (StatusFooterText is not null) StatusFooterText.Text = $"DPI değiştirilemedi: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"SetActiveDpiStage: {ex.Message}");
             }
         }
+
         RefreshCurrentProfileToUi();
+        TelemetryDpiText.Text = $"{activeDpi} DPI";
+        ShowToast($"Hassasiyet Değiştirildi: Kademe {_activeDpiStageIndex + 1} ({activeDpi} DPI)");
+        _osd.ShowNotification(
+            $"Kademe {_activeDpiStageIndex + 1} Aktif",
+            $"{activeDpi} DPI · {prof.PollingRateHz} Hz",
+            prof.ColorHex);
+
+        if (StatusFooterText is not null)
+            StatusFooterText.Text = $"Aktif hassasiyet: Kademe {_activeDpiStageIndex + 1} ({activeDpi} DPI)";
     }
 
     private void SetDefaultDpiStage(int stageIdx)
@@ -2208,6 +2266,7 @@ public partial class MainWindow : Window
     {
         var prof = _profiles[_activeProfileIndex];
         prof.SetLed(r, g, b);
+        if (!_radialColorPickingActive) _activeCustomColor24Bit = null;
 
         _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (r, g, b), _secondaryBreathColor);
 
@@ -3179,7 +3238,6 @@ public partial class MainWindow : Window
         int count = 0;
 
         if (SwitchHealthBarsPanel is not null) SwitchHealthBarsPanel.Children.Clear();
-        if (SwitchHealthFullPanel is not null) SwitchHealthFullPanel.Children.Clear();
 
         foreach (var (idx, stats) in _switchHealth.Switches)
         {
@@ -3192,11 +3250,7 @@ public partial class MainWindow : Window
                 SwitchHealthBarsPanel.Children.Add(CreateSwitchHealthRow(stats, 130.0));
             }
 
-            // Row for full settings view
-            if (SwitchHealthFullPanel is not null)
-            {
-                SwitchHealthFullPanel.Children.Add(CreateSwitchHealthRow(stats, 220.0));
-            }
+// Switch health full view removed from Settings tab
         }
 
         double avgHealth = count > 0 ? (totalHealth / count) : 100.0;
@@ -3419,8 +3473,8 @@ public partial class MainWindow : Window
     {
         if (_suppressUiEvents) return;
         if (MicaBackdropToggle is null) return;
-        bool enable = MicaBackdropToggle.IsChecked == true;
-        if (enable)
+        _isMicaBackdropEnabled = MicaBackdropToggle.IsChecked == true;
+        if (_isMicaBackdropEnabled)
         {
             WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
             ApplyBackdropVisualStyles(_activeBackdropMode);
@@ -3481,7 +3535,7 @@ public partial class MainWindow : Window
         if (hwR == 0 && hwG == 0 && hwB == 0) { hwR = 1; hwG = 1; hwB = 1; }
         prof.SetLed(hwR, hwG, hwB);
 
-        _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (hwR, hwG, hwB), _secondaryBreathColor);
+        _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (hwR, hwG, hwB), _secondaryBreathColor, (r, g, b));
         if (_device.IsConnected && _automation.ActiveRgbEffect == "none")
         {
             try { _device.SetLiveLed(hwR, hwG, hwB); } catch { }
@@ -3983,18 +4037,24 @@ public partial class MainWindow : Window
         byte g = _radialSelectedColor.G;
         byte b = _radialSelectedColor.B;
         string hex = $"#{r:X2}{g:X2}{b:X2}";
+        _activeCustomColor24Bit = (r, g, b);
+        _radialColorPickingActive = true;
 
         if (CustomColorOrb is not null) CustomColorOrb.Background = new SolidColorBrush(_radialSelectedColor);
         if (CustomColorHexText is not null) CustomColorHexText.Text = hex;
 
-        int hwR = r >= 100 ? 1 : 0;
-        int hwG = g >= 100 ? 1 : 0;
-        int hwB = b >= 100 ? 1 : 0;
+        int hwR = r >= 90 ? 1 : 0;
+        int hwG = g >= 90 ? 1 : 0;
+        int hwB = b >= 90 ? 1 : 0;
         if (hwR == 0 && hwG == 0 && hwB == 0) { hwR = 1; hwG = 1; hwB = 1; }
 
         SelectLedColor(hwR, hwG, hwB);
+        UpdateTintedSwoosh24Bit(r, g, b);
+        _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (hwR, hwG, hwB), _secondaryBreathColor, (r, g, b));
+
         if (RadialColorWheelCard is not null) RadialColorWheelCard.Visibility = Visibility.Collapsed;
-        ShowToast($"Özel renk uygulandı: {hex}");
+        _radialColorPickingActive = false;
+        ShowToast($"Özel 24-bit ara renk uygulandı: {hex}");
     }
 
 }

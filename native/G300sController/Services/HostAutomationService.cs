@@ -73,6 +73,7 @@ public sealed class HostAutomationService : IDisposable
     public string ActiveRgbEffect { get; private set; } = "none";
     public int RgbSpeedMs { get; private set; } = 2800;
     public (int R, int G, int B) RgbBaseColor { get; private set; } = (0, 1, 1);
+    public (byte R, byte G, byte B)? RgbBaseColor24 { get; private set; }
     public (int R, int G, int B) RgbSecondaryColor { get; private set; } = (0, 0, 1);
 
     // Real-time 24-bit color & telemetry exposed for 30 FPS UI preview
@@ -397,8 +398,9 @@ public sealed class HostAutomationService : IDisposable
         }
     }
 
-    public void UpdateRgbParameters(int speedMs, (int R, int G, int B) baseColor, (int R, int G, int B)? secondaryColor = null)
+    public void UpdateRgbParameters(int speedMs, (int R, int G, int B) baseColor, (int R, int G, int B)? secondaryColor = null, (byte R, byte G, byte B)? baseColor24 = null)
     {
+        if (baseColor24.HasValue) RgbBaseColor24 = baseColor24.Value;
         RgbSpeedMs = Math.Clamp(speedMs, 800, 8000);
         RgbBaseColor = baseColor;
         if (secondaryColor.HasValue)
@@ -411,8 +413,10 @@ public sealed class HostAutomationService : IDisposable
         string effectName,
         int speedMs,
         (int R, int G, int B) baseColor,
-        (int R, int G, int B)? secondaryColor = null)
+        (int R, int G, int B)? secondaryColor = null,
+        (byte R, byte G, byte B)? baseColor24 = null)
     {
+        if (baseColor24.HasValue) RgbBaseColor24 = baseColor24.Value;
         ActiveRgbEffect = effectName.ToLowerInvariant();
         RgbSpeedMs = Math.Clamp(speedMs, 800, 8000);
         RgbBaseColor = baseColor;
@@ -427,7 +431,7 @@ public sealed class HostAutomationService : IDisposable
 
         if (ActiveRgbEffect == "none")
         {
-            LivePreviewColor = MapBitTo24(baseColor.R, baseColor.G, baseColor.B);
+            LivePreviewColor = RgbBaseColor24 ?? MapBitTo24(baseColor.R, baseColor.G, baseColor.B);
             LiveTelemetryLevel = 1.0;
             LiveTelemetryText = "Donanım Sabit Rengi (0% CPU)";
             return;
@@ -557,7 +561,7 @@ public sealed class HostAutomationService : IDisposable
                     double wave = (1.0 - Math.Cos(2.0 * Math.PI * elapsedSec / periodSec)) * 0.5;
                     double intensity = 0.08 + 0.92 * (wave * wave);
 
-                    var base24 = MapBitTo24(RgbBaseColor.R, RgbBaseColor.G, RgbBaseColor.B);
+                    var base24 = RgbBaseColor24 ?? MapBitTo24(RgbBaseColor.R, RgbBaseColor.G, RgbBaseColor.B);
                     LivePreviewColor = (
                         (byte)(base24.R * intensity),
                         (byte)(base24.G * intensity),
