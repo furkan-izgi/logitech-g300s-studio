@@ -207,6 +207,13 @@
                                     <TextBlock Text="Otomasyon" FontSize="11.5" HorizontalAlignment="Center" />
                                 </StackPanel>
                             </Button>
+
+                            <Button x:Name="NavBtnSettings" Click="NavRail_Click" Tag="4" Style="{StaticResource NavRailButton}">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE713;" FontFamily="{StaticResource FontIcons}" FontSize="17" HorizontalAlignment="Center" Margin="0,0,0,5" />
+                                    <TextBlock Text="Ayarlar" FontSize="11.5" HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
 
                         <Button VerticalAlignment="Bottom" HorizontalAlignment="Center"
@@ -850,82 +857,76 @@
                                 <!-- Clean Borderless List of 3 Modes -->
                                 <StackPanel x:Name="LightingModesList" Grid.Row="1" />
 
-                                <!-- Bottom Configuration Controls -->
-                                <Border Grid.Row="2" Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="18,16" Margin="0,12,0,0">
-                                    <StackPanel>
-                                        <!-- Primary & Secondary Color Swatches -->
-                                        <Grid Margin="0,0,0,14">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock Text="Ana Renk" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
-                                                <UniformGrid x:Name="LedSwatchesGrid" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
-                                            </StackPanel>
-
-                                            <StackPanel Grid.Column="1" Margin="16,0,0,0">
-                                                <TextBlock Text="İkincil Geçiş Rengi" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
-                                                <UniformGrid x:Name="SecondaryLedSwatchesGrid" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
-                                            </StackPanel>
-                                        </Grid>
-
-                                        <!-- Cycle Speed Slider -->
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="70" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Geçiş Süresi" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
-                                            <Slider x:Name="BreathSpeedSlider" Grid.Column="1" Minimum="1000" Maximum="6000" Value="2800"
-                                                    TickFrequency="200" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                                    ValueChanged="BreathSpeedSlider_ValueChanged" />
-                                            <TextBlock x:Name="BreathSpeedValueText" Grid.Column="2" Text="2.8 sn"
-                                                       FontSize="12.5" FontWeight="Medium"
-                                                       Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Bottom DXGI Ambilight (Screen Color Mirroring) Card -->
-                                <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="18,14" Margin="0,12,0,0">
+                                <!-- Unified Bottom Configuration Controls -->
+                                <Border Grid.Row="2" Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="18,16" Margin="0,12,0,0" MinHeight="110">
                                     <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
+                                        <!-- Panel A: Standard Swatches & Cycle Speed -->
+                                        <StackPanel x:Name="LightingSwatchesPanel" Visibility="Visible">
+                                            <!-- Primary & Secondary Color Swatches -->
+                                            <Grid Margin="0,0,0,14">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
 
-                                        <Grid Grid.Row="0">
-                                            <CheckBox x:Name="AmbilightToggle" Style="{StaticResource PillToggleSwitch}"
-                                                      Content="Ekran Ortam Rengi Yansıtma (DXGI Ambilight)"
-                                                      Checked="AmbilightToggle_Changed" Unchecked="AmbilightToggle_Changed"
-                                                      VerticalAlignment="Center"
-                                                      ToolTip="Ekrandaki renkleri gerçek zamanlı analiz ederek farenin yerleşik RGB kanallarına senkronize eder" />
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="Ana Renk" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
+                                                    <UniformGrid x:Name="LedSwatchesGrid" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
+                                                </StackPanel>
 
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                <Border x:Name="AmbilightLeftOrb" Width="14" Height="14" CornerRadius="7" Background="#00F0FF" Margin="0,0,6,0" ToolTip="Sol Kenar Rengi" />
-                                                <Border x:Name="AmbilightRightOrb" Width="14" Height="14" CornerRadius="7" Background="#A855F7" Margin="0,0,12,0" ToolTip="Sağ Kenar Rengi" />
+                                                <StackPanel Grid.Column="1" Margin="16,0,0,0">
+                                                    <TextBlock Text="İkincil Geçiş Rengi" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,0,8" />
+                                                    <UniformGrid x:Name="SecondaryLedSwatchesGrid" Columns="8" Height="30" HorizontalAlignment="Left" Width="300" />
+                                                </StackPanel>
+                                            </Grid>
 
-                                                <ComboBox x:Name="AmbilightModeCombo" Width="135" Height="26" FontSize="11.5" Margin="0,0,10,0"
-                                                          SelectionChanged="AmbilightModeCombo_SelectionChanged">
-                                                    <ComboBoxItem Content="Sol/Sağ Kenar Ayrık" Tag="split" IsSelected="True" />
-                                                    <ComboBoxItem Content="Tam Ekran Ortalama" Tag="full" />
-                                                </ComboBox>
+                                            <!-- Cycle Speed Slider -->
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="70" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="Geçiş Süresi" FontSize="12.5" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                                <Slider x:Name="BreathSpeedSlider" Grid.Column="1" Minimum="1000" Maximum="6000" Value="2800"
+                                                        TickFrequency="200" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                                        ValueChanged="BreathSpeedSlider_ValueChanged" />
+                                                <TextBlock x:Name="BreathSpeedValueText" Grid.Column="2" Text="2.8 sn"
+                                                           FontSize="12.5" FontWeight="Medium"
+                                                           Foreground="{StaticResource BrushTextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </StackPanel>
 
-                                                <TextBlock Text="FPS:" FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                                <Slider x:Name="AmbilightFpsSlider" Width="70" Minimum="5" Maximum="60" Value="20"
-                                                        TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                                        ValueChanged="AmbilightFpsSlider_ValueChanged" />
-                                                <TextBlock x:Name="AmbilightFpsValueText" Text="20 FPS" FontSize="11.5" FontWeight="Medium"
-                                                           Foreground="{StaticResource BrushTextPrimary}" VerticalAlignment="Center" Margin="6,0,0,0" Width="44" />
-                                            </StackPanel>
-                                        </Grid>
+                                        <!-- Panel B: DXGI Ambilight Active Controls -->
+                                        <StackPanel x:Name="LightingAmbilightPanel" Visibility="Collapsed" VerticalAlignment="Center">
+                                            <Grid Margin="0,0,0,10">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border x:Name="AmbilightLeftOrb" Width="14" Height="14" CornerRadius="7" Background="#00F0FF" Margin="0,0,6,0" ToolTip="Sol Kenar Rengi" />
+                                                    <Border x:Name="AmbilightRightOrb" Width="14" Height="14" CornerRadius="7" Background="#A855F7" Margin="0,0,12,0" ToolTip="Sağ Kenar Rengi" />
+                                                    <TextBlock Text="Canlı Ekran Örnekleme" FontSize="12.5" FontWeight="Medium" VerticalAlignment="Center" />
+                                                </StackPanel>
 
-                                        <TextBlock Grid.Row="1" x:Name="AmbilightStatusText"
-                                                   Text="DXGI Ambilight hazır · Ekran renkleri farenin donanım renklerine aktarılır"
-                                                   FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,6,0,0" />
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                    <TextBlock Text="Mod:" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                    <ComboBox x:Name="AmbilightModeCombo" Width="145" Height="28" FontSize="11.5" Margin="0,0,14,0"
+                                                              SelectionChanged="AmbilightModeCombo_SelectionChanged">
+                                                        <ComboBoxItem Content="Sol/Sağ Kenar Ayrık" Tag="split" IsSelected="True" />
+                                                        <ComboBoxItem Content="Tam Ekran Ortalama" Tag="full" />
+                                                    </ComboBox>
+
+                                                    <TextBlock Text="FPS:" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                    <Slider x:Name="AmbilightFpsSlider" Width="90" Minimum="5" Maximum="60" Value="20"
+                                                            TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                                            ValueChanged="AmbilightFpsSlider_ValueChanged" />
+                                                    <TextBlock x:Name="AmbilightFpsValueText" Text="20 FPS" FontSize="12" FontWeight="Medium"
+                                                               Foreground="{StaticResource BrushTextPrimary}" VerticalAlignment="Center" Margin="8,0,0,0" Width="44" />
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <TextBlock x:Name="AmbilightStatusText"
+                                                       Text="DXGI Ambilight aktif · Ekran ortam renkleri fare donanım LED'lerine canlı yansıtılıyor"
+                                                       FontSize="11.5" Foreground="{StaticResource BrushAccentCyan}" />
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -1009,79 +1010,8 @@
 
                                         <Border Height="1" Background="{StaticResource BrushBorderSubtle}" Margin="0,0,0,10" />
 
-                                        <Grid Margin="0,0,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <CheckBox x:Name="OsdToggle" Grid.Column="0" Style="{StaticResource PillToggleSwitch}"
-                                                      Content="Ekran Üstü Bildirim (OSD)"
-                                                      IsChecked="True"
-                                                      Checked="OsdToggle_Changed" Unchecked="OsdToggle_Changed"
-                                                      VerticalAlignment="Center" />
-                                            <CheckBox x:Name="StartupToggle" Grid.Column="1" Style="{StaticResource PillToggleSwitch}"
-                                                      Content="Windows ile Başlat (Tepsi)"
-                                                      Checked="StartupToggle_Changed" Unchecked="StartupToggle_Changed"
-                                                      VerticalAlignment="Center" />
-                                        </Grid>
-
-                                        <Border Height="1" Background="{StaticResource BrushBorderSubtle}" Margin="0,0,0,8" />
-
-                                        <!-- Windows 11 Mica / Acrylic Blur & Cyber Typography -->
-                                        <Grid Margin="0,0,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <CheckBox x:Name="MicaBackdropToggle" Style="{StaticResource PillToggleSwitch}"
-                                                          Content="Win11 Mica / Akrilik Cam"
-                                                          Checked="MicaBackdropToggle_Changed" Unchecked="MicaBackdropToggle_Changed"
-                                                          VerticalAlignment="Center" Margin="0,0,8,0"
-                                                          ToolTip="Windows DWM sistemiyle pencereye derinlikli yarı saydam cam/akrilik efekti uygular" />
-                                                <ComboBox x:Name="MicaModeCombo" Width="100" Height="24" FontSize="11"
-                                                          SelectionChanged="MicaModeCombo_SelectionChanged">
-                                                    <ComboBoxItem Content="Mica" Tag="1" IsSelected="True" />
-                                                    <ComboBoxItem Content="Akrilik" Tag="2" />
-                                                    <ComboBoxItem Content="Mica Alt" Tag="3" />
-                                                </ComboBox>
-                                            </StackPanel>
-
-                                            <CheckBox x:Name="TacticalTypographyToggle" Grid.Column="1" Style="{StaticResource PillToggleSwitch}"
-                                                      Content="Siberpunk Taktik Tipografi"
-                                                      Checked="TacticalTypographyToggle_Changed" Unchecked="TacticalTypographyToggle_Changed"
-                                                      VerticalAlignment="Center"
-                                                      ToolTip="Sensör DPI ve Hz göstergelerinde dijital siberpunk / HUD monospaced taktik yazı tipini kullanır" />
-                                        </Grid>
-
-                                        <Border Height="1" Background="{StaticResource BrushBorderSubtle}" Margin="0,0,0,8" />
-
-                                        <!-- Micro-Interactions & Desktop Mini-HUD Widget -->
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <CheckBox x:Name="MicroInteractionsToggle" Grid.Column="0" Style="{StaticResource PillToggleSwitch}"
-                                                      Content="Akıcı Hover Animasyonları"
-                                                      IsChecked="True"
-                                                      Checked="MicroInteractionsToggle_Changed" Unchecked="MicroInteractionsToggle_Changed"
-                                                      VerticalAlignment="Center"
-                                                      ToolTip="Kartların ve tuşların üzerine gelindiğinde akıcı süzülme ve parlama mikro etkileşimleri" />
-
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <CheckBox x:Name="MiniHudToggle" Style="{StaticResource PillToggleSwitch}"
-                                                          Content="Mini-HUD Widget"
-                                                          Checked="MiniHudToggle_Changed" Unchecked="MiniHudToggle_Changed"
-                                                          VerticalAlignment="Center" Margin="0,0,8,0"
-                                                          ToolTip="Masaüstü için şeffaf, tıklandığında içinden geçen yüzen mini streamer HUD'ı" />
-                                                <CheckBox x:Name="MiniHudClickThrough" Content="Click-Through" FontSize="11" Foreground="{StaticResource BrushTextSecondary}"
-                                                          IsChecked="True" Checked="MiniHudClickThrough_Changed" Unchecked="MiniHudClickThrough_Changed"
-                                                          VerticalAlignment="Center" ToolTip="Açıkken tıklamalar HUD'ın arkasındaki oyuna/uygulamaya geçer" />
-                                            </StackPanel>
-                                        </Grid>
+                                        <TextBlock Text="Oyun veya masaüstü pencerelerine göre otomatik profil değiştirir."
+                                                   FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,2,0,0" />
                                     </StackPanel>
                                 </Border>
 
@@ -1137,6 +1067,198 @@
                                     </StackPanel>
                                 </Border>
                             </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- ==================== VIEW 4: STUDIO SETTINGS & HARDWARE ANALYTICS ==================== -->
+                    <Grid x:Name="ViewSettingsGrid" Grid.Row="0" Visibility="Collapsed" Margin="32,24,32,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Column: Visual Experience & Desktop Mini-HUD Widget -->
+                        <Border Grid.Column="0" Style="{StaticResource StudioCardBorder}" Margin="0,0,10,0" Padding="24,20">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Görsel Deneyim &amp; Streamer HUD"
+                                               FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,3" />
+                                    <TextBlock Text="Pencere cam efektleri, akıcı animasyonlar ve masaüstü streamer widget ayarları"
+                                               FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,0,0,16" />
+
+                                    <!-- Windows 11 Mica / Acrylic Blur Card -->
+                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <Grid Grid.Row="0">
+                                                <CheckBox x:Name="MicaBackdropToggle" Style="{StaticResource PillToggleSwitch}"
+                                                          Content="Windows 11 Mica / Akrilik Cam"
+                                                          Checked="MicaBackdropToggle_Changed" Unchecked="MicaBackdropToggle_Changed"
+                                                          VerticalAlignment="Center"
+                                                          ToolTip="Pencere arka planına Windows DWM sistemiyle yarı saydam akrilik veya mica cam efekti ekler" />
+
+                                                <ComboBox x:Name="MicaModeCombo" Width="120" Height="26" FontSize="11.5"
+                                                          HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                          SelectionChanged="MicaModeCombo_SelectionChanged">
+                                                    <ComboBoxItem Content="Mica Efekti" Tag="1" IsSelected="True" />
+                                                    <ComboBoxItem Content="Akrilik Bulanıklık" Tag="2" />
+                                                    <ComboBoxItem Content="Mica Alt (Sekmeli)" Tag="3" />
+                                                </ComboBox>
+                                            </Grid>
+
+                                            <TextBlock Grid.Row="1" Text="DWM arka plan derinliği masaüstü duvar kağıdınızla uyumlu çalışır."
+                                                       FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,5,0,0" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Hover Animations & Micro-Interactions -->
+                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <CheckBox Grid.Row="0" x:Name="MicroInteractionsToggle" Style="{StaticResource PillToggleSwitch}"
+                                                      Content="Akıcı Hover Animasyonları &amp; Mikro Etkileşimler"
+                                                      IsChecked="True"
+                                                      Checked="MicroInteractionsToggle_Changed" Unchecked="MicroInteractionsToggle_Changed"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip="Kartlar ve butonlar üzerine gelindiğinde akıcı süzülme (-2.5px) ve parlama efekti" />
+                                            <TextBlock Grid.Row="1" Text="Fare ile gezinirken arayüz elemanlarının yumuşak tepki vermesini sağlar."
+                                                       FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,5,0,0" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Cyberpunk Tactical Typography -->
+                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <CheckBox Grid.Row="0" x:Name="TacticalTypographyToggle" Style="{StaticResource PillToggleSwitch}"
+                                                      Content="Siberpunk Taktik Tipografi (DPI &amp; Hz)"
+                                                      Checked="TacticalTypographyToggle_Changed" Unchecked="TacticalTypographyToggle_Changed"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip="Sensör DPI ve Hz göstergelerinde dijital segment ve taktik monospaced yazı tipi" />
+                                            <TextBlock Grid.Row="1" Text="Üst telemetri ve sensör göstergelerine yüksek kontrastlı taktik font uygular."
+                                                       FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,5,0,0" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Fluid RGB Spectrum Wave in Preview -->
+                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <CheckBox Grid.Row="0" x:Name="FluidRgbSettingsToggle" Style="{StaticResource PillToggleSwitch}"
+                                                      Content="Fare Önizlemesinde Canlı Sıvı RGB Spektrum Dalgası"
+                                                      Checked="FluidRgbSettingsToggle_Changed" Unchecked="FluidRgbSettingsToggle_Changed"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip="Fare yan LED'lerinde akan sıvı degrade dalgası animasyonunu çalıştırır" />
+                                            <TextBlock Grid.Row="1" Text="Işıklar sekmesindeki fare yan LED'lerine akan canlı degrade ekler."
+                                                       FontSize="11.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,5,0,0" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Desktop Floating Mini-HUD Widget Card -->
+                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,14">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,8">
+                                                <CheckBox x:Name="MiniHudToggle" Style="{StaticResource PillToggleSwitch}"
+                                                          Content="Masaüstü Mini-HUD / Streamer Widget"
+                                                          Checked="MiniHudToggle_Changed" Unchecked="MiniHudToggle_Changed"
+                                                          VerticalAlignment="Center"
+                                                          ToolTip="Masaüstünde anlık DPI, Polling Rate ve aktif tuş basışlarını gösteren şeffaf widget" />
+                                                <Button Click="MiniHudHeaderBtn_Click" Style="{StaticResource ToolbarActionButton}"
+                                                        Height="24" Padding="10,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                    <TextBlock Text="Şimdi Aç/Kapat" FontSize="11" />
+                                                </Button>
+                                            </Grid>
+
+                                            <Border Height="1" Background="{StaticResource BrushBorderSubtle}" Margin="0,4,0,10" />
+
+                                            <Grid Margin="0,0,0,6">
+                                                <CheckBox x:Name="MiniHudClickThrough" Content="Tıklama İçinden Geçsin (Click-Through)"
+                                                          FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
+                                                          IsChecked="True" Checked="MiniHudClickThrough_Changed" Unchecked="MiniHudClickThrough_Changed"
+                                                          ToolTip="Etkin olduğunda tıklamalar mini widget'ın arkasındaki oyuna veya masaüstüne geçer" />
+                                            </Grid>
+                                            <Grid>
+                                                <CheckBox x:Name="MiniHudAutoMinimize" Content="Pencere Küçültüldüğünde Otomatik Aç"
+                                                          FontSize="12" Foreground="{StaticResource BrushTextSecondary}"
+                                                          IsChecked="True" Checked="MiniHudAutoMinimize_Changed" Unchecked="MiniHudAutoMinimize_Changed"
+                                                          ToolTip="Ana pencere simge durumuna küçüldüğünde masaüstü streamer widget'ı otomatik görünür" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <!-- Right Column: Switch Health Analytics & System Startup -->
+                        <Border Grid.Column="1" Style="{StaticResource StudioCardBorder}" Margin="10,0,0,0" Padding="24,20">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,3">
+                                        <TextBlock Text="Switch Sağlık &amp; Aşınma Analitiği"
+                                                   FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Button Click="ResetSwitchHealth_Click" Style="{StaticResource ToolbarActionButton}"
+                                                Height="26" Padding="10,0" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                ToolTip="Kayıtlı tıklama sayaçlarını sıfırla">
+                                            <TextBlock Text="Sayaçları Sıfırla" />
+                                        </Button>
+                                    </Grid>
+                                    <TextBlock Text="Omron D2FC mekanik kontak aşınma analitiği ve tahmini kullanım ömrü (10M / 3M)"
+                                               FontSize="12.5" Foreground="{StaticResource BrushTextMuted}" Margin="0,0,0,14" />
+
+                                    <!-- 9 Switches Live Wear Table -->
+                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,14" Margin="0,0,0,14">
+                                        <StackPanel x:Name="SwitchHealthFullPanel" />
+                                    </Border>
+
+                                    <!-- System & Startup Options -->
+                                    <TextBlock Text="Sistem &amp; Bildirimler"
+                                               FontFamily="{StaticResource FontDisplay}" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+                                    <Border Background="{StaticResource BrushBgSurface2}" CornerRadius="10" Padding="16,12" Margin="0,0,0,12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="OsdToggle" Grid.Column="0" Style="{StaticResource PillToggleSwitch}"
+                                                      Content="Ekran Üstü Bildirim (OSD)"
+                                                      IsChecked="True"
+                                                      Checked="OsdToggle_Changed" Unchecked="OsdToggle_Changed"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip="DPI veya profil değiştiğinde ekranın üst kısmında şık bildirim gösterir" />
+                                            <CheckBox x:Name="StartupToggle" Grid.Column="1" Style="{StaticResource PillToggleSwitch}"
+                                                      Content="Windows ile Başlat (Tepsi)"
+                                                      Checked="StartupToggle_Changed" Unchecked="StartupToggle_Changed"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip="Bilgisayar açıldığında uygulamayı arka planda sistem tepsisinde başlatır" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Desktop Shortcut & Quick Utilities -->
+                                    <Grid>
+                                        <Button Click="CreateDesktopShortcut_Click" Style="{StaticResource ToolbarActionButton}" HorizontalAlignment="Left"
+                                                ToolTip="Masaüstüne Logitech G300s Studio kısayolu ekler">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE71B;" FontFamily="{StaticResource FontIcons}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="Masaüstü Kısayolu Oluştur" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
                         </Border>
                     </Grid>
 
