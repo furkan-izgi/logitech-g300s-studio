@@ -85,6 +85,15 @@ public partial class MainWindow : Window
     private readonly ClickHeatmapService _heatmap = new();
     private readonly DebounceFilterService _debounce = new();
     private readonly SniperModeService _sniper = new();
+    private readonly AmbilightService _ambilight = new();
+    private readonly SwitchHealthService _switchHealth = new();
+    private readonly AngleSnappingService _angleSnapping = new();
+    private readonly MiniHudOverlayService _miniHud = new();
+    private bool _fluidRgbEnabled;
+    private bool _microInteractionsEnabled = true;
+    private bool _tacticalTypographyEnabled;
+    private bool _miniHudManualOpen;
+    private WindowBackdropMode _activeBackdropMode = WindowBackdropMode.Mica;
     private readonly DispatcherTimer _livePreviewTimer;
     private CancellationTokenSource? _rateTestCts;
     private CancellationTokenSource? _hotplugDebounceCts;
@@ -244,6 +253,9 @@ public partial class MainWindow : Window
             if (bIdx >= 0)
             {
                 _heatmap.RecordClick(bIdx);
+                _switchHealth.RecordClick(bIdx + 1);
+                _miniHud.HighlightButton(bIdx + 1, true);
+                Task.Delay(120).ContinueWith(_ => _miniHud.HighlightButton(bIdx + 1, false));
             }
         };
         _debounce.Start();
@@ -255,6 +267,32 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(UpdateHeatmapHeaderStats);
         };
         UpdateHeatmapHeaderStats();
+
+        // Initialize Switch Health Analytics & Live Mini-HUD Click Highlights
+        _switchHealth.HealthUpdated += () => Dispatcher.BeginInvoke(UpdateSwitchHealthUi);
+        UpdateSwitchHealthUi();
+
+        // Initialize Angle Snapping Service
+        _angleSnapping.Start();
+        _angleSnapping.MovementProcessed += (dx, dy, snapped) =>
+        {
+            if (snapped)
+            {
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (AngleSnappingStatusText is not null)
+                        AngleSnappingStatusText.Text = $"Eksen sabitlendi: dx={dx}, dy={dy} (Düz Çizgi)";
+                });
+            }
+        };
+
+        // Initialize DXGI Ambilight Service
+        _ambilight.ColorsSampled += (left, right, hwIdx) =>
+        {
+            Dispatcher.BeginInvoke(() => UpdateAmbilightTelemetry(left, right, hwIdx));
+        };
+
+        StateChanged += MainWindow_StateChanged;
 
         // Initialize Sniper Mode Service
         _sniper.TargetSniperDpi = _selectedSniperDpi;
@@ -287,7 +325,7 @@ public partial class MainWindow : Window
         if (Array.Exists(args, a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase) || string.Equals(a, "--tray", StringComparison.OrdinalIgnoreCase)))
         {
             Hide();
-            StatusFooterText.Text = "Windows başlangıcında sistem tepsisinde başlatıldı.";
+            if (StatusFooterText is not null) StatusFooterText.Text = "Windows başlangıcında sistem tepsisinde başlatıldı.";
             return;
         }
 
@@ -308,6 +346,12 @@ public partial class MainWindow : Window
             await Task.Delay(200);
             CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_heatmap{ext}"));
             HeatmapToggle.IsChecked = false;
+
+            // Capture Switch Health view
+            SwitchHealthBtn_Click(this, new RoutedEventArgs());
+            await Task.Delay(200);
+            CaptureWindowScreenshot(Path.Combine(dir, $"{baseName}_switchhealth{ext}"));
+            CloseSwitchHealth_Click(this, new RoutedEventArgs());
 
             SwitchMainView(1);
             await Task.Delay(250);
@@ -425,7 +469,24 @@ public partial class MainWindow : Window
 
     private void LivePreviewTimer_Tick(object? sender, EventArgs e)
     {
-        if (_automation.ActiveRgbEffect != "none")
+        if (_fluidRgbEnabled)
+        {
+            double time = Environment.TickCount / 1200.0;
+            byte r = (byte)(Math.Sin(time) * 127 + 128);
+            byte g = (byte)(Math.Sin(time + 2.094) * 127 + 128);
+            byte b = (byte)(Math.Sin(time + 4.188) * 127 + 128);
+            UpdateTintedSwoosh24Bit(r, g, b);
+
+            if (_activeViewIndex == 2 && LiveColorPreviewOrb is not null && LiveTelemetryTitleText is not null)
+            {
+                var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+                LiveColorPreviewOrb.Background = brush;
+                LiveTelemetryProgressFill.Background = brush;
+                LiveTelemetryTitleText.Text = "Canlı Sıvı RGB Spektrumu";
+                ActiveColorLabel.Text = $"#{r:X2}{g:X2}{b:X2}";
+            }
+        }
+        else if (_automation.ActiveRgbEffect != "none")
         {
             var (r, g, b) = _automation.LivePreviewColor;
             UpdateTintedSwoosh24Bit(r, g, b);
@@ -1291,18 +1352,18 @@ public partial class MainWindow : Window
                 }
 
                 SetConnectionStatusUi(true, "Bağlı");
-                StatusFooterText.Text = $"Logitech G300s bağlı · Aktif Profil {_activeProfileIndex + 1}, Kademe {_activeDpiStageIndex + 1}";
+                if (StatusFooterText is not null) StatusFooterText.Text = $"Logitech G300s bağlı · Aktif Profil {_activeProfileIndex + 1}, Kademe {_activeDpiStageIndex + 1}";
             }
             else
             {
                 SetConnectionStatusUi(false, "Çevrimdışı");
-                StatusFooterText.Text = "Logitech G300s algılanmadı · Çevrimdışı düzenleme modu";
+                if (StatusFooterText is not null) StatusFooterText.Text = "Logitech G300s algılanmadı · Çevrimdışı düzenleme modu";
             }
         }
         catch (Exception ex)
         {
             SetConnectionStatusUi(false, "Bağlantı Hatası");
-            StatusFooterText.Text = $"Donanım okuma hatası: {ex.Message}";
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Donanım okuma hatası: {ex.Message}";
         }
 
         _hasUnsavedChanges = false;
@@ -1331,11 +1392,11 @@ public partial class MainWindow : Window
                     _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB);
                 }
                 _device.SetLiveRate(prof.PollingRateHz);
-                StatusFooterText.Text = $"Profil {_activeProfileIndex + 1} ({prof.ColorName}) etkinleştirildi.";
+                if (StatusFooterText is not null) StatusFooterText.Text = $"Profil {_activeProfileIndex + 1} ({prof.ColorName}) etkinleştirildi.";
             }
             catch (Exception ex)
             {
-                StatusFooterText.Text = $"Profil geçiş hatası: {ex.Message}";
+                if (StatusFooterText is not null) StatusFooterText.Text = $"Profil geçiş hatası: {ex.Message}";
             }
         }
 
@@ -1492,12 +1553,12 @@ public partial class MainWindow : Window
                 sb.AppendLine($"Profil {i + 1} (0x{raw[0]:X2}): {hex}");
             }
             Clipboard.SetText(sb.ToString().TrimEnd());
-            StatusFooterText.Text = "Tüm 3 profilin (0xF3–0xF5) 35-bayt EEPROM hex dökümü panoya kopyalandı.";
+            if (StatusFooterText is not null) StatusFooterText.Text = "Tüm 3 profilin (0xF3–0xF5) 35-bayt EEPROM hex dökümü panoya kopyalandı.";
             _osd.ShowNotification("EEPROM Hex Kopyalandı", "0xF3, 0xF4, 0xF5 (3×35 Bayt) panoda", "#00D4FF");
         }
         catch (Exception ex)
         {
-            StatusFooterText.Text = $"Pano kopyalama hatası: {ex.Message}";
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Pano kopyalama hatası: {ex.Message}";
         }
     }
 
@@ -1539,7 +1600,7 @@ public partial class MainWindow : Window
             _debounce.IsEnabled,
             SniperToggle?.IsChecked == true);
 
-        StatusFooterText.Text = visible
+        if (StatusFooterText is not null) StatusFooterText.Text = visible
             ? "Oyun içi ekran nişangahı (Crosshair) etkinleştirildi."
             : "Oyun içi ekran nişangahı kapatıldı.";
     }
@@ -1549,7 +1610,7 @@ public partial class MainWindow : Window
         if (_suppressUiEvents) return;
         _heatmapModeEnabled = HeatmapToggle.IsChecked == true;
         UpdateCalloutHeatmapVisuals();
-        StatusFooterText.Text = _heatmapModeEnabled
+        if (StatusFooterText is not null) StatusFooterText.Text = _heatmapModeEnabled
             ? "Tuş aktivite ve tıklama ısı haritası görünümü açıldı."
             : "Standart tuş atama görünümüne dönüldü.";
     }
@@ -1559,7 +1620,7 @@ public partial class MainWindow : Window
         _heatmap.ResetStats();
         UpdateHeatmapHeaderStats();
         UpdateCalloutHeatmapVisuals();
-        StatusFooterText.Text = "Tıklama istatistikleri ve ısı haritası sıfırlandı.";
+        if (StatusFooterText is not null) StatusFooterText.Text = "Tıklama istatistikleri ve ısı haritası sıfırlandı.";
         _osd.ShowNotification("İstatistikler Sıfırlandı", "Isı haritası ve sayaçlar temizlendi", "#00D4FF");
     }
 
@@ -1614,7 +1675,7 @@ public partial class MainWindow : Window
     {
         if (_suppressUiEvents) return;
         bool enabled = SniperToggle.IsChecked == true;
-        StatusFooterText.Text = enabled
+        if (StatusFooterText is not null) StatusFooterText.Text = enabled
             ? $"G-Shift Nişan (Sniper) Modu devrede: Hedef {_selectedSniperDpi} DPI."
             : "G-Shift Nişan (Sniper) Modu kapatıldı.";
     }
@@ -1638,7 +1699,7 @@ public partial class MainWindow : Window
         if (_suppressUiEvents) return;
         bool enabled = DebounceToggle.IsChecked == true;
         _debounce.IsEnabled = enabled;
-        StatusFooterText.Text = enabled
+        if (StatusFooterText is not null) StatusFooterText.Text = enabled
             ? $"Akıllı çift tıklama filtresi devrede ({_debounce.DebounceThresholdMs} ms)."
             : "Çift tıklama filtresi devre dışı.";
         if (DebounceStatusText is not null)
@@ -1962,7 +2023,7 @@ public partial class MainWindow : Window
         string? hidName = G300sProtocol.MapWpfKeyToHidName(key);
         if (hidName is null)
         {
-            StatusFooterText.Text = $"Desteklenmeyen tuş '{key}'. Standart harf/rakam veya F1-F24 deneyin.";
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Desteklenmeyen tuş '{key}'. Standart harf/rakam veya F1-F24 deneyin.";
             StopKeyRecording();
             return;
         }
@@ -2022,11 +2083,11 @@ public partial class MainWindow : Window
             try
             {
                 _device.SetActiveDpiStage(_activeDpiStageIndex);
-                StatusFooterText.Text = $"Donanım hassasiyeti Kademe {_activeDpiStageIndex + 1} ({_profiles[_activeProfileIndex].DpiStages[_activeDpiStageIndex]} DPI) yapıldı.";
+                if (StatusFooterText is not null) StatusFooterText.Text = $"Donanım hassasiyeti Kademe {_activeDpiStageIndex + 1} ({_profiles[_activeProfileIndex].DpiStages[_activeDpiStageIndex]} DPI) yapıldı.";
             }
             catch (Exception ex)
             {
-                StatusFooterText.Text = $"DPI değiştirilemedi: {ex.Message}";
+                if (StatusFooterText is not null) StatusFooterText.Text = $"DPI değiştirilemedi: {ex.Message}";
             }
         }
         RefreshCurrentProfileToUi();
@@ -2063,7 +2124,7 @@ public partial class MainWindow : Window
         var prof = _profiles[_activeProfileIndex];
         _automation.UpdateRgbParameters((int)BreathSpeedSlider.Value, (prof.LedR, prof.LedG, prof.LedB), _secondaryBreathColor);
         UpdateSecondarySwatchVisuals();
-        StatusFooterText.Text = "İkincil geçiş rengi güncellendi.";
+        if (StatusFooterText is not null) StatusFooterText.Text = "İkincil geçiş rengi güncellendi.";
     }
 
     private void UpdateSecondarySwatchVisuals()
@@ -2089,7 +2150,7 @@ public partial class MainWindow : Window
 
         UpdateLightingModeSelectionVisuals(effectKey);
         RefreshCurrentProfileToUi();
-        StatusFooterText.Text = "Aydınlatma modu güncellendi.";
+        if (StatusFooterText is not null) StatusFooterText.Text = "Aydınlatma modu güncellendi.";
     }
 
     private void UpdateLightingModeSelectionVisuals(string activeKey)
@@ -2120,7 +2181,7 @@ public partial class MainWindow : Window
     private void MarkModified(string message)
     {
         _hasUnsavedChanges = true;
-        StatusFooterText.Text = $"{message} · Kalıcı olması için 'Belleğe Kaydet' butonuna tıklayın.";
+        if (StatusFooterText is not null) StatusFooterText.Text = $"{message} · Kalıcı olması için 'Belleğe Kaydet' butonuna tıklayın.";
         UpdateDirtyStateVisuals();
     }
 
@@ -2144,7 +2205,7 @@ public partial class MainWindow : Window
 
         FlashSaveBtn.IsEnabled = false;
         FlashSaveBtnText.Text = "Kaydediliyor...";
-        StatusFooterText.Text = "Profiller yerleşik EEPROM belleğe yazılıyor...";
+        if (StatusFooterText is not null) StatusFooterText.Text = "Profiller yerleşik EEPROM belleğe yazılıyor...";
 
         try
         {
@@ -2165,11 +2226,11 @@ public partial class MainWindow : Window
 
             _hasUnsavedChanges = false;
             UpdateDirtyStateVisuals();
-            StatusFooterText.Text = "Tüm 3 profil Logitech G300s belleğine kaydedildi.";
+            if (StatusFooterText is not null) StatusFooterText.Text = "Tüm 3 profil Logitech G300s belleğine kaydedildi.";
         }
         catch (Exception ex)
         {
-            StatusFooterText.Text = $"Belleğe yazma hatası: {ex.Message}";
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Belleğe yazma hatası: {ex.Message}";
             MessageBox.Show(this, $"Donanım belleğine yazılamadı:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
@@ -2313,7 +2374,7 @@ public partial class MainWindow : Window
             };
 
             File.WriteAllText(dlg.FileName, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-            StatusFooterText.Text = $"Profiller '{Path.GetFileName(dlg.FileName)}' dosyasına dışa aktarıldı.";
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Profiller '{Path.GetFileName(dlg.FileName)}' dosyasına dışa aktarıldı.";
         }
         catch (Exception ex)
         {
@@ -2324,7 +2385,7 @@ public partial class MainWindow : Window
     private void SaveDaemonConfig_Click(object sender, RoutedEventArgs e)
     {
         _automation.SaveConfig();
-        StatusFooterText.Text = "Makro ve otomatik profil kuralları kaydedildi.";
+        if (StatusFooterText is not null) StatusFooterText.Text = "Makro ve otomatik profil kuralları kaydedildi.";
     }
 
     private void AutoSwitchToggle_Changed(object sender, RoutedEventArgs e)
@@ -2354,7 +2415,7 @@ public partial class MainWindow : Window
         if (_suppressUiEvents) return;
         bool enabled = StartupToggle.IsChecked == true;
         HostAutomationService.SetRunAtStartup(enabled);
-        StatusFooterText.Text = enabled
+        if (StatusFooterText is not null) StatusFooterText.Text = enabled
             ? "Windows başlangıcında tepsi modunda otomatik çalışma etkinleştirildi."
             : "Windows başlangıcında otomatik çalışma devre dışı bırakıldı.";
     }
@@ -2403,7 +2464,7 @@ public partial class MainWindow : Window
                     {
                         _device.Dispose();
                         SetConnectionStatusUi(false, "Çevrimdışı");
-                        StatusFooterText.Text = "Logitech G300s USB bağlantısı kesildi · Tak-Çıkar bekleniyor...";
+                        if (StatusFooterText is not null) StatusFooterText.Text = "Logitech G300s USB bağlantısı kesildi · Tak-Çıkar bekleniyor...";
                         _osd.ShowNotification("Logitech G300s Çıkarıldı", "USB bağlantısı kesildi", "#FF2D46");
                         return;
                     }
@@ -2542,7 +2603,7 @@ public partial class MainWindow : Window
 
         if (dstSlot == _activeProfileIndex)
         {
-            StatusFooterText.Text = $"Profil {dstSlot + 1} zaten aktif profil.";
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Profil {dstSlot + 1} zaten aktif profil.";
             return;
         }
 
@@ -2590,12 +2651,12 @@ public partial class MainWindow : Window
             }
             shortcut.Save();
 
-            StatusFooterText.Text = "Masaüstüne 'Logitech G300s Studio' kısayolu oluşturuldu.";
+            if (StatusFooterText is not null) StatusFooterText.Text = "Masaüstüne 'Logitech G300s Studio' kısayolu oluşturuldu.";
             _osd.ShowNotification("Masaüstü Kısayolu Oluşturuldu", "Logitech G300s Studio masaüstüne eklendi", "#00E676");
         }
         catch (Exception ex)
         {
-            StatusFooterText.Text = $"Kısayol oluşturma hatası: {ex.Message}";
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Kısayol oluşturma hatası: {ex.Message}";
         }
     }
 
@@ -2739,7 +2800,7 @@ public partial class MainWindow : Window
 
         _automation.SaveConfig();
         RefreshAppRulesListUi();
-        StatusFooterText.Text = $"Otomatik geçiş kuralı eklendi: {exe} → Profil {slot + 1}";
+        if (StatusFooterText is not null) StatusFooterText.Text = $"Otomatik geçiş kuralı eklendi: {exe} → Profil {slot + 1}";
     }
 
     private void OnHardwareEventReceived(HardwareButtonEvent ev)
@@ -2798,7 +2859,7 @@ public partial class MainWindow : Window
             _activeProfileIndex = newSlot;
             RefreshSlotHeaderVisuals();
             RefreshCurrentProfileToUi();
-            StatusFooterText.Text = $"Otomatik geçiş: {exeName} → Profil {newSlot + 1}";
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Otomatik geçiş: {exeName} → Profil {newSlot + 1}";
 
             var prof = _profiles[_activeProfileIndex];
             int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
@@ -2850,7 +2911,7 @@ public partial class MainWindow : Window
     private void MinimizeToTray_Click(object sender, RoutedEventArgs e)
     {
         Hide();
-        StatusFooterText.Text = "Sistem tepsisinde çalışıyor.";
+        if (StatusFooterText is not null) StatusFooterText.Text = "Sistem tepsisinde çalışıyor.";
     }
 
     private void CaptionMinimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -2878,6 +2939,10 @@ public partial class MainWindow : Window
         _rateTestCts?.Cancel();
         _rateTestCts?.Dispose();
         _livePreviewTimer.Stop();
+        _ambilight.Dispose();
+        _angleSnapping.Dispose();
+        _switchHealth.SaveStats();
+        _miniHud.Dispose();
         _debounce.Dispose();
         _heatmap.SaveStats();
         _crosshair.Dispose();
@@ -2910,4 +2975,336 @@ public partial class MainWindow : Window
             // Ignore screenshot error
         }
     }
+
+    // =========================================================================
+    // NEW FEATURES: MINI-HUD, SWITCH HEALTH, ANGLE SNAPPING, AMBILIGHT, MICA
+    // =========================================================================
+
+    private void MainWindow_StateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            if (_miniHud.IsEnabled && _miniHud.AutoShowOnMinimize)
+            {
+                UpdateMiniHudTelemetry();
+                _miniHud.Show();
+            }
+        }
+        else if (WindowState == WindowState.Normal)
+        {
+            if (!_miniHudManualOpen && _miniHud.AutoShowOnMinimize)
+            {
+                _miniHud.Hide();
+            }
+        }
+    }
+
+    private void MiniHudHeaderBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _miniHudManualOpen = !_miniHudManualOpen;
+        _miniHud.IsEnabled = _miniHudManualOpen;
+        if (MiniHudToggle is not null)
+        {
+            MiniHudToggle.IsChecked = _miniHud.IsEnabled;
+        }
+
+        if (_miniHud.IsEnabled)
+        {
+            UpdateMiniHudTelemetry();
+            _miniHud.Show();
+            if (StatusFooterText is not null) StatusFooterText.Text = "Masaüstü kayan mini-HUD widget'ı açıldı.";
+        }
+        else
+        {
+            _miniHud.Hide();
+            if (StatusFooterText is not null) StatusFooterText.Text = "Mini-HUD kapatıldı.";
+        }
+    }
+
+    private void UpdateMiniHudTelemetry()
+    {
+        var prof = _profiles[_activeProfileIndex];
+        string profName = $"Profil {_activeProfileIndex + 1}";
+        string hexColor = prof.ColorHex;
+        int dpi = prof.DpiStages[_activeDpiStageIndex];
+        int hz = prof.PollingRateHz;
+        _miniHud.UpdateTelemetry(profName, hexColor, dpi, hz);
+    }
+
+    private void SwitchHealthBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (SwitchHealthOverlayCard is null) return;
+        SwitchHealthOverlayCard.Visibility = SwitchHealthOverlayCard.Visibility == Visibility.Visible
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        if (SwitchHealthOverlayCard.Visibility == Visibility.Visible)
+        {
+            UpdateSwitchHealthUi();
+        }
+    }
+
+    private void CloseSwitchHealth_Click(object sender, RoutedEventArgs e)
+    {
+        if (SwitchHealthOverlayCard is not null)
+        {
+            SwitchHealthOverlayCard.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void ResetSwitchHealth_Click(object sender, RoutedEventArgs e)
+    {
+        _switchHealth.ResetAll();
+        UpdateSwitchHealthUi();
+        if (StatusFooterText is not null) StatusFooterText.Text = "Switch tıklama sayaçları sıfırlandı.";
+    }
+
+    private void UpdateSwitchHealthUi()
+    {
+        if (SwitchHealthBarsPanel is null || OverallHealthText is null || OverallHealthDot is null) return;
+
+        SwitchHealthBarsPanel.Children.Clear();
+        double totalHealth = 0;
+        int count = 0;
+
+        foreach (var (idx, stats) in _switchHealth.Switches)
+        {
+            totalHealth += stats.HealthPercentage;
+            count++;
+
+            var row = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
+
+            var nameTb = new TextBlock
+            {
+                Text = stats.Name,
+                FontSize = 11,
+                Foreground = (Brush)FindResource("BrushTextSecondary"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(nameTb, 0);
+            row.Children.Add(nameTb);
+
+            // Progress Bar Track
+            var track = new Border
+            {
+                Height = 6,
+                CornerRadius = new CornerRadius(3),
+                Background = (Brush)FindResource("BrushBgElevated"),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(6, 0, 8, 0),
+                ClipToBounds = true
+            };
+
+            var fill = new Border
+            {
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Height = 6,
+                CornerRadius = new CornerRadius(3),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(stats.HealthColorHex)),
+                Width = Math.Max(4.0, (stats.HealthPercentage / 100.0) * 130.0)
+            };
+            track.Child = fill;
+            Grid.SetColumn(track, 1);
+            row.Children.Add(track);
+
+            var statTb = new TextBlock
+            {
+                Text = $"%{stats.HealthPercentage:0.0} ({stats.TotalClicks})",
+                FontSize = 10.5,
+                FontFamily = (FontFamily)FindResource("FontTacticalMono"),
+                Foreground = (Brush)FindResource("BrushTextPrimary"),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(statTb, 2);
+            row.Children.Add(statTb);
+
+            SwitchHealthBarsPanel.Children.Add(row);
+        }
+
+        double avgHealth = count > 0 ? (totalHealth / count) : 100.0;
+        OverallHealthText.Text = $"Switch: %{avgHealth:0.0}";
+        OverallHealthDot.Fill = avgHealth > 85.0
+            ? (Brush)FindResource("BrushSuccess")
+            : (avgHealth > 60.0 ? (Brush)FindResource("BrushWarning") : (Brush)FindResource("BrushDanger"));
+    }
+
+    private void AngleSnappingToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        if (AngleSnappingToggle is null) return;
+        _angleSnapping.IsEnabled = AngleSnappingToggle.IsChecked == true;
+        if (AngleSnappingStatusText is not null)
+        {
+            AngleSnappingStatusText.Text = _angleSnapping.IsEnabled
+                ? $"Açı sabitleme aktif ({_angleSnapping.AngleThresholdDegrees}°) · Düz çizgi kılavuzu devrede"
+                : "Açı sabitleme devre dışı · Serbest hareket";
+        }
+        if (StatusFooterText is not null) StatusFooterText.Text = _angleSnapping.IsEnabled ? "Açı sabitleme filtresi etkinleştirildi." : "Açı sabitleme kapatıldı.";
+    }
+
+    private void AngleSnappingCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressUiEvents || AngleSnappingCombo?.SelectedItem is not ComboBoxItem item) return;
+        if (double.TryParse(item.Tag?.ToString(), out double deg))
+        {
+            _angleSnapping.AngleThresholdDegrees = deg;
+            if (AngleSnappingStatusText is not null && _angleSnapping.IsEnabled)
+            {
+                AngleSnappingStatusText.Text = $"Açı sabitleme aktif ({deg}°) · Düz çizgi kılavuzu devrede";
+            }
+        }
+    }
+
+    private void FluidRgbToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        if (FluidRgbToggle is null) return;
+        _fluidRgbEnabled = FluidRgbToggle.IsChecked == true;
+        if (!_fluidRgbEnabled)
+        {
+            var col = (Color)ColorConverter.ConvertFromString(_profiles[_activeProfileIndex].ColorHex); UpdateTintedSwoosh24Bit(col.R, col.G, col.B);
+        }
+        if (StatusFooterText is not null) StatusFooterText.Text = _fluidRgbEnabled ? "Önizlemede canlı sıvı RGB spektrum dalgası başlatıldı." : "Sıvı RGB spektrumu durduruldu.";
+    }
+
+    private void AmbilightToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        if (AmbilightToggle is null) return;
+        bool enable = AmbilightToggle.IsChecked == true;
+        if (enable)
+        {
+            _ambilight.Start();
+            if (AmbilightStatusText is not null)
+            {
+                AmbilightStatusText.Text = $"DXGI Ambilight aktif ({_ambilight.TargetFps} FPS) · Ekran renkleri farenin LED'lerine senkronize";
+            }
+            if (StatusFooterText is not null) StatusFooterText.Text = "DXGI Ambilight ekran ortam rengi yansıtma başlatıldı.";
+        }
+        else
+        {
+            _ambilight.Stop();
+            if (AmbilightStatusText is not null)
+            {
+                AmbilightStatusText.Text = "DXGI Ambilight devre dışı";
+            }
+            var col = (Color)ColorConverter.ConvertFromString(_profiles[_activeProfileIndex].ColorHex); UpdateTintedSwoosh24Bit(col.R, col.G, col.B);
+            if (StatusFooterText is not null) StatusFooterText.Text = "DXGI Ambilight durduruldu.";
+        }
+    }
+
+    private void AmbilightModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressUiEvents || AmbilightModeCombo?.SelectedItem is not ComboBoxItem item) return;
+        string tag = item.Tag?.ToString() ?? "split";
+        _ambilight.Mode = tag == "full" ? AmbilightSamplingMode.FullScreenAverage : AmbilightSamplingMode.LeftRightSplit;
+    }
+
+    private void AmbilightFpsSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_suppressUiEvents || AmbilightFpsSlider is null || AmbilightFpsValueText is null) return;
+        int fps = (int)AmbilightFpsSlider.Value;
+        _ambilight.TargetFps = fps;
+        AmbilightFpsValueText.Text = $"{fps} FPS";
+    }
+
+    private void UpdateAmbilightTelemetry(Color left, Color right, int hwColorIdx)
+    {
+        if (AmbilightLeftOrb is not null) AmbilightLeftOrb.Background = new SolidColorBrush(left);
+        if (AmbilightRightOrb is not null) AmbilightRightOrb.Background = new SolidColorBrush(right);
+
+        if (_ambilight.IsRunning && _activeViewIndex == 2 && !_fluidRgbEnabled)
+        {
+            byte r = (byte)((left.R + right.R) / 2);
+            byte g = (byte)((left.G + right.G) / 2);
+            byte b = (byte)((left.B + right.B) / 2);
+            UpdateTintedSwoosh24Bit(r, g, b);
+        }
+    }
+
+    private void MicaBackdropToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        if (MicaBackdropToggle is null) return;
+        bool enable = MicaBackdropToggle.IsChecked == true;
+        if (enable)
+        {
+            WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
+            WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(160, 9, 9, 11));
+            Background = Brushes.Transparent;
+            if (StatusFooterText is not null) StatusFooterText.Text = $"Windows 11 {_activeBackdropMode} cam efekti uygulandı.";
+        }
+        else
+        {
+            WindowBackdropService.ApplyBackdrop(this, WindowBackdropMode.Solid);
+            WindowOuterBorder.Background = (Brush)FindResource("BrushBgCanvas");
+            Background = (Brush)FindResource("BrushBgCanvas");
+            if (StatusFooterText is not null) StatusFooterText.Text = "Mat karbon katı arka plan uygulandı.";
+        }
+    }
+
+    private void MicaModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressUiEvents || MicaModeCombo?.SelectedItem is not ComboBoxItem item) return;
+        int modeVal = int.Parse(item.Tag?.ToString() ?? "1");
+        _activeBackdropMode = (WindowBackdropMode)modeVal;
+        if (MicaBackdropToggle?.IsChecked == true)
+        {
+            WindowBackdropService.ApplyBackdrop(this, _activeBackdropMode);
+        }
+    }
+
+    private void TacticalTypographyToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        if (TacticalTypographyToggle is null) return;
+        _tacticalTypographyEnabled = TacticalTypographyToggle.IsChecked == true;
+        var font = _tacticalTypographyEnabled
+            ? (FontFamily)FindResource("FontTacticalMono")
+            : (FontFamily)FindResource("FontSans");
+
+        TelemetryDpiText.FontFamily = font;
+        TelemetryRateText.FontFamily = font;
+        if (StatusFooterText is not null) StatusFooterText.Text = _tacticalTypographyEnabled ? "Siberpunk taktik tipografi aktif." : "Standart arayüz tipografisine dönüldü.";
+    }
+
+    private void MicroInteractionsToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        if (MicroInteractionsToggle is null) return;
+        _microInteractionsEnabled = MicroInteractionsToggle.IsChecked == true;
+        if (StatusFooterText is not null) StatusFooterText.Text = _microInteractionsEnabled ? "Akıcı hover animasyonları aktif." : "Hover animasyonları devre dışı.";
+    }
+
+    private void MiniHudToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        if (MiniHudToggle is null) return;
+        _miniHud.IsEnabled = MiniHudToggle.IsChecked == true;
+        if (_miniHud.IsEnabled)
+        {
+            UpdateMiniHudTelemetry();
+            _miniHud.Show();
+        }
+        else
+        {
+            _miniHud.Hide();
+        }
+    }
+
+    private void MiniHudClickThrough_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUiEvents) return;
+        if (MiniHudClickThrough is null) return;
+        _miniHud.IsClickThrough = MiniHudClickThrough.IsChecked == true;
+        if (_miniHud.IsEnabled)
+        {
+            _miniHud.Show(); // Refresh Win32 styles
+        }
+    }
+
 }
