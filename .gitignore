@@ -22,8 +22,6 @@ pyproject.toml
 requirements.txt
 AGENTS.md
 PROTOCOL.md
-screenshots/verify_v14*
-screenshots/verify_v15_radialwheel*
 
 # Editor / IDE
 .vscode/

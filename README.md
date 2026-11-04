@@ -23,7 +23,7 @@ Logitech Gaming Software (LGS) is a legacy ~150MB suite that hasn't received mea
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/verify_v15.png" alt="Logitech G300s Studio Main Stage" width="100%" />
+  <img src="./screenshots/main_interface.png" alt="Logitech G300s Studio Main Stage" width="100%" />
 </p>
 
 ### Feature Showcases
@@ -34,24 +34,24 @@ Logitech Gaming Software (LGS) is a legacy ~150MB suite that hasn't received mea
     <td align="center" width="50%"><b>RGB Aydınlatma Studio &amp; Renk Profilleri</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/verify_v15_sensor.png" width="100%" /></td>
-    <td align="center"><img src="screenshots/verify_v15_lighting.png" width="100%" /></td>
+    <td align="center"><img src="./screenshots/sensor_tuning.png" alt="Sensör ve DPI Kademeleri" width="100%" /></td>
+    <td align="center"><img src="./screenshots/lighting_studio.png" alt="RGB Aydınlatma Stüdyosu" width="100%" /></td>
   </tr>
   <tr>
     <td align="center" width="50%"><b>Otomasyon, Tuş Haritalama &amp; Makro Motoru</b></td>
     <td align="center" width="50%"><b>Omron Mekanik Switch Sağlık &amp; Aşınma Takibi</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/verify_v15_automation.png" width="100%" /></td>
-    <td align="center"><img src="screenshots/verify_v15_switchhealth.png" width="100%" /></td>
+    <td align="center"><img src="./screenshots/host_automation.png" alt="Tuş Haritalama ve Makro Motoru" width="100%" /></td>
+    <td align="center"><img src="./screenshots/switch_health.png" alt="Omron Switch Sağlık Takibi" width="100%" /></td>
   </tr>
   <tr>
     <td align="center" width="50%"><b>Ekran Tıklama &amp; Durma Isı Haritası (Heatmap)</b></td>
     <td align="center" width="50%"><b>Fiziksel Donanım Tuş Tıklama Dağılımı</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/verify_v15_screen_heatmap.png" width="100%" /></td>
-    <td align="center"><img src="screenshots/verify_v15_heatmap.png" width="100%" /></td>
+    <td align="center"><img src="./screenshots/screen_heatmap.png" alt="Ekran Isı Haritası" width="100%" /></td>
+    <td align="center"><img src="./screenshots/button_heatmap.png" alt="Fiziksel Tuş Isı Haritası" width="100%" /></td>
   </tr>
 </table>
 

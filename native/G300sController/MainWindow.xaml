@@ -18,7 +18,7 @@
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0"
                       CornerRadius="12"
-                      GlassFrameThickness="-1"
+                      GlassFrameThickness="0"
                       ResizeBorderThickness="6"
                       UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
@@ -126,28 +126,46 @@
                             CornerRadius="9" Padding="3"
                             WindowChrome.IsHitTestVisibleInChrome="True">
                         <StackPanel Orientation="Horizontal">
-                            <Button x:Name="SlotBtn0" Click="SlotButton_Click" Tag="0"
+                            <Button x:Name="SlotBtn0" Click="SlotButton_Click" MouseDoubleClick="SlotButton_MouseDoubleClick" Tag="0"
                                     Style="{StaticResource ToolbarActionButton}"
-                                    Height="28" Padding="16,0" BorderThickness="0" Margin="0,0,2,0">
+                                    Height="28" Padding="14,0" BorderThickness="0" Margin="0,0,2,0"
+                                    ToolTip="Sol tık: Seç · Çift tık veya Sağ tık: Yeniden Adlandır">
+                                <Button.ContextMenu>
+                                    <ContextMenu Background="{DynamicResource BrushBgSurface2}" Foreground="{DynamicResource BrushTextPrimary}">
+                                        <MenuItem Header="Profili Yeniden Adlandır..." Click="RenameSlotContext_Click" Tag="0" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse x:Name="SlotDot0" Width="7" Height="7" Fill="#E040FB" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="Profil 1" FontSize="12.5" FontWeight="Medium" />
+                                    <TextBlock x:Name="SlotText0" Text="Profil 1" FontSize="12.5" FontWeight="Medium" />
                                 </StackPanel>
                             </Button>
-                            <Button x:Name="SlotBtn1" Click="SlotButton_Click" Tag="1"
+                            <Button x:Name="SlotBtn1" Click="SlotButton_Click" MouseDoubleClick="SlotButton_MouseDoubleClick" Tag="1"
                                     Style="{StaticResource ToolbarActionButton}"
-                                    Height="28" Padding="16,0" BorderThickness="0" Margin="0,0,2,0">
+                                    Height="28" Padding="14,0" BorderThickness="0" Margin="0,0,2,0"
+                                    ToolTip="Sol tık: Seç · Çift tık veya Sağ tık: Yeniden Adlandır">
+                                <Button.ContextMenu>
+                                    <ContextMenu Background="{DynamicResource BrushBgSurface2}" Foreground="{DynamicResource BrushTextPrimary}">
+                                        <MenuItem Header="Profili Yeniden Adlandır..." Click="RenameSlotContext_Click" Tag="1" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse x:Name="SlotDot1" Width="7" Height="7" Fill="#00E676" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="Profil 2" FontSize="12.5" FontWeight="Medium" />
+                                    <TextBlock x:Name="SlotText1" Text="Profil 2" FontSize="12.5" FontWeight="Medium" />
                                 </StackPanel>
                             </Button>
-                            <Button x:Name="SlotBtn2" Click="SlotButton_Click" Tag="2"
+                            <Button x:Name="SlotBtn2" Click="SlotButton_Click" MouseDoubleClick="SlotButton_MouseDoubleClick" Tag="2"
                                     Style="{StaticResource ToolbarActionButton}"
-                                    Height="28" Padding="16,0" BorderThickness="0">
+                                    Height="28" Padding="14,0" BorderThickness="0"
+                                    ToolTip="Sol tık: Seç · Çift tık veya Sağ tık: Yeniden Adlandır">
+                                <Button.ContextMenu>
+                                    <ContextMenu Background="{DynamicResource BrushBgSurface2}" Foreground="{DynamicResource BrushTextPrimary}">
+                                        <MenuItem Header="Profili Yeniden Adlandır..." Click="RenameSlotContext_Click" Tag="2" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse x:Name="SlotDot2" Width="7" Height="7" Fill="#00D4FF" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="Profil 3" FontSize="12.5" FontWeight="Medium" />
+                                    <TextBlock x:Name="SlotText2" Text="Profil 3" FontSize="12.5" FontWeight="Medium" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -274,10 +292,19 @@
 
                         <!-- Borderless Open Dark Spotlight Stage -->
                         <Grid Grid.Column="0" ClipToBounds="True">
-                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="32,24,0,0" IsHitTestVisible="False">
-                                <TextBlock x:Name="StageActiveSlotLabel" Text="Profil 1"
-                                           FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold"
-                                           Foreground="{StaticResource BrushTextPrimary}" />
+                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="32,24,0,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="StageActiveSlotLabel" Text="Profil 1"
+                                               FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold"
+                                               Foreground="{StaticResource BrushTextPrimary}" VerticalAlignment="Center" />
+                                    <Button x:Name="RenameActiveProfileBtn" Click="RenameActiveProfileBtn_Click"
+                                            Style="{StaticResource ToolbarActionButton}"
+                                            Height="24" Padding="6,0" Margin="8,0,0,0" VerticalAlignment="Center"
+                                            ToolTip="Aktif profil adını özelleştir">
+                                        <Path Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                              Fill="{DynamicResource BrushTextMuted}" Stretch="Uniform" Width="11" Height="11" />
+                                    </Button>
+                                </StackPanel>
                                 <TextBlock x:Name="StageSubHintText" Text="Atamasını değiştirmek istediğiniz tuşa tıklayın"
                                            FontSize="13" Foreground="{StaticResource BrushTextMuted}" Margin="0,3,0,0" />
                             </StackPanel>
@@ -731,6 +758,63 @@
                                     <TextBlock Text="Yeniden Değerlendir" FontSize="11.5" />
                                 </Button>
                             </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Rename Profile Modal Overlay -->
+                    <Border x:Name="RenameProfileOverlayCard" Visibility="Collapsed"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Width="440" Panel.ZIndex="250"
+                            Background="{DynamicResource BrushBgSurface1}"
+                            BorderBrush="{StaticResource BrushAccentCyanBorder}" BorderThickness="1.5"
+                            CornerRadius="14" Padding="24">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource BrushAccentCyanSubtle}" Margin="0,0,12,0">
+                                        <Path Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                              Fill="{StaticResource BrushAccentCyan}" Stretch="Uniform" Width="14" Height="14" />
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="RenameProfileModalTitle" Text="Profili Yeniden Adlandır"
+                                                   FontFamily="{StaticResource FontDisplay}" FontSize="15" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}" />
+                                        <TextBlock x:Name="RenameProfileModalSubtitle" Text="Seçili yuva için özel bir isim belirleyin"
+                                                   FontSize="12" Foreground="{DynamicResource BrushTextMuted}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Button Click="CloseRenameProfile_Click" Style="{StaticResource WindowCaptionButton}"
+                                        Width="26" Height="26" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource FontIcons}" FontSize="10" />
+                                </Button>
+                            </Grid>
+
+                            <StackPanel Grid.Row="1" Margin="0,0,0,18">
+                                <TextBox x:Name="RenameProfileTextBox" Height="36" Padding="12,7" FontSize="13"
+                                         Background="{DynamicResource BrushBgSurface2}"
+                                         Foreground="{DynamicResource BrushTextPrimary}"
+                                         BorderBrush="{DynamicResource BrushBorderNormal}"
+                                         BorderThickness="1"
+                                         KeyDown="RenameProfileTextBox_KeyDown" />
+                                <TextBlock Text="Örnek: Rekabetçi FPS, Web &amp; Gezinme, CS2, Ofis &amp; Kodlama"
+                                           FontSize="11.5" Foreground="{DynamicResource BrushTextMuted}" Margin="2,6,0,0" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="İptal" Click="CloseRenameProfile_Click"
+                                        Style="{StaticResource ToolbarActionButton}"
+                                        Height="30" Padding="16,0" Margin="0,0,8,0" />
+                                <Button Content="Kaydet" Click="SaveRenameProfile_Click"
+                                        Style="{StaticResource PrimaryActionButton}"
+                                        Height="30" Padding="20,0" />
+                            </StackPanel>
                         </Grid>
                     </Border>
 

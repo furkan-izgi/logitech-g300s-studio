@@ -28,6 +28,7 @@ public sealed class HardwareButtonEvent
 public sealed class G300sProfile : INotifyPropertyChanged
 {
     private int _index;
+    private string? _customName;
     private int _ledR = 0;
     private int _ledG = 1;
     private int _ledB = 1;
@@ -53,8 +54,17 @@ public sealed class G300sProfile : INotifyPropertyChanged
     public int Index
     {
         get => _index;
-        set { _index = value; OnPropertyChanged(); }
+        set { _index = value; OnPropertyChanged(); OnPropertyChanged(nameof(DisplayName)); }
     }
+
+    public string? CustomName
+    {
+        get => _customName;
+        set { _customName = value; OnPropertyChanged(); OnPropertyChanged(nameof(DisplayName)); }
+    }
+
+    [JsonIgnore]
+    public string DisplayName => string.IsNullOrWhiteSpace(_customName) ? $"Profil {_index + 1}" : _customName;
 
     public int LedR
     {
@@ -133,6 +143,7 @@ public sealed class G300sProfile : INotifyPropertyChanged
         var copy = new G300sProfile
         {
             Index = _index,
+            CustomName = _customName,
             LedR = _ledR,
             LedG = _ledG,
             LedB = _ledB,

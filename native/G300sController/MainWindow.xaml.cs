@@ -1476,12 +1476,14 @@ public partial class MainWindow : Window
                 {
                     _profiles[i] = _device.GetProfile(i);
                 }
+                LoadProfileNames();
 
                 SetConnectionStatusUi(true, "Bağlı");
-                if (StatusFooterText is not null) StatusFooterText.Text = $"Logitech G300s bağlı · Aktif Profil {_activeProfileIndex + 1}, Kademe {_activeDpiStageIndex + 1}";
+                if (StatusFooterText is not null) StatusFooterText.Text = $"Logitech G300s bağlı · Aktif Profil {_profiles[_activeProfileIndex].DisplayName}, Kademe {_activeDpiStageIndex + 1}";
             }
             else
             {
+                LoadProfileNames();
                 SetConnectionStatusUi(false, "Çevrimdışı");
                 if (StatusFooterText is not null) StatusFooterText.Text = "Logitech G300s algılanmadı · Çevrimdışı düzenleme modu";
             }
@@ -1535,11 +1537,13 @@ public partial class MainWindow : Window
     {
         Button[] slotBtns = [SlotBtn0, SlotBtn1, SlotBtn2];
         Ellipse[] slotDots = [SlotDot0, SlotDot1, SlotDot2];
+        TextBlock[] slotTexts = [SlotText0, SlotText1, SlotText2];
 
         for (int i = 0; i < 3; i++)
         {
             var p = _profiles[i];
             slotDots[i].Fill = (SolidColorBrush)new BrushConverter().ConvertFromString(p.ColorHex)!;
+            slotTexts[i].Text = p.DisplayName;
 
             if (i == _activeProfileIndex)
             {
@@ -1559,7 +1563,7 @@ public partial class MainWindow : Window
         _suppressUiEvents = true;
         var prof = _profiles[_activeProfileIndex];
 
-        StageActiveSlotLabel.Text = $"Profil {_activeProfileIndex + 1} · {prof.ColorName}";
+        StageActiveSlotLabel.Text = $"{prof.DisplayName} · {prof.ColorName}";
         ActiveColorLabel.Text = prof.ColorName;
 
         if (_automation.ActiveRgbEffect == "none")
@@ -2585,7 +2589,7 @@ public partial class MainWindow : Window
         {
             var prof = _profiles[_activeProfileIndex];
             int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
-            _osd.ShowNotification($"Profil {_activeProfileIndex + 1} · {prof.ColorName}", $"{dpi} DPI · {prof.PollingRateHz} Hz", prof.ColorHex);
+            _osd.ShowNotification($"{prof.DisplayName} · {prof.ColorName}", $"{dpi} DPI · {prof.PollingRateHz} Hz", prof.ColorHex);
         }
     }
 
@@ -2657,7 +2661,7 @@ public partial class MainWindow : Window
                     int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
                     _osd.ShowNotification(
                         "Logitech G300s Bağlandı",
-                        $"Profil {_activeProfileIndex + 1} ({prof.ColorName}) · {dpi} DPI",
+                        $"{prof.DisplayName} ({prof.ColorName}) · {dpi} DPI",
                         prof.ColorHex);
                 }
             });
@@ -3084,7 +3088,7 @@ public partial class MainWindow : Window
                         var prof = _profiles[_activeProfileIndex];
                         int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
                         _osd.ShowNotification(
-                            $"Profil {_activeProfileIndex + 1} · {prof.ColorName}",
+                            $"{prof.DisplayName} · {prof.ColorName}",
                             $"Kademe {_activeDpiStageIndex + 1}: {dpi} DPI · {prof.PollingRateHz} Hz",
                             prof.ColorHex);
                     }
@@ -3110,7 +3114,7 @@ public partial class MainWindow : Window
             int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
             _osd.ShowNotification(
                 $"Otomatik Profil · {exeName}",
-                $"Profil {_activeProfileIndex + 1} ({prof.ColorName}) · {dpi} DPI",
+                $"{prof.DisplayName} ({prof.ColorName}) · {dpi} DPI",
                 prof.ColorHex);
         });
     }
@@ -3566,16 +3570,16 @@ public partial class MainWindow : Window
             this.Background = Brushes.Transparent;
             if (WindowOuterBorder is not null)
             {
-                WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(0x18, 0x09, 0x09, 0x0B));
+                WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(160, 0x09, 0x09, 0x0B));
                 WindowOuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
             }
-            Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(0x18, 0x09, 0x09, 0x0B));
-            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromArgb(0x28, 0x0E, 0x0E, 0x11));
-            // Header seamlessly adopts the modern Windows 11 Mica / Acrylic blur trend
-            Application.Current.Resources["BrushBgHeader"] = new SolidColorBrush(Color.FromArgb(0x25, 0x0E, 0x0E, 0x11));
-            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromArgb(0x40, 0x14, 0x14, 0x18));
-            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromArgb(0x55, 0x1C, 0x1C, 0x22));
-            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromArgb(0x68, 0x26, 0x26, 0x2E));
+            Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(160, 0x09, 0x09, 0x0B));
+            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromArgb(185, 0x0E, 0x0E, 0x11));
+            // Header seamlessly adopts the modern Windows 11 Mica / Acrylic blur trend with deep dark tint
+            Application.Current.Resources["BrushBgHeader"] = new SolidColorBrush(Color.FromArgb(180, 0x0E, 0x0E, 0x11));
+            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromArgb(195, 0x14, 0x14, 0x18));
+            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromArgb(210, 0x1C, 0x1C, 0x22));
+            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromArgb(225, 0x26, 0x26, 0x2E));
         }
         else
         {
@@ -4066,6 +4070,134 @@ public partial class MainWindow : Window
         _advisor.MarkApplied(rec.Id);
         UpdateSmartAdvisorUi();
     }
+
+    #region Custom Profile Naming & Persistence
+
+    private static readonly string ProfileNamesPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "LogitechG300sStudio",
+        "profile_names.json");
+
+    private int _targetRenameSlotIndex = 0;
+
+    private void LoadProfileNames()
+    {
+        try
+        {
+            if (File.Exists(ProfileNamesPath))
+            {
+                var json = File.ReadAllText(ProfileNamesPath);
+                var names = JsonSerializer.Deserialize<string[]>(json);
+                if (names != null)
+                {
+                    for (int i = 0; i < Math.Min(names.Length, _profiles.Length); i++)
+                    {
+                        if (!string.IsNullOrWhiteSpace(names[i]))
+                            _profiles[i].CustomName = names[i].Trim();
+                    }
+                }
+            }
+        }
+        catch { /* ignore */ }
+    }
+
+    private void SaveProfileNames()
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(ProfileNamesPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            var names = _profiles.Select(p => p.CustomName ?? "").ToArray();
+            File.WriteAllText(ProfileNamesPath, JsonSerializer.Serialize(names, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch { /* ignore */ }
+    }
+
+    private void RenameActiveProfileBtn_Click(object sender, RoutedEventArgs e)
+    {
+        OpenRenameModal(_activeProfileIndex);
+    }
+
+    private void RenameSlotContext_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is string tagStr && int.TryParse(tagStr, out int slot))
+        {
+            OpenRenameModal(slot);
+        }
+        else
+        {
+            OpenRenameModal(_activeProfileIndex);
+        }
+    }
+
+    private void SlotButton_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string tagStr && int.TryParse(tagStr, out int slot))
+        {
+            OpenRenameModal(slot);
+        }
+    }
+
+    private void OpenRenameModal(int slotIndex)
+    {
+        _targetRenameSlotIndex = Math.Clamp(slotIndex, 0, 2);
+        var prof = _profiles[_targetRenameSlotIndex];
+        if (RenameProfileModalTitle is not null)
+            RenameProfileModalTitle.Text = $"Yuva {_targetRenameSlotIndex + 1} Profilini Yeniden Adlandır";
+        if (RenameProfileModalSubtitle is not null)
+            RenameProfileModalSubtitle.Text = $"Mevcut Renk: {prof.ColorName} · Özel bir isim belirleyin";
+        if (RenameProfileTextBox is not null)
+        {
+            RenameProfileTextBox.Text = prof.CustomName ?? $"Profil {_targetRenameSlotIndex + 1}";
+            RenameProfileTextBox.Focus();
+            RenameProfileTextBox.SelectAll();
+        }
+        if (RenameProfileOverlayCard is not null)
+            RenameProfileOverlayCard.Visibility = Visibility.Visible;
+    }
+
+    private void CloseRenameProfile_Click(object sender, RoutedEventArgs e)
+    {
+        if (RenameProfileOverlayCard is not null)
+            RenameProfileOverlayCard.Visibility = Visibility.Collapsed;
+    }
+
+    private void SaveRenameProfile_Click(object sender, RoutedEventArgs e)
+    {
+        CommitRenameProfile();
+    }
+
+    private void RenameProfileTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            CommitRenameProfile();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            CloseRenameProfile_Click(sender, e);
+            e.Handled = true;
+        }
+    }
+
+    private void CommitRenameProfile()
+    {
+        if (RenameProfileTextBox is null) return;
+        string newName = RenameProfileTextBox.Text.Trim();
+        var prof = _profiles[_targetRenameSlotIndex];
+        prof.CustomName = string.IsNullOrWhiteSpace(newName) ? null : newName;
+        SaveProfileNames();
+        RefreshSlotHeaderVisuals();
+        RefreshCurrentProfileToUi();
+        if (RenameProfileOverlayCard is not null)
+            RenameProfileOverlayCard.Visibility = Visibility.Collapsed;
+        ShowToast($"Profil {_targetRenameSlotIndex + 1} adı '{prof.DisplayName}' olarak güncellendi.");
+    }
+
+    #endregion
 
 
 }
