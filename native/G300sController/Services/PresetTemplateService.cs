@@ -5,12 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using G300sController.Models;
+using G300sController.Presets;
 
 namespace G300sController.Services;
 
 /// <summary>
-/// Service coordinating file-based, modular profile preset templates.
-/// Allows users to view, add, modify, and delete game profiles as JSON files on disk.
+/// Service coordinating modular profile presets across code-defined registries and disk JSON files.
 /// </summary>
 public sealed class PresetTemplateService
 {
@@ -131,20 +131,35 @@ public sealed class PresetTemplateService
         if (string.IsNullOrWhiteSpace(idOrTag)) return null;
         string key = idOrTag.Trim().ToLowerInvariant();
 
-        // Handle legacy alias mappings
         if (key == "fps") key = "cs2";
         if (key == "moba") key = "lol";
 
         lock (_lock)
         {
-            return _presets.FirstOrDefault(p =>
+            var match = _presets.FirstOrDefault(p =>
                 string.Equals(p.Id, key, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase));
+
+            if (match is not null) return match;
         }
+
+        // Check code registry directly as secondary lookup
+        var codePreset = PresetRegistry.FindById(key);
+        return codePreset?.ToTemplate();
     }
 
     public bool ApplyPreset(string idOrTag, G300sProfile profile, out string appliedTitle)
     {
+        // First check strongly-typed code registry
+        var codePreset = PresetRegistry.FindById(idOrTag);
+        if (codePreset is not null)
+        {
+            appliedTitle = $"{codePreset.Icon} {codePreset.Name}";
+            codePreset.ApplyTo(profile);
+            return true;
+        }
+
+        // Secondary: check loaded templates from disk
         var preset = GetPreset(idOrTag);
         if (preset is null)
         {
@@ -229,217 +244,6 @@ public sealed class PresetTemplateService
 
     private static List<PresetTemplate> GetBuiltInFallbackPresets()
     {
-        return
-        [
-            new PresetTemplate
-            {
-                Id = "minecraft",
-                Name = "Minecraft (PvP / F5 / Zoom / Sol El)",
-                Category = "Oyun",
-                Icon = "⛏️",
-                Description = "Minecraft PvP ve Hayatta Kalma: Sol el kalkan/meşale değişimi, F5 perspektif, OptiFine zoom, envanter ve hızlı koşma tuşları.",
-                ProcessNames = ["javaw", "minecraft", "bedrock"],
-                PollingRateHz = 1000,
-                LedR = 0, LedG = 1, LedB = 0,
-                DefaultDpiStage = 1,
-                DpiStages = [500, 1000, 1500, 2000],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "key:f", ["G5"] = "key:e", ["G6"] = "key:f5",
-                    ["G7"] = "key:c", ["G8"] = "key:lctrl", ["G9"] = "key:q"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "lol",
-                Name = "League of Legends (LoL / MOBA)",
-                Category = "Oyun",
-                Icon = "⚔️",
-                Description = "MOBA & LoL: Totem yerleştirme, Attack-Move kite, hızlı üsse dönüş, market ve akıllı uyarı ping çarkı.",
-                ProcessNames = ["league", "lol", "riotclient"],
-                PollingRateHz = 1000,
-                LedR = 0, LedG = 1, LedB = 1,
-                DefaultDpiStage = 1,
-                DpiStages = [1000, 1500, 2000, 2500],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "key:4", ["G5"] = "key:a", ["G6"] = "key:b",
-                    ["G7"] = "key:p", ["G8"] = "key:g", ["G9"] = "key:d"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "cs2",
-                Name = "Counter-Strike 2 (CS2 Rekabetçi)",
-                Category = "Oyun",
-                Icon = "🎯",
-                Description = "CS2 & FPS: Turnuva standardı 750 DPI hassas kafa nişanı, bomba çevrimi, AWP hızlı silah geçişi, telsiz ve sniper DPI shift.",
-                ProcessNames = ["cs2", "csgo"],
-                PollingRateHz = 1000,
-                LedR = 1, LedG = 1, LedB = 0,
-                DefaultDpiStage = 1,
-                DpiStages = [500, 750, 1000, 1250],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "key:4", ["G5"] = "key:q", ["G6"] = "key:v",
-                    ["G7"] = "key:g", ["G8"] = "key:space", ["G9"] = "dpi-alternate"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "valorant",
-                Name = "Valorant (Taktiksel Nişancı)",
-                Category = "Oyun",
-                Icon = "🔴",
-                Description = "Valorant: İmza ve temel ajan yetenekleri (E, C, Q), Ulti (X), takım telsizi bas-konuş ve keskin nişancı hassasiyeti.",
-                ProcessNames = ["valorant"],
-                PollingRateHz = 1000,
-                LedR = 1, LedG = 0, LedB = 0,
-                DefaultDpiStage = 1,
-                DpiStages = [500, 750, 1000, 1250],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "key:e", ["G5"] = "key:c", ["G6"] = "key:q",
-                    ["G7"] = "key:x", ["G8"] = "key:v", ["G9"] = "dpi-alternate"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "apex",
-                Name = "Apex Legends (Battle Royale)",
-                Category = "Oyun",
-                Icon = "⚡",
-                Description = "Apex Legends: Taktiksel yetenek (Q), Ultimate (Z), sağlık/kalkan çarkı (4), el bombası (G), hızlı depar ve yakın dövüş.",
-                ProcessNames = ["r5apex", "apex"],
-                PollingRateHz = 1000,
-                LedR = 1, LedG = 0, LedB = 1,
-                DefaultDpiStage = 1,
-                DpiStages = [750, 1000, 1250, 1750],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "key:q", ["G5"] = "key:z", ["G6"] = "key:4",
-                    ["G7"] = "key:g", ["G8"] = "key:3", ["G9"] = "key:v"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "fortnite",
-                Name = "Fortnite (İnşa & Savaş)",
-                Category = "Oyun",
-                Icon = "🧱",
-                Description = "Fortnite Hızlı İnşa: Duvar (Q), merdiven (C), zemin (F) ve düzenleme (G) kısayolları ile anlık inşa.",
-                ProcessNames = ["fortnite"],
-                PollingRateHz = 1000,
-                LedR = 0, LedG = 1, LedB = 1,
-                DefaultDpiStage = 1,
-                DpiStages = [750, 1000, 1250, 1750],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "key:q", ["G5"] = "key:c", ["G6"] = "key:f",
-                    ["G7"] = "key:g", ["G8"] = "key:e", ["G9"] = "key:1"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "gta",
-                Name = "GTA V / FiveM & RP",
-                Category = "Oyun",
-                Icon = "🚗",
-                Description = "GTA V & FiveM Rol Yapma: Silah çarkı (Tab), siper alma (Q), hızlı şarjör (R), akıllı telefon (Yukarı Ok) ve araç etkileşim tuşları.",
-                ProcessNames = ["gta", "fivem", "gta5"],
-                PollingRateHz = 1000,
-                LedR = 0, LedG = 1, LedB = 0,
-                DefaultDpiStage = 1,
-                DpiStages = [750, 1250, 1750, 2250],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "key:tab", ["G5"] = "key:q", ["G6"] = "key:r",
-                    ["G7"] = "key:up", ["G8"] = "key:e", ["G9"] = "dpi-cycle"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "mmo",
-                Name = "MMORPG / World of Warcraft",
-                Category = "Oyun",
-                Icon = "🐉",
-                Description = "MMORPG & WoW: Aksiyon çubuğu 1-4 temel yetenekleri, en yakın düşmanı otomatik hedefleme (Tab) ve otomatik koşma (NumLock).",
-                ProcessNames = ["wow", "worldofwarcraft", "eso", "ffxiv"],
-                PollingRateHz = 1000,
-                LedR = 1, LedG = 0, LedB = 1,
-                DefaultDpiStage = 1,
-                DpiStages = [1000, 1500, 2000, 2500],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "key:1", ["G5"] = "key:2", ["G6"] = "key:3",
-                    ["G7"] = "key:4", ["G8"] = "key:tab", ["G9"] = "key:numlock"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "web",
-                Name = "Web & Tarayıcı Gezinme",
-                Category = "Genel",
-                Icon = "🌐",
-                Description = "Web tarayıcılarında ultra hızlı gezinme: Geri, İleri, F5 Sayfa Yenileme, Yeni Sekme (Ctrl+T), Sekme Kapatma (Ctrl+W) ve Geri Açma (Ctrl+Shift+T).",
-                ProcessNames = ["chrome", "msedge", "firefox", "brave", "opera"],
-                PollingRateHz = 1000,
-                LedR = 0, LedG = 1, LedB = 1,
-                DefaultDpiStage = 1,
-                DpiStages = [750, 1250, 1750, 2250],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "mouse:5", ["G5"] = "mouse:4", ["G6"] = "key:f5",
-                    ["G7"] = "key:lctrl+t", ["G8"] = "key:lctrl+w", ["G9"] = "key:lctrl+lshift+t"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "dev",
-                Name = "Yazılım Geliştirme (VS Code / Git)",
-                Category = "Üretkenlik",
-                Icon = "💻",
-                Description = "IDE ve Kodlama: Kopyala (Ctrl+C), Yapıştır (Ctrl+V), Geri Al (Ctrl+Z), İleri Al (Ctrl+Y), Hızlı Kaydet (Ctrl+S) ve Komut Paleti (Ctrl+P).",
-                ProcessNames = ["code", "devenv", "idea", "pycharm", "rider"],
-                PollingRateHz = 1000,
-                LedR = 0, LedG = 0, LedB = 1,
-                DefaultDpiStage = 1,
-                DpiStages = [800, 1250, 1750, 2500],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "key:lctrl+c", ["G5"] = "key:lctrl+v", ["G6"] = "key:lctrl+z",
-                    ["G7"] = "key:lctrl+y", ["G8"] = "key:lctrl+s", ["G9"] = "key:lctrl+p"
-                }
-            },
-            new PresetTemplate
-            {
-                Id = "office",
-                Name = "Ofis & Standart Masaüstü",
-                Category = "Genel",
-                Icon = "📄",
-                Description = "Günlük ofis ve masaüstü kullanımı: Geri, İleri, Kopyala, Yapıştır, Geri Al ve DPI döngüsü.",
-                ProcessNames = ["excel", "winword", "powerpnt"],
-                PollingRateHz = 500,
-                LedR = 0, LedG = 1, LedB = 0,
-                DefaultDpiStage = 1,
-                DpiStages = [750, 1250, 1750, 2250],
-                Buttons = new()
-                {
-                    ["G1"] = "mouse:1", ["G2"] = "mouse:2", ["G3"] = "mouse:3",
-                    ["G4"] = "mouse:4", ["G5"] = "mouse:5", ["G6"] = "key:lctrl+c",
-                    ["G7"] = "key:lctrl+v", ["G8"] = "key:lctrl+z", ["G9"] = "dpi-cycle"
-                }
-            }
-        ];
+        return PresetRegistry.BuiltInPresets.Select(p => p.ToTemplate()).ToList();
     }
 }
