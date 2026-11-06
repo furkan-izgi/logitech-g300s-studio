@@ -26,8 +26,9 @@ namespace G300sController;
 
 public partial class MainWindow : Window
 {
-    private const double MouseOffsetX = 135.0;
-    private const double MouseOffsetY = 12.0;
+    private const double MouseScale = 0.72;
+    private const double MouseStageX = 215.0;
+    private const double MouseStageY = 70.0;
 
     private sealed record ButtonVisualMeta(
         int Index,
@@ -43,15 +44,15 @@ public partial class MainWindow : Window
 
     private static readonly ButtonVisualMeta[] ButtonMetaList =
     [
-        new(0, "G1", "Sol Tık (G1)",             59,  33, 323, 141,  18, 242, true),
-        new(1, "G2", "Sağ Tık (G2)",            213,   6, 441,  78, 840, 146, false),
-        new(2, "G3", "Orta Tekerlek (G3)",      241,  39, 313,  78,  18,  38, true),
-        new(3, "G4", "Sol Arka (G4)",           140, 117, 216, 161,  18, 174, true),
-        new(4, "G5", "Sol Ön (G5)",              66,  97, 128, 134,  18, 106, true),
-        new(5, "G6", "Sağ Arka (G6)",           425,  14, 498,  53, 840,  82, false),
-        new(6, "G7", "Sağ Ön (G7)",             344, -10, 405,  30, 840,  18, false),
-        new(7, "G8", "Orta Arka / Mod (G8)",    390,  59, 452, 111, 840, 274, false),
-        new(8, "G9", "Orta Ön / DPI (G9)",      353,  59, 406,  97, 840, 210, false)
+        new(0, "G1", "Sol Tık (G1)",             59,  33, 323, 141,  20, 262, true),
+        new(1, "G2", "Sağ Tık (G2)",            213,   6, 441,  78, 838, 160, false),
+        new(2, "G3", "Orta Tekerlek (G3)",      241,  39, 313,  78,  20,  46, true),
+        new(3, "G4", "Sol Arka (G4)",           140, 117, 216, 161,  20, 190, true),
+        new(4, "G5", "Sol Ön (G5)",              66,  97, 128, 134,  20, 118, true),
+        new(5, "G6", "Sağ Arka (G6)",           425,  14, 498,  53, 838,  96, false),
+        new(6, "G7", "Sağ Ön (G7)",             344, -10, 405,  30, 838,  32, false),
+        new(7, "G8", "Orta Arka / Mod (G8)",    390,  59, 452, 111, 838, 288, false),
+        new(8, "G9", "Orta Ön / DPI (G9)",      353,  59, 406,  97, 838, 224, false)
     ];
 
     private static readonly (string Name, int R, int G, int B, string Hex)[] PaletteSwatches =
@@ -731,8 +732,8 @@ public partial class MainWindow : Window
         foreach (var meta in ButtonMetaList)
         {
             int idx = meta.Index;
-            double anchorX = MouseOffsetX + meta.CenterX;
-            double anchorY = MouseOffsetY + meta.CenterY;
+            double anchorX = meta.CenterX * MouseScale + MouseStageX;
+            double anchorY = meta.CenterY * MouseScale + MouseStageY;
 
             double cardW = 182.0;
             double cardH = 38.0;
@@ -2035,8 +2036,8 @@ public partial class MainWindow : Window
 
         if (glowBmp is not null)
         {
-            Canvas.SetLeft(SelectedButtonGlowImage, MouseOffsetX + meta.RelX);
-            Canvas.SetTop(SelectedButtonGlowImage, MouseOffsetY + meta.RelY);
+            Canvas.SetLeft(SelectedButtonGlowImage, meta.RelX);
+            Canvas.SetTop(SelectedButtonGlowImage, meta.RelY);
             SelectedButtonGlowImage.Width = glowBmp.PixelWidth;
             SelectedButtonGlowImage.Height = glowBmp.PixelHeight;
             SelectedButtonGlowImage.Source = glowBmp;
@@ -2045,8 +2046,8 @@ public partial class MainWindow : Window
 
         if (hiBmp is not null)
         {
-            Canvas.SetLeft(SelectedButtonHighlightImage, MouseOffsetX + meta.RelX);
-            Canvas.SetTop(SelectedButtonHighlightImage, MouseOffsetY + meta.RelY);
+            Canvas.SetLeft(SelectedButtonHighlightImage, meta.RelX);
+            Canvas.SetTop(SelectedButtonHighlightImage, meta.RelY);
             SelectedButtonHighlightImage.Width = hiBmp.PixelWidth;
             SelectedButtonHighlightImage.Height = hiBmp.PixelHeight;
             SelectedButtonHighlightImage.Source = hiBmp;
@@ -2069,8 +2070,8 @@ public partial class MainWindow : Window
             var glowBmp = _pulseGlowBitmaps[_hoveredButtonIndex];
             if (glowBmp is not null)
             {
-                Canvas.SetLeft(HoveredButtonGlowImage, MouseOffsetX + meta.RelX);
-                Canvas.SetTop(HoveredButtonGlowImage, MouseOffsetY + meta.RelY);
+                Canvas.SetLeft(HoveredButtonGlowImage, meta.RelX);
+                Canvas.SetTop(HoveredButtonGlowImage, meta.RelY);
                 HoveredButtonGlowImage.Width = glowBmp.PixelWidth;
                 HoveredButtonGlowImage.Height = glowBmp.PixelHeight;
                 HoveredButtonGlowImage.Source = glowBmp;
@@ -2142,7 +2143,9 @@ public partial class MainWindow : Window
     private void MouseStageCanvas_MouseMove(object sender, MouseEventArgs e)
     {
         Point pt = e.GetPosition(MouseStageCanvas);
-        int hit = HitTestMouseButton(pt.X - MouseOffsetX, pt.Y - MouseOffsetY);
+        double mouseX = (pt.X - MouseStageX) / MouseScale;
+        double mouseY = (pt.Y - MouseStageY) / MouseScale;
+        int hit = HitTestMouseButton(mouseX, mouseY);
         MouseStageCanvas.Cursor = hit >= 0 ? Cursors.Hand : Cursors.Arrow;
         SetHoveredButton(hit);
     }
@@ -2156,7 +2159,9 @@ public partial class MainWindow : Window
     private void MouseStageCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         Point pt = e.GetPosition(MouseStageCanvas);
-        int hit = HitTestMouseButton(pt.X - MouseOffsetX, pt.Y - MouseOffsetY);
+        double mouseX = (pt.X - MouseStageX) / MouseScale;
+        double mouseY = (pt.Y - MouseStageY) / MouseScale;
+        int hit = HitTestMouseButton(mouseX, mouseY);
         if (hit >= 0)
         {
             SelectButtonForEditing(hit);

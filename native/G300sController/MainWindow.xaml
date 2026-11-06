@@ -405,49 +405,59 @@
                                 </StackPanel>
                             </Border>
 
-                            <Viewbox Stretch="Uniform" Margin="24,36,24,14">
+                            <Viewbox Stretch="Uniform" Margin="24,18,24,14" MaxWidth="1080" MaxHeight="600">
                                 <Canvas x:Name="MouseStageCanvas" Width="1040" Height="610"
                                         Background="Transparent"
                                         MouseMove="MouseStageCanvas_MouseMove"
                                         MouseLeave="MouseStageCanvas_MouseLeave"
                                         MouseLeftButtonDown="MouseStageCanvas_MouseLeftButtonDown">
 
-                                    <!-- Subtle Ambient Spotlight -->
-                                    <Ellipse x:Name="StageSpotlightEllipse" Canvas.Left="270" Canvas.Top="50" Width="500" Height="480"
-                                             IsHitTestVisible="False">
-                                        <Ellipse.Fill>
-                                            <RadialGradientBrush GradientOrigin="0.5,0.5" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-                                                <GradientStop x:Name="SpotlightStop0" Color="#18FFFFFF" Offset="0.0" />
-                                                <GradientStop Color="#00000000" Offset="1.0" />
-                                            </RadialGradientBrush>
-                                        </Ellipse.Fill>
-                                    </Ellipse>
+                                    <!-- Scaled & Centered Mouse Device Container (0.72x scale) -->
+                                    <Canvas x:Name="MouseDeviceCanvas" Width="849" Height="652">
+                                        <Canvas.RenderTransform>
+                                            <TransformGroup>
+                                                <ScaleTransform ScaleX="0.72" ScaleY="0.72" />
+                                                <TranslateTransform X="215" Y="70" />
+                                            </TransformGroup>
+                                        </Canvas.RenderTransform>
 
-                                    <!-- Layer 0: Base 3D Photorealistic G300s (Offset X=135, Y=12) -->
-                                    <Image x:Name="MouseBaseImage" Canvas.Left="135" Canvas.Top="12" Width="849" Height="652"
-                                           RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                                        <!-- Subtle Ambient Spotlight -->
+                                        <Ellipse x:Name="StageSpotlightEllipse" Canvas.Left="175" Canvas.Top="40" Width="500" Height="500"
+                                                 IsHitTestVisible="False">
+                                            <Ellipse.Fill>
+                                                <RadialGradientBrush GradientOrigin="0.5,0.5" Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                                                    <GradientStop x:Name="SpotlightStop0" Color="#18FFFFFF" Offset="0.0" />
+                                                    <GradientStop Color="#00000000" Offset="1.0" />
+                                                </RadialGradientBrush>
+                                            </Ellipse.Fill>
+                                        </Ellipse>
 
-                                    <!-- Layer 1: Live Tinted RGB LED Swoosh (Offset X=403, Y=262) -->
-                                    <Image x:Name="MouseSwooshImage" Canvas.Left="403" Canvas.Top="262" Width="271" Height="232"
-                                           RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                                        <!-- Layer 0: Base 3D Photorealistic G300s -->
+                                        <Image x:Name="MouseBaseImage" Canvas.Left="0" Canvas.Top="0" Width="849" Height="652"
+                                               RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
 
-                                    <!-- Layer 2: Honeycomb LED Mesh Texture -->
-                                    <Image x:Name="MouseSwooshTextureImage" Canvas.Left="403" Canvas.Top="262" Width="270" Height="232"
-                                           RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                                        <!-- Layer 1: Live Tinted RGB LED Swoosh -->
+                                        <Image x:Name="MouseSwooshImage" Canvas.Left="268" Canvas.Top="250" Width="271" Height="232"
+                                               RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
 
-                                    <!-- Layer 3: Subtle Ambient Button Rim Glow (Offset X=195, Y=5) -->
-                                    <Image x:Name="MouseAmbientGlowImage" Canvas.Left="195" Canvas.Top="5" Width="558" Height="265"
-                                           Opacity="0.28" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                                        <!-- Layer 2: Honeycomb LED Mesh Texture -->
+                                        <Image x:Name="MouseSwooshTextureImage" Canvas.Left="268" Canvas.Top="250" Width="270" Height="232"
+                                               RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
 
-                                    <!-- Layer 4: Hovered Button Specular PulseGlow -->
-                                    <Image x:Name="HoveredButtonGlowImage" Visibility="Collapsed"
-                                           RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                                        <!-- Layer 3: Subtle Ambient Button Rim Glow -->
+                                        <Image x:Name="MouseAmbientGlowImage" Canvas.Left="60" Canvas.Top="-7" Width="558" Height="265"
+                                               Opacity="0.28" RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
 
-                                    <!-- Layer 5: Selected Button Specular PulseGlow + Translucent Highlight -->
-                                    <Image x:Name="SelectedButtonGlowImage" Visibility="Collapsed"
-                                           RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
-                                    <Image x:Name="SelectedButtonHighlightImage" Visibility="Collapsed"
-                                           RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                                        <!-- Layer 4: Hovered Button Specular PulseGlow -->
+                                        <Image x:Name="HoveredButtonGlowImage" Visibility="Collapsed"
+                                               RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+
+                                        <!-- Layer 5: Selected Button Specular PulseGlow + Translucent Highlight -->
+                                        <Image x:Name="SelectedButtonGlowImage" Visibility="Collapsed"
+                                               RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                                        <Image x:Name="SelectedButtonHighlightImage" Visibility="Collapsed"
+                                               RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                                    </Canvas>
 
                                     <!-- Layer 6: Minimalist Borderless Text Callouts -->
                                     <Canvas x:Name="OverlayCalloutsCanvas" Width="1040" Height="610" />
