@@ -79,6 +79,18 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
+
+        bool startMinimized = e.Args != null && Array.Exists(e.Args, a =>
+            string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(a, "--tray", StringComparison.OrdinalIgnoreCase));
+
+        var mainWindow = new MainWindow(startMinimized);
+        MainWindow = mainWindow;
+
+        if (!startMinimized)
+        {
+            mainWindow.Show();
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

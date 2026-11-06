@@ -90,7 +90,7 @@ public partial class MainWindow : Window
     private readonly AngleSnappingService _angleSnapping = new();
     private bool _fluidRgbEnabled;
     private bool _microInteractionsEnabled = true;
-    private WindowBackdropMode _activeBackdropMode = WindowBackdropMode.Acrylic;
+    private WindowBackdropMode _activeBackdropMode = WindowBackdropMode.Mica;
     private bool _gShiftVisualFeedbackEnabled = true;
     private bool _gShiftAudioFeedbackEnabled = true;
     private readonly SmartAdvisorService _advisor;
@@ -149,8 +149,11 @@ public partial class MainWindow : Window
     private bool _suppressUiEvents;
     private bool _hasUnsavedChanges;
     private bool _isExiting;
+    private bool _isAppInitialized;
 
-    public MainWindow()
+    public MainWindow() : this(false) { }
+
+    public MainWindow(bool startMinimized)
     {
         _suppressUiEvents = true;
         _automation = new HostAutomationService(_device);
@@ -173,6 +176,11 @@ public partial class MainWindow : Window
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
+
+        var helper = new WindowInteropHelper(this);
+        helper.EnsureHandle();
+
+        InitializeApp(startMinimized);
     }
 
     private void MainWindow_SourceInitialized(object? sender, EventArgs e)
@@ -289,8 +297,11 @@ public partial class MainWindow : Window
         Focus();
     }
 
-    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    private void InitializeApp(bool startMinimized)
     {
+        if (_isAppInitialized) return;
+        _isAppInitialized = true;
+
         string assetsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
         LoadVisualAssets(assetsDir);
         BuildOverlayCallouts();
@@ -298,6 +309,7 @@ public partial class MainWindow : Window
         BuildLightingStudioUi();
         BuildDaemonWorkspaceUi();
         SetupAllCardMicroInteractions();
+
         if (MicaBackdropToggle is not null)
         {
             _suppressUiEvents = true;
@@ -345,7 +357,11 @@ public partial class MainWindow : Window
         _tray.ExitRequested += () =>
         {
             _isExiting = true;
-            Dispatcher.Invoke(Close);
+            Dispatcher.Invoke(() =>
+            {
+                Close();
+                Application.Current.Shutdown(0);
+            });
         };
 
         // Initialize Debounce Filter Service
@@ -424,10 +440,7 @@ public partial class MainWindow : Window
         // Hook G-Shift layer audio/visual feedback
         _automation.GShiftStateChanged += (isActive, slot) => Dispatcher.BeginInvoke(() => HandleGShiftFeedback(isActive, slot));
 
-// Smart Advisor hooked
-
-        // Initialize Angle Snapping Service
-        _angleSnapping.Start();
+        // Initialize Angle Snapping Service (Hook installed dynamically only when enabled)
         _angleSnapping.MovementProcessed += (dx, dy, snapped) =>
         {
             if (snapped)
@@ -463,19 +476,27 @@ public partial class MainWindow : Window
 
         _automation.StartHookAndWatcher();
         _osd.IsEnabled = _automation.OsdNotificationsEnabled;
-        ConnectAndReadHardware();
+        _ = ConnectAndReadHardwareAsync();
         DeselectButton(); // Ensure nothing is selected on startup!
         SwitchMainView(0);
         SwitchDrawerCategory(0);
         _livePreviewTimer.Start();
 
-        string[] args = Environment.GetCommandLineArgs();
-        if (Array.Exists(args, a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase) || string.Equals(a, "--tray", StringComparison.OrdinalIgnoreCase)))
+        if (startMinimized)
         {
             Hide();
             if (StatusFooterText is not null) StatusFooterText.Text = "Windows başlangıcında sistem tepsisinde başlatıldı.";
-            return;
         }
+    }
+
+    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (!_isAppInitialized)
+        {
+            InitializeApp(false);
+        }
+
+        string[] args = Environment.GetCommandLineArgs();
 
         // Automated multi-view visual verification screenshot mode
         int ssIdx = Array.IndexOf(args, "--verify-screenshot");
@@ -1541,20 +1562,52 @@ public partial class MainWindow : Window
 
     private void ConnectAndReadHardware()
     {
+        _ = ConnectAndReadHardwareAsync();
+    }
+
+    private async Task ConnectAndReadHardwareAsync()
+    {
         try
         {
-            bool connected = _device.Connect();
-            LgsWarningBadge.Visibility = G300sHidDevice.IsLgsRunning() ? Visibility.Visible : Visibility.Collapsed;
-
-            if (connected)
+            var result = await Task.Run(() =>
             {
-                var state = _device.GetActiveState();
-                _activeProfileIndex = state.ProfileIndex;
-                _activeDpiStageIndex = state.DpiStageIndex;
+                bool connected = _device.Connect();
+                bool isLgsRunning = G300sHidDevice.IsLgsRunning();
+                ActiveHardwareState? state = null;
+                G300sProfile[] profiles = new G300sProfile[3];
+
+                if (connected)
+                {
+                    try
+                    {
+                        state = _device.GetActiveState();
+                        for (int i = 0; i < 3; i++)
+                        {
+                            profiles[i] = _device.GetProfile(i);
+                        }
+                    }
+                    catch
+                    {
+                        // Device might be in transition or contention
+                    }
+                }
+
+                return (connected, isLgsRunning, state, profiles);
+            });
+
+            LgsWarningBadge.Visibility = result.isLgsRunning ? Visibility.Visible : Visibility.Collapsed;
+
+            if (result.connected && result.state is not null)
+            {
+                _activeProfileIndex = result.state.ProfileIndex;
+                _activeDpiStageIndex = result.state.DpiStageIndex;
 
                 for (int i = 0; i < 3; i++)
                 {
-                    _profiles[i] = _device.GetProfile(i);
+                    if (result.profiles[i] is not null)
+                    {
+                        _profiles[i] = result.profiles[i];
+                    }
                 }
                 LoadProfileNames();
 
@@ -2728,14 +2781,14 @@ public partial class MainWindow : Window
                 return;
             }
 
-            _ = Dispatcher.BeginInvoke(() =>
+            _ = Dispatcher.BeginInvoke(async () =>
             {
                 bool wasConnected = _device.IsConnected;
                 if (wasConnected)
                 {
                     try
                     {
-                        _ = _device.GetActiveState();
+                        _ = await Task.Run(() => _device.GetActiveState());
                         return; // Still connected and responsive
                     }
                     catch
@@ -2749,9 +2802,9 @@ public partial class MainWindow : Window
                 }
 
                 // Was disconnected; attempt automatic hot-plug reconnection
-                if (_device.Connect())
+                await ConnectAndReadHardwareAsync();
+                if (_device.IsConnected)
                 {
-                    ConnectAndReadHardware();
                     var prof = _profiles[_activeProfileIndex];
                     int dpi = prof.DpiStages[Math.Clamp(_activeDpiStageIndex, 0, 3)];
                     _osd.ShowNotification(
@@ -3555,6 +3608,14 @@ public partial class MainWindow : Window
         if (_suppressUiEvents) return;
         if (AngleSnappingToggle is null) return;
         _angleSnapping.IsEnabled = AngleSnappingToggle.IsChecked == true;
+        if (_angleSnapping.IsEnabled)
+        {
+            _angleSnapping.Start();
+        }
+        else
+        {
+            _angleSnapping.Stop();
+        }
         if (AngleSnappingStatusText is not null)
         {
             AngleSnappingStatusText.Text = _angleSnapping.IsEnabled
@@ -3664,15 +3725,15 @@ public partial class MainWindow : Window
             this.Background = Brushes.Transparent;
             if (WindowOuterBorder is not null)
             {
-                WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(150, 0x09, 0x09, 0x0C));
+                WindowOuterBorder.Background = new SolidColorBrush(Color.FromArgb(180, 0x0E, 0x0E, 0x13));
                 WindowOuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
             }
-            Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(150, 0x09, 0x09, 0x0C));
-            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromArgb(180, 0x0E, 0x0E, 0x13));
-            Application.Current.Resources["BrushBgHeader"] = new SolidColorBrush(Color.FromArgb(170, 0x0E, 0x0E, 0x13));
-            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromArgb(215, 0x14, 0x14, 0x1A));
-            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromArgb(225, 0x1C, 0x1C, 0x24));
-            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromArgb(238, 0x26, 0x26, 0x30));
+            Application.Current.Resources["BrushBgCanvas"] = new SolidColorBrush(Color.FromArgb(180, 0x0E, 0x0E, 0x13));
+            Application.Current.Resources["BrushBgRail"] = new SolidColorBrush(Color.FromArgb(200, 0x12, 0x12, 0x18));
+            Application.Current.Resources["BrushBgHeader"] = new SolidColorBrush(Color.FromArgb(190, 0x12, 0x12, 0x18));
+            Application.Current.Resources["BrushBgSurface1"] = new SolidColorBrush(Color.FromArgb(220, 0x18, 0x18, 0x20));
+            Application.Current.Resources["BrushBgSurface2"] = new SolidColorBrush(Color.FromArgb(230, 0x20, 0x20, 0x2A));
+            Application.Current.Resources["BrushBgElevated"] = new SolidColorBrush(Color.FromArgb(240, 0x28, 0x28, 0x34));
         }
         else
         {

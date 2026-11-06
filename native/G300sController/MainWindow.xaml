@@ -1318,9 +1318,9 @@
                                                 <ComboBox x:Name="MicaModeCombo" Width="120" Height="26" FontSize="11.5"
                                                           HorizontalAlignment="Right" VerticalAlignment="Center"
                                                           SelectionChanged="MicaModeCombo_SelectionChanged">
-                                                    <ComboBoxItem Content="Akrilik Bulanıklık" Tag="2" IsSelected="True" />
-                                                    <ComboBoxItem Content="Mica Efekti" Tag="1" />
+                                                    <ComboBoxItem Content="Mica Efekti" Tag="1" IsSelected="True" />
                                                     <ComboBoxItem Content="Mica Alt (Sekmeli)" Tag="3" />
+                                                    <ComboBoxItem Content="Akrilik Bulanıklık" Tag="2" />
                                                 </ComboBox>
                                             </Grid>
 
