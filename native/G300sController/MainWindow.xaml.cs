@@ -89,6 +89,7 @@ public partial class MainWindow : Window
     private readonly SniperModeService _sniper = new();
     private readonly SwitchHealthService _switchHealth = new();
     private readonly AngleSnappingService _angleSnapping = new();
+    private readonly PresetTemplateService _presetService = PresetTemplateService.Instance;
     private bool _fluidRgbEnabled;
     private bool _microInteractionsEnabled = true;
     private WindowBackdropMode _activeBackdropMode = WindowBackdropMode.Mica;
@@ -309,6 +310,8 @@ public partial class MainWindow : Window
         BuildDpiStagesUi();
         BuildLightingStudioUi();
         BuildDaemonWorkspaceUi();
+        PopulatePresetCombo();
+        _presetService.PresetsReloaded += () => Dispatcher.Invoke(PopulatePresetCombo);
         SetupAllCardMicroInteractions();
 
         if (MicaBackdropToggle is not null)
@@ -2821,258 +2824,167 @@ public partial class MainWindow : Window
         }, token);
     }
 
-        public void ApplyPresetTemplate(string presetKey)
+    public void ApplyPresetTemplate(string presetKey)
     {
         var prof = _profiles[_activeProfileIndex];
-        string presetTitle;
 
-        switch (presetKey.ToLowerInvariant())
+        if (_presetService.ApplyPreset(presetKey, prof, out string presetTitle))
         {
-            case "minecraft":
-                presetTitle = "Minecraft (PvP & Hayatta Kalma)";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 500);
-                prof.SetDpiStage(1, 1000);
-                prof.SetDpiStage(2, 1500);
-                prof.SetDpiStage(3, 2000);
-                prof.SetLed(0, 1, 0); // Creeper Yeşili
-                prof.SetButtonAction(0, "mouse:1"); // G1: Sol Tık (Saldırı / Blok Kırma)
-                prof.SetButtonAction(1, "mouse:2"); // G2: Sağ Tık (Blok Koyma / Kalkan)
-                prof.SetButtonAction(2, "mouse:3"); // G3: Orta Tık (Blok Seç - Pick Block)
-                prof.SetButtonAction(3, "key:f");    // G4: Sol El / İkinci Ele Geçir (Kalkan/Meşale)
-                prof.SetButtonAction(4, "key:e");    // G5: Envanter Aç / Kapat
-                prof.SetButtonAction(5, "key:f5");   // G6: Kamera Görünümü (Perspektif F5)
-                prof.SetButtonAction(6, "key:c");    // G7: OptiFine / Zoom Yakınlaştırma
-                prof.SetButtonAction(7, "key:lctrl");// G8: Depar / Koşma (Sprint)
-                prof.SetButtonAction(8, "key:q");    // G9: Eşya At / Bırak (Drop Q)
-                break;
+            if (_device.IsConnected && _automation.ActiveRgbEffect == "none")
+            {
+                try { _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB); } catch { /* ignore */ }
+            }
 
-            case "lol":
-            case "moba":
-                presetTitle = "League of Legends (LoL / MOBA)";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 1000);
-                prof.SetDpiStage(1, 1500);
-                prof.SetDpiStage(2, 2000);
-                prof.SetDpiStage(3, 2500);
-                prof.SetLed(0, 1, 1); // Hextech Camgöbeği (Cyan)
-                prof.SetButtonAction(0, "mouse:1"); // G1: Sol Tık (Seçim & UI)
-                prof.SetButtonAction(1, "mouse:2"); // G2: Sağ Tık (Hareket & Normal Saldırı)
-                prof.SetButtonAction(2, "mouse:3"); // G3: Kamera Odakla (Şampiyona Dön)
-                prof.SetButtonAction(3, "key:4");    // G4: Totem / Arayıcı Mercek (Ward 4)
-                prof.SetButtonAction(4, "key:a");    // G5: Saldırı Hareketi Tıklaması (Attack Move Kite)
-                prof.SetButtonAction(5, "key:b");    // G6: Üsse Dönüş (Recall B)
-                prof.SetButtonAction(6, "key:p");    // G7: Dükkan / Market Aç (Shop P)
-                prof.SetButtonAction(7, "key:g");    // G8: Akıllı İkaz / Hızlı Ping Çarkı
-                prof.SetButtonAction(8, "key:d");    // G9: Sihirdar Büyüsü (Sıçra / Flash D)
-                break;
+            MarkModified($"Profil {_activeProfileIndex + 1} üzerine '{presetTitle}' şablonu yüklendi.");
+            RefreshSlotHeaderVisuals();
+            RefreshCurrentProfileToUi();
+            ShowToast($"'{presetTitle}' şablonu uygulandı!");
+        }
+        else
+        {
+            ShowToast($"Şablon '{presetKey}' bulunamadı.");
+        }
+    }
 
-            case "cs2":
-            case "fps":
-                presetTitle = "Counter-Strike 2 (CS2 Rekabetçi)";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 500);
-                prof.SetDpiStage(1, 750);
-                prof.SetDpiStage(2, 1000);
-                prof.SetDpiStage(3, 1250);
-                prof.SetLed(1, 1, 0); // Sıcak Amber / Sarı
-                prof.SetButtonAction(0, "mouse:1");       // G1: Sol Tık (Ateş Et)
-                prof.SetButtonAction(1, "mouse:2");       // G2: Sağ Tık (Dürbün Aç / İkincil)
-                prof.SetButtonAction(2, "mouse:3");       // G3: Tehlike / Düşman İşaretle (Ping)
-                prof.SetButtonAction(3, "key:4");          // G4: Bomba Seçimi / Flaş Çevir
-                prof.SetButtonAction(4, "key:q");          // G5: Hızlı Silah Değiştir (AWP Quick Switch)
-                prof.SetButtonAction(5, "key:v");          // G6: Telsiz Bas-Konuş (Push-to-Talk)
-                prof.SetButtonAction(6, "key:g");          // G7: Silahı Yere At (Drop Weapon)
-                prof.SetButtonAction(7, "key:space");      // G8: Zıplama / Jump-throw Yardımcısı
-                prof.SetButtonAction(8, "dpi-alternate");  // G9: DPI Shift (Keskin Nişancı 500 DPI)
-                break;
+    private void PopulatePresetCombo()
+    {
+        if (PresetTemplateCombo is null) return;
 
-            case "valorant":
-                presetTitle = "Valorant (Taktiksel Nişancı)";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 500);
-                prof.SetDpiStage(1, 750);
-                prof.SetDpiStage(2, 1000);
-                prof.SetDpiStage(3, 1250);
-                prof.SetLed(1, 0, 0); // Radyanit Kırmızı
-                prof.SetButtonAction(0, "mouse:1");       // G1: Sol Tık (Ateş Et)
-                prof.SetButtonAction(1, "mouse:2");       // G2: Sağ Tık (Nişan Al - ADS)
-                prof.SetButtonAction(2, "mouse:3");       // G3: İşaretçi (Ping)
-                prof.SetButtonAction(3, "key:e");          // G4: İmza Yetenek (E)
-                prof.SetButtonAction(4, "key:c");          // G5: Temel Yetenek (C)
-                prof.SetButtonAction(5, "key:q");          // G6: Temel Yetenek (Q)
-                prof.SetButtonAction(6, "key:x");          // G7: Ultimate Yeteneği (X)
-                prof.SetButtonAction(7, "key:v");          // G8: Takım Telsizi Bas-Konuş (V)
-                prof.SetButtonAction(8, "dpi-alternate");  // G9: DPI Shift (Keskin Nişancı 500 DPI)
-                break;
+        _suppressUiEvents = true;
+        PresetTemplateCombo.Items.Clear();
 
-            case "apex":
-                presetTitle = "Apex Legends (Battle Royale)";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 750);
-                prof.SetDpiStage(1, 1000);
-                prof.SetDpiStage(2, 1250);
-                prof.SetDpiStage(3, 1750);
-                prof.SetLed(1, 0, 1); // Apex Moru
-                prof.SetButtonAction(0, "mouse:1"); // G1: Ateş Et
-                prof.SetButtonAction(1, "mouse:2"); // G2: Nişan Al
-                prof.SetButtonAction(2, "mouse:3"); // G3: Düşman İşaretle (Ping)
-                prof.SetButtonAction(3, "key:q");   // G4: Taktiksel Yetenek (Q)
-                prof.SetButtonAction(4, "key:z");   // G5: Ultimate Yetenek (Z)
-                prof.SetButtonAction(5, "key:4");   // G6: Sağlık & Kalkan Çarkı (4)
-                prof.SetButtonAction(6, "key:g");   // G7: El Bombası Seç (G)
-                prof.SetButtonAction(7, "key:3");   // G8: Silahı Kına Sok / Hızlı Depar (3)
-                prof.SetButtonAction(8, "key:v");   // G9: Yakın Dövüş Tekmesi (V)
-                break;
+        // 0. Placeholder Header
+        PresetTemplateCombo.Items.Add(new ComboBoxItem
+        {
+            Content = "🎮 Şablon Yükle...",
+            Tag = string.Empty,
+            IsEnabled = false,
+            IsSelected = true
+        });
 
-            case "fortnite":
-                presetTitle = "Fortnite (İnşaat & Savaş)";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 750);
-                prof.SetDpiStage(1, 1000);
-                prof.SetDpiStage(2, 1250);
-                prof.SetDpiStage(3, 1750);
-                prof.SetLed(0, 1, 1); // Gökyüzü Camgöbeği
-                prof.SetButtonAction(0, "mouse:1"); // G1: Ateş / Yapı Koy
-                prof.SetButtonAction(1, "mouse:2"); // G2: Nişan Al
-                prof.SetButtonAction(2, "mouse:3"); // G3: Konum İşaretle
-                prof.SetButtonAction(3, "key:q");   // G4: Duvar İnşaatı (Wall Q)
-                prof.SetButtonAction(4, "key:c");   // G5: Merdiven İnşaatı (Ramp C)
-                prof.SetButtonAction(5, "key:f");   // G6: Zemin İnşaatı (Floor F)
-                prof.SetButtonAction(6, "key:g");   // G7: Yapı Düzenleme (Edit G)
-                prof.SetButtonAction(7, "key:e");   // G8: Kullan / Etkileşim (E)
-                prof.SetButtonAction(8, "key:1");   // G9: Kazma Seç (Pickaxe 1)
-                break;
+        var all = _presetService.Presets;
 
-            case "gta":
-                presetTitle = "GTA V / FiveM";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 750);
-                prof.SetDpiStage(1, 1250);
-                prof.SetDpiStage(2, 1750);
-                prof.SetDpiStage(3, 2250);
-                prof.SetLed(0, 1, 0); // Zümrüt Yeşili
-                prof.SetButtonAction(0, "mouse:1");    // G1: Ateş / Vur
-                prof.SetButtonAction(1, "mouse:2");    // G2: Nişan Al
-                prof.SetButtonAction(2, "mouse:3");    // G3: Yakın Dövüş / El Freni
-                prof.SetButtonAction(3, "key:tab");    // G4: Silah Çarkı (Tab)
-                prof.SetButtonAction(4, "key:q");      // G5: Siper Al (Take Cover Q)
-                prof.SetButtonAction(5, "key:r");      // G6: Şarjör Değiştir (Reload R)
-                prof.SetButtonAction(6, "key:up");     // G7: Akıllı Telefonu Aç (Yukarı Ok)
-                prof.SetButtonAction(7, "key:e");      // G8: Korna / Far / Etkileşim (E)
-                prof.SetButtonAction(8, "dpi-cycle");  // G9: Hassasiyet Kademesi Değiştir
-                break;
-
-            case "mmo":
-                presetTitle = "MMORPG / World of Warcraft";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 1000);
-                prof.SetDpiStage(1, 1500);
-                prof.SetDpiStage(2, 2000);
-                prof.SetDpiStage(3, 2500);
-                prof.SetLed(1, 0, 1); // Destansı Mor
-                prof.SetButtonAction(0, "mouse:1");     // G1: Sol Tık (Seçim / Hedefle)
-                prof.SetButtonAction(1, "mouse:2");     // G2: Sağ Tık (Kamera / Etkileşim)
-                prof.SetButtonAction(2, "mouse:3");     // G3: Orta Tık (Yetenek 5)
-                prof.SetButtonAction(3, "key:1");       // G4: Yetenek 1
-                prof.SetButtonAction(4, "key:2");       // G5: Yetenek 2
-                prof.SetButtonAction(5, "key:3");       // G6: Yetenek 3
-                prof.SetButtonAction(6, "key:4");       // G7: Yetenek 4
-                prof.SetButtonAction(7, "key:tab");     // G8: En Yakın Düşmanı Hedefle (Tab)
-                prof.SetButtonAction(8, "key:numlock"); // G9: Otomatik Koşma (Auto-Run)
-                break;
-
-            case "web":
-                presetTitle = "Web & Tarayıcı Gezinme";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 750);
-                prof.SetDpiStage(1, 1250);
-                prof.SetDpiStage(2, 1750);
-                prof.SetDpiStage(3, 2250);
-                prof.SetLed(0, 1, 1); // Turkuaz Camgöbeği
-                prof.SetButtonAction(0, "mouse:1"); // Sol Tık
-                prof.SetButtonAction(1, "mouse:2"); // Sağ Tık
-                prof.SetButtonAction(2, "mouse:3"); // Orta Tık (Yeni sekmede aç)
-                prof.SetButtonAction(3, "mouse:5"); // G4: İleri (Forward)
-                prof.SetButtonAction(4, "mouse:4"); // G5: Geri (Back)
-                prof.SetButtonAction(5, "key:f5");  // G6: Sayfayı Yenile (Refresh F5)
-                prof.SetButtonAction(6, "key:lctrl+t"); // G7: Yeni Sekme Aç (Ctrl+T)
-                prof.SetButtonAction(7, "key:lctrl+w"); // G8: Sekmeyi Kapat (Ctrl+W)
-                prof.SetButtonAction(8, "key:lctrl+lshift+t"); // G9: Kapatılan Sekmeyi Aç (Ctrl+Shift+T)
-                break;
-
-            case "dev":
-                presetTitle = "Yazılım Geliştirme (VS Code / Terminal)";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 800);
-                prof.SetDpiStage(1, 1250);
-                prof.SetDpiStage(2, 1750);
-                prof.SetDpiStage(3, 2500);
-                prof.SetLed(0, 0, 1); // Saf Mavi
-                prof.SetButtonAction(0, "mouse:1");
-                prof.SetButtonAction(1, "mouse:2");
-                prof.SetButtonAction(2, "mouse:3");
-                prof.SetButtonAction(3, "key:lctrl+c"); // G4: Kopyala
-                prof.SetButtonAction(4, "key:lctrl+v"); // G5: Yapıştır
-                prof.SetButtonAction(5, "key:lctrl+z"); // G6: Geri Al
-                prof.SetButtonAction(6, "key:lctrl+y"); // G7: İleri Al
-                prof.SetButtonAction(7, "key:lctrl+s"); // G8: Hızlı Kaydet
-                prof.SetButtonAction(8, "key:lctrl+p"); // G9: Dosya / Komut Gezgini
-                break;
-
-            case "office":
-            default:
-                presetTitle = "Ofis & Standart Masaüstü";
-                prof.PollingRateHz = 500;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 750);
-                prof.SetDpiStage(1, 1250);
-                prof.SetDpiStage(2, 1750);
-                prof.SetDpiStage(3, 2250);
-                prof.SetLed(0, 1, 0); // Zümrüt Yeşili
-                prof.SetButtonAction(0, "mouse:1");
-                prof.SetButtonAction(1, "mouse:2");
-                prof.SetButtonAction(2, "mouse:3");
-                prof.SetButtonAction(3, "mouse:4"); // G4: Geri
-                prof.SetButtonAction(4, "mouse:5"); // G5: İleri
-                prof.SetButtonAction(5, "key:lctrl+c"); // G6: Kopyala
-                prof.SetButtonAction(6, "key:lctrl+v"); // G7: Yapıştır
-                prof.SetButtonAction(7, "key:lctrl+z"); // G8: Geri Al
-                prof.SetButtonAction(8, "dpi-cycle");   // G9: DPI Döngüsü
-                break;
+        // 1. Game Presets
+        var games = all.Where(p => p.Category.Equals("Oyun", StringComparison.OrdinalIgnoreCase)).ToList();
+        if (games.Count > 0)
+        {
+            foreach (var g in games)
+            {
+                PresetTemplateCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = g.DisplayTitle,
+                    Tag = g.Id,
+                    ToolTip = g.Description
+                });
+            }
         }
 
-        if (_device.IsConnected && _automation.ActiveRgbEffect == "none")
+        // 2. Non-game Presets (General / Productivity)
+        var others = all.Where(p => !p.Category.Equals("Oyun", StringComparison.OrdinalIgnoreCase)).ToList();
+        if (others.Count > 0)
         {
-            try { _device.SetLiveLed(prof.LedR, prof.LedG, prof.LedB); } catch { /* ignore */ }
+            PresetTemplateCombo.Items.Add(new Separator());
+            foreach (var o in others)
+            {
+                PresetTemplateCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = o.DisplayTitle,
+                    Tag = o.Id,
+                    ToolTip = o.Description
+                });
+            }
         }
 
-        MarkModified($"Profil {_activeProfileIndex + 1} üzerine '{presetTitle}' şablonu yüklendi.");
-        RefreshSlotHeaderVisuals();
-        RefreshCurrentProfileToUi();
-        ShowToast($"'{presetTitle}' şablonu uygulandı!");
+        // 3. Preset Folder Management Actions
+        PresetTemplateCombo.Items.Add(new Separator());
+        PresetTemplateCombo.Items.Add(new ComboBoxItem
+        {
+            Content = "📁 Şablon Klasörünü Aç (Presets/)...",
+            Tag = "action:open_folder",
+            ToolTip = "Disk üzerindeki hazır şablon JSON dosyalarını Dosya Gezgini'nde aç"
+        });
+        PresetTemplateCombo.Items.Add(new ComboBoxItem
+        {
+            Content = "🔄 Şablonları Yenile (Diskten Oku)",
+            Tag = "action:reload",
+            ToolTip = "Presets klasörüne yeni eklediğiniz veya düzenlediğiniz JSON şablonlarını anında yeniden yükle"
+        });
+        PresetTemplateCombo.Items.Add(new ComboBoxItem
+        {
+            Content = "💾 Aktif Profili Yeni Şablon Olarak Kaydet...",
+            Tag = "action:save_as",
+            ToolTip = "Şu anki aktif profil ayarlarını Presets/ klasörüne yeni bir JSON oyun şablonu olarak kaydet"
+        });
+
+        PresetTemplateCombo.SelectedIndex = 0;
+        _suppressUiEvents = false;
     }
 
     private void PresetTemplateCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_suppressUiEvents || PresetTemplateCombo is null) return;
-        if (PresetTemplateCombo.SelectedItem is not ComboBoxItem { Tag: string presetKey }) return;
+        if (PresetTemplateCombo.SelectedItem is not ComboBoxItem { Tag: string tag } || string.IsNullOrWhiteSpace(tag)) return;
 
-        ApplyPresetTemplate(presetKey);
+        if (tag == "action:open_folder")
+        {
+            _presetService.OpenFolderInExplorer();
+            ShowToast("Presets klasörü açıldı.");
+        }
+        else if (tag == "action:reload")
+        {
+            _presetService.ReloadPresets();
+            ShowToast("Tüm şablonlar diskten başarıyla yenilendi!");
+        }
+        else if (tag == "action:save_as")
+        {
+            SaveCurrentProfileAsPreset();
+        }
+        else
+        {
+            ApplyPresetTemplate(tag);
+        }
 
         _suppressUiEvents = true;
         PresetTemplateCombo.SelectedIndex = 0;
         _suppressUiEvents = false;
+    }
+
+    private void SaveCurrentProfileAsPreset()
+    {
+        var prof = _profiles[_activeProfileIndex];
+        string defaultName = string.IsNullOrWhiteSpace(prof.CustomName) ? $"Özel Profil {_activeProfileIndex + 1}" : prof.CustomName;
+
+        var sfd = new Microsoft.Win32.SaveFileDialog
+        {
+            InitialDirectory = _presetService.GetPresetsDirectory(),
+            FileName = $"{defaultName.ToLowerInvariant().Replace(' ', '_')}.json",
+            DefaultExt = ".json",
+            Filter = "JSON Şablon Dosyaları (*.json)|*.json",
+            Title = "Aktif Profili Yeni Şablon Olarak Kaydet"
+        };
+
+        if (sfd.ShowDialog(this) == true)
+        {
+            try
+            {
+                string fileTitle = System.IO.Path.GetFileNameWithoutExtension(sfd.FileName);
+                var template = PresetTemplate.FromProfile(
+                    prof,
+                    id: fileTitle.ToLowerInvariant(),
+                    name: defaultName,
+                    category: "Özel",
+                    icon: "⭐",
+                    description: $"{DateTime.Now:yyyy-MM-dd HH:mm} tarihinde oluşturulan özel fare profili."
+                );
+
+                _presetService.SaveCustomPreset(template, sfd.FileName);
+                ShowToast($"'{template.Name}' şablonu Presets klasörüne kaydedildi!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Şablon kaydedilirken bir hata oluştu:\n{ex.Message}", "Kayıt Hatası", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 
     private void CopyProfileCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)

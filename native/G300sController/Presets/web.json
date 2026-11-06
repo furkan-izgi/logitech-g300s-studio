@@ -1,0 +1,25 @@
+{
+  "id": "web",
+  "name": "Web & Tarayıcı Gezinme",
+  "category": "Genel",
+  "icon": "🌐",
+  "description": "Web tarayıcılarında ultra hızlı gezinme: Geri, İleri, F5 Sayfa Yenileme, Yeni Sekme (Ctrl+T), Sekme Kapatma (Ctrl+W) ve Geri Açma (Ctrl+Shift+T).",
+  "processNames": ["chrome", "msedge", "firefox", "brave", "opera"],
+  "pollingRateHz": 1000,
+  "ledR": 0,
+  "ledG": 1,
+  "ledB": 1,
+  "defaultDpiStage": 1,
+  "dpiStages": [750, 1250, 1750, 2250],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "mouse:5",
+    "G5": "mouse:4",
+    "G6": "key:f5",
+    "G7": "key:lctrl+t",
+    "G8": "key:lctrl+w",
+    "G9": "key:lctrl+lshift+t"
+  }
+}

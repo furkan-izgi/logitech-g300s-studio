@@ -162,30 +162,33 @@ public sealed class SmartAdvisorService
 
         if (!alreadyHasRule)
         {
-            (string templateName, int targetSlot, string title, string desc) = currentProc switch
+            // 1. Dynamic match against modular file-based Presets (Minecraft, LoL, CS2, etc.)
+            var matchingPreset = PresetTemplateService.Instance.Presets
+                .FirstOrDefault(p => p.ProcessNames.Any(proc => currentProc.Contains(proc, StringComparison.OrdinalIgnoreCase)));
+
+            string templateName;
+            int targetSlot;
+            string title;
+            string desc;
+
+            if (matchingPreset is not null)
             {
-                var p when p.Contains("javaw") || p.Contains("minecraft") || p.Contains("bedrock") =>
-                    ("minecraft", 0, "Minecraft PvP & Oyun Kuralı", "Minecraft tespit edildi. F5 perspektif, OptiFine zoom, sol el ve envanter tuşlarını içeren Profil 1 otomatik kuralını bağlayın."),
-                var p when p.Contains("league") || p.Contains("lol") || p.Contains("riotclient") =>
-                    ("lol", 1, "League of Legends MOBA Kuralı", "LoL tespit edildi. Totem (4), Saldırı hareketi (A), Üsse dönüş (B) ve Akıllı Ping tuşlarını içeren profili bağlayın."),
-                var p when p.Contains("cs2") || p.Contains("csgo") =>
-                    ("cs2", 0, "CS2 Rekabetçi Oyun Kuralı", "Counter-Strike 2 tespit edildi. 1000 Hz, 750 DPI hassas nişan, bomba ve hızlı silah geçiş kuralını bağlayın."),
-                var p when p.Contains("valorant") =>
-                    ("valorant", 0, "Valorant Taktiksel Kuralı", "Valorant tespit edildi. Yetenek tuşları (E, C, Q), Ulti (X) ve Bas-konuş profiline geçiş kuralını bağlayın."),
-                var p when p.Contains("r5apex") || p.Contains("apex") =>
-                    ("apex", 0, "Apex Legends Oyun Kuralı", "Apex Legends tespit edildi. Taktiksel yetenek, kalkan ve hızlı koşu profilini bağlayın."),
-                var p when p.Contains("fortnite") =>
-                    ("fortnite", 0, "Fortnite İnşaat & Savaş Kuralı", "Fortnite tespit edildi. Duvar, merdiven ve zemin inşa tuşlarına sahip profili bağlayın."),
-                var p when p.Contains("gta") || p.Contains("fivem") =>
-                    ("gta", 0, "GTA V / FiveM Kuralı", "GTA V tespit edildi. Silah çarkı, siper alma ve araç etkileşim tuşlarını içeren profili bağlayın."),
-                var p when p.Contains("code") || p.Contains("devenv") || p.Contains("idea") =>
-                    ("dev", 1, "VS Code / Geliştirici Kuralı Önerisi", "Yazılım ortamı tespit edildi. Kod derleme, hata ayıklama ve terminal makroları içeren Profil 2'ye otomatik geçiş kuralı ekleyin."),
-                var p when p.Contains("blender") || p.Contains("maya") || p.Contains("3dsmax") =>
-                    ("blender", 2, "Blender 3D Modelleme Kuralı Önerisi", "3D modelleme aracı açık. Extrude, Loop Cut ve Render kısayolları için Profil 3 otomatik geçişini bağlayın."),
-                var p when p.Contains("figma") || p.Contains("photoshop") || p.Contains("illustrator") =>
-                    ("design", 2, "Figma & Grafik Tasarım Kuralı Önerisi", "Tasarım aracı çalışıyor. Yakınlaşma ve seçim kısayollarına sahip profil otomatik geçiş kuralını ekleyin."),
-                _ => ("", -1, "", "")
-            };
+                templateName = matchingPreset.Id;
+                targetSlot = matchingPreset.Category.Equals("Oyun", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+                title = $"{matchingPreset.Name} Kuralı Önerisi";
+                desc = $"{matchingPreset.Name} tespit edildi. Tuş, LED ve DPI ayarlarını içeren otomatik profil geçiş kuralını bağlayın.";
+            }
+            else
+            {
+                (templateName, targetSlot, title, desc) = currentProc switch
+                {
+                    var p when p.Contains("blender") || p.Contains("maya") || p.Contains("3dsmax") =>
+                        ("blender", 2, "Blender 3D Modelleme Kuralı Önerisi", "3D modelleme aracı açık. Extrude, Loop Cut ve Render kısayolları için Profil 3 otomatik geçişini bağlayın."),
+                    var p when p.Contains("figma") || p.Contains("photoshop") || p.Contains("illustrator") =>
+                        ("design", 2, "Figma & Grafik Tasarım Kuralı Önerisi", "Tasarım aracı çalışıyor. Yakınlaşma ve seçim kısayollarına sahip profil otomatik geçiş kuralını ekleyin."),
+                    _ => ("", -1, "", "")
+                };
+            }
 
             if (!string.IsNullOrEmpty(templateName))
             {

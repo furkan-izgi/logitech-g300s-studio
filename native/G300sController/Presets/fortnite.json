@@ -1,0 +1,25 @@
+{
+  "id": "fortnite",
+  "name": "Fortnite (İnşa & Savaş)",
+  "category": "Oyun",
+  "icon": "🧱",
+  "description": "Fortnite Hızlı İnşa: Duvar (Q), merdiven (C), zemin (F) ve düzenleme (G) kısayolları ile anlık savunma ve taarruz.",
+  "processNames": ["fortnite"],
+  "pollingRateHz": 1000,
+  "ledR": 0,
+  "ledG": 1,
+  "ledB": 1,
+  "defaultDpiStage": 1,
+  "dpiStages": [750, 1000, 1250, 1750],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "key:q",
+    "G5": "key:c",
+    "G6": "key:f",
+    "G7": "key:g",
+    "G8": "key:e",
+    "G9": "key:1"
+  }
+}

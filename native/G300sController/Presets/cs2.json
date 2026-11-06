@@ -1,0 +1,25 @@
+{
+  "id": "cs2",
+  "name": "Counter-Strike 2 (CS2 Rekabetçi)",
+  "category": "Oyun",
+  "icon": "🎯",
+  "description": "CS2 & FPS: Turnuva standardı 750 DPI hassas kafa nişanı, bomba çevrimi, AWP hızlı silah geçişi, telsiz ve sniper DPI shift.",
+  "processNames": ["cs2", "csgo"],
+  "pollingRateHz": 1000,
+  "ledR": 1,
+  "ledG": 1,
+  "ledB": 0,
+  "defaultDpiStage": 1,
+  "dpiStages": [500, 750, 1000, 1250],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "key:4",
+    "G5": "key:q",
+    "G6": "key:v",
+    "G7": "key:g",
+    "G8": "key:space",
+    "G9": "dpi-alternate"
+  }
+}

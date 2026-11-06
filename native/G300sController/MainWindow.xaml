@@ -352,18 +352,7 @@
                                 <ComboBox x:Name="PresetTemplateCombo" Width="220" Height="30"
                                           SelectionChanged="PresetTemplateCombo_SelectionChanged"
                                           ToolTip="Seçili profile oyunlara özel hazır şablon uygula (Minecraft, LoL, CS2, Valorant vb.)">
-                                    <ComboBoxItem Content="🎮 Oyun Şablonu Yükle..." IsSelected="True" IsEnabled="False" />
-                                    <ComboBoxItem Content="⛏️ Minecraft (PvP / F5 / Zoom / Sol El)" Tag="minecraft" />
-                                    <ComboBoxItem Content="⚔️ League of Legends (LoL / Totem / Ping / Sıçra)" Tag="lol" />
-                                    <ComboBoxItem Content="🎯 Counter-Strike 2 (CS2 / Bomba / Hızlı Geçiş)" Tag="cs2" />
-                                    <ComboBoxItem Content="🔴 Valorant (Yetenekler E-C-Q / Ulti X / Telsiz)" Tag="valorant" />
-                                    <ComboBoxItem Content="⚡ Apex Legends (Taktik Q / Ulti Z / Sağlık / Koşu)" Tag="apex" />
-                                    <ComboBoxItem Content="🧱 Fortnite (Duvar / Merdiven / Zemin / Düzenle)" Tag="fortnite" />
-                                    <ComboBoxItem Content="🚗 GTA V / FiveM (Silah Çarkı / Siper / Telefon)" Tag="gta" />
-                                    <ComboBoxItem Content="🐉 MMORPG &amp; WoW (1-4 Yetenekler / Hedef / Koşu)" Tag="mmo" />
-                                    <ComboBoxItem Content="🌐 Web &amp; Tarayıcı (Geri / İleri / F5 / Sekmeler)" Tag="web" />
-                                    <ComboBoxItem Content="💻 Yazılım Geliştirme (VS Code / Terminal / Git)" Tag="dev" />
-                                    <ComboBoxItem Content="📄 Standart Masaüstü (Geri Al / Kopyala / Yapıştır)" Tag="office" />
+                                    <ComboBoxItem Content="🎮 Şablon Yükle..." IsSelected="True" IsEnabled="False" />
                                 </ComboBox>
 
                                 <ComboBox x:Name="CopyProfileCombo" Width="155" Height="30" Margin="8,0,0,0"

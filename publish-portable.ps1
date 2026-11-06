@@ -25,6 +25,12 @@ if (Test-Path $assetsSrc) {
     Copy-Item -Path $assetsSrc -Destination $outDir -Recurse -Force
 }
 
+$presetsSrc = Join-Path $PSScriptRoot "native\G300sController\Presets"
+$presetsDest = Join-Path $outDir "Presets"
+if (Test-Path $presetsSrc) {
+    Copy-Item -Path $presetsSrc -Destination $outDir -Recurse -Force
+}
+
 if (Test-Path $exePath) {
     Copy-Item $exePath $friendlyPath -Force
     Write-Host "Portable executable ready: $friendlyPath" -ForegroundColor Green

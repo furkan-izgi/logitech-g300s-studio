@@ -1,0 +1,25 @@
+{
+  "id": "valorant",
+  "name": "Valorant (Taktiksel Nişancı)",
+  "category": "Oyun",
+  "icon": "🔴",
+  "description": "Valorant Taktiksel Nişancı: İmza ve temel ajan yetenekleri (E, C, Q), Ulti (X), takım içi telsiz bas-konuş ve keskin nişancı hassasiyeti.",
+  "processNames": ["valorant"],
+  "pollingRateHz": 1000,
+  "ledR": 1,
+  "ledG": 0,
+  "ledB": 0,
+  "defaultDpiStage": 1,
+  "dpiStages": [500, 750, 1000, 1250],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "key:e",
+    "G5": "key:c",
+    "G6": "key:q",
+    "G7": "key:x",
+    "G8": "key:v",
+    "G9": "dpi-alternate"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "dev",
+  "name": "Yazılım Geliştirme (VS Code / Git)",
+  "category": "Üretkenlik",
+  "icon": "💻",
+  "description": "IDE ve Kodlama: Kopyala (Ctrl+C), Yapıştır (Ctrl+V), Geri Al (Ctrl+Z), İleri Al (Ctrl+Y), Hızlı Kaydet (Ctrl+S) ve Komut Paleti (Ctrl+P).",
+  "processNames": ["code", "devenv", "idea", "pycharm", "rider"],
+  "pollingRateHz": 1000,
+  "ledR": 0,
+  "ledG": 0,
+  "ledB": 1,
+  "defaultDpiStage": 1,
+  "dpiStages": [800, 1250, 1750, 2500],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "key:lctrl+c",
+    "G5": "key:lctrl+v",
+    "G6": "key:lctrl+z",
+    "G7": "key:lctrl+y",
+    "G8": "key:lctrl+s",
+    "G9": "key:lctrl+p"
+  }
+}

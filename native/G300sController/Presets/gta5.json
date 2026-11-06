@@ -1,0 +1,25 @@
+{
+  "id": "gta",
+  "name": "GTA V / FiveM & RP",
+  "category": "Oyun",
+  "icon": "🚗",
+  "description": "GTA V & FiveM Rol Yapma: Silah çarkı (Tab), siper alma (Q), hızlı şarjör (R), akıllı telefon (Yukarı Ok) ve araç etkileşim tuşları.",
+  "processNames": ["gta", "fivem", "gta5"],
+  "pollingRateHz": 1000,
+  "ledR": 0,
+  "ledG": 1,
+  "ledB": 0,
+  "defaultDpiStage": 1,
+  "dpiStages": [750, 1250, 1750, 2250],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "key:tab",
+    "G5": "key:q",
+    "G6": "key:r",
+    "G7": "key:up",
+    "G8": "key:e",
+    "G9": "dpi-cycle"
+  }
+}

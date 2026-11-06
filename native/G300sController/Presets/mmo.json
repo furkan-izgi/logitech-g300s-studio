@@ -1,0 +1,25 @@
+{
+  "id": "mmo",
+  "name": "MMORPG / World of Warcraft",
+  "category": "Oyun",
+  "icon": "🐉",
+  "description": "MMORPG & WoW: Aksiyon çubuğu 1-4 temel yetenekleri, en yakın düşmanı otomatik hedefleme (Tab) ve otomatik koşma (NumLock).",
+  "processNames": ["wow", "worldofwarcraft", "eso", "ffxiv"],
+  "pollingRateHz": 1000,
+  "ledR": 1,
+  "ledG": 0,
+  "ledB": 1,
+  "defaultDpiStage": 1,
+  "dpiStages": [1000, 1500, 2000, 2500],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "key:1",
+    "G5": "key:2",
+    "G6": "key:3",
+    "G7": "key:4",
+    "G8": "key:tab",
+    "G9": "key:numlock"
+  }
+}

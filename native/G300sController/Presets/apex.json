@@ -1,0 +1,25 @@
+{
+  "id": "apex",
+  "name": "Apex Legends (Battle Royale)",
+  "category": "Oyun",
+  "icon": "⚡",
+  "description": "Apex Legends: Taktiksel yetenek (Q), Ultimate (Z), sağlık/kalkan çarkı (4), el bombası (G), hızlı depar ve yakın dövüş tekmesi.",
+  "processNames": ["r5apex", "apex"],
+  "pollingRateHz": 1000,
+  "ledR": 1,
+  "ledG": 0,
+  "ledB": 1,
+  "defaultDpiStage": 1,
+  "dpiStages": [750, 1000, 1250, 1750],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "key:q",
+    "G5": "key:z",
+    "G6": "key:4",
+    "G7": "key:g",
+    "G8": "key:3",
+    "G9": "key:v"
+  }
+}

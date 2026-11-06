@@ -1,0 +1,25 @@
+{
+  "id": "office",
+  "name": "Ofis & Standart Masaüstü",
+  "category": "Genel",
+  "icon": "📄",
+  "description": "Günlük ofis ve masaüstü kullanımı: Geri, İleri, Kopyala, Yapıştır, Geri Al ve DPI döngüsü.",
+  "processNames": ["excel", "winword", "powerpnt"],
+  "pollingRateHz": 500,
+  "ledR": 0,
+  "ledG": 1,
+  "ledB": 0,
+  "defaultDpiStage": 1,
+  "dpiStages": [750, 1250, 1750, 2250],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "mouse:4",
+    "G5": "mouse:5",
+    "G6": "key:lctrl+c",
+    "G7": "key:lctrl+v",
+    "G8": "key:lctrl+z",
+    "G9": "dpi-cycle"
+  }
+}

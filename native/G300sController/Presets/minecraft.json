@@ -1,0 +1,25 @@
+{
+  "id": "minecraft",
+  "name": "Minecraft (PvP / F5 / Zoom / Sol El)",
+  "category": "Oyun",
+  "icon": "⛏️",
+  "description": "Minecraft PvP ve Hayatta Kalma: Sol el kalkan/meşale değişimi, F5 perspektif, OptiFine zoom, envanter ve hızlı koşma tuşları.",
+  "processNames": ["javaw", "minecraft", "bedrock"],
+  "pollingRateHz": 1000,
+  "ledR": 0,
+  "ledG": 1,
+  "ledB": 0,
+  "defaultDpiStage": 1,
+  "dpiStages": [500, 1000, 1500, 2000],
+  "buttons": {
+    "G1": "mouse:1",
+    "G2": "mouse:2",
+    "G3": "mouse:3",
+    "G4": "key:f",
+    "G5": "key:e",
+    "G6": "key:f5",
+    "G7": "key:c",
+    "G8": "key:lctrl",
+    "G9": "key:q"
+  }
+}
