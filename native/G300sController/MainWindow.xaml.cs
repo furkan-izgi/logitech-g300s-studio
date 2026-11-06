@@ -44,15 +44,15 @@ public partial class MainWindow : Window
 
     private static readonly ButtonVisualMeta[] ButtonMetaList =
     [
-        new(0, "G1", "Sol Tık (G1)",             59,  33, 323, 141,  20, 262, true),
-        new(1, "G2", "Sağ Tık (G2)",            213,   6, 441,  78, 838, 160, false),
-        new(2, "G3", "Orta Tekerlek (G3)",      241,  39, 313,  78,  20,  46, true),
-        new(3, "G4", "Sol Arka (G4)",           140, 117, 216, 161,  20, 190, true),
-        new(4, "G5", "Sol Ön (G5)",              66,  97, 128, 134,  20, 118, true),
-        new(5, "G6", "Sağ Arka (G6)",           425,  14, 498,  53, 838,  96, false),
-        new(6, "G7", "Sağ Ön (G7)",             344, -10, 405,  30, 838,  32, false),
-        new(7, "G8", "Orta Arka / Mod (G8)",    390,  59, 452, 111, 838, 288, false),
-        new(8, "G9", "Orta Ön / DPI (G9)",      353,  59, 406,  97, 838, 224, false)
+        new(0, "G1", "Sol Tık (G1)",             59,  33, 323, 141,  14, 282, true),
+        new(1, "G2", "Sağ Tık (G2)",            213,   6, 441,  78, 800, 168, false),
+        new(2, "G3", "Orta Tekerlek (G3)",      241,  39, 313,  78,  14,  48, true),
+        new(3, "G4", "Sol Arka (G4)",           140, 117, 216, 161,  14, 204, true),
+        new(4, "G5", "Sol Ön (G5)",              66,  97, 128, 134,  14, 126, true),
+        new(5, "G6", "Sağ Arka (G6)",           425,  14, 498,  53, 800, 100, false),
+        new(6, "G7", "Sağ Ön (G7)",             344, -10, 405,  30, 800,  32, false),
+        new(7, "G8", "Orta Arka / Mod (G8)",    390,  59, 452, 111, 800, 304, false),
+        new(8, "G9", "Orta Ön / DPI (G9)",      353,  59, 406,  97, 800, 236, false)
     ];
 
     private static readonly (string Name, int R, int G, int B, string Hex)[] PaletteSwatches =
@@ -735,11 +735,11 @@ public partial class MainWindow : Window
             double anchorX = meta.CenterX * MouseScale + MouseStageX;
             double anchorY = meta.CenterY * MouseScale + MouseStageY;
 
-            double cardW = 182.0;
-            double cardH = 38.0;
+            double cardW = 226.0;
+            double cardH = 46.0;
             double attachX = meta.IsLeftSide ? meta.CardX + cardW : meta.CardX;
             double attachY = meta.CardY + cardH / 2.0;
-            double elbowX = meta.IsLeftSide ? attachX + 22.0 : attachX - 22.0;
+            double elbowX = meta.IsLeftSide ? attachX + 24.0 : attachX - 24.0;
 
             var line = new Polyline
             {
@@ -749,8 +749,8 @@ public partial class MainWindow : Window
                     new Point(elbowX, attachY),
                     new Point(attachX, attachY)
                 ],
-                Stroke = new SolidColorBrush(Color.FromArgb(80, 161, 161, 170)),
-                StrokeThickness = 1.2,
+                Stroke = new SolidColorBrush(Color.FromArgb(90, 161, 161, 170)),
+                StrokeThickness = 1.6,
                 IsHitTestVisible = false
             };
             _leaderLines[idx] = line;
@@ -758,26 +758,26 @@ public partial class MainWindow : Window
 
             var dot = new Ellipse
             {
-                Width = 6,
-                Height = 6,
+                Width = 8,
+                Height = 8,
                 Fill = new SolidColorBrush(Color.FromRgb(212, 212, 216)),
                 Stroke = new SolidColorBrush(Color.FromRgb(9, 9, 11)),
-                StrokeThickness = 1.5,
+                StrokeThickness = 1.8,
                 IsHitTestVisible = false
             };
-            Canvas.SetLeft(dot, anchorX - 3.0);
-            Canvas.SetTop(dot, anchorY - 3.0);
+            Canvas.SetLeft(dot, anchorX - 4.0);
+            Canvas.SetTop(dot, anchorY - 4.0);
             _anchorDots[idx] = dot;
             OverlayCalloutsCanvas.Children.Add(dot);
 
-            // Minimalist Frameless Callout Tag (No boxy AI-slop card!)
+            // Modern Frameless Callout Tag with enhanced readability
             var card = new Border
             {
                 Width = cardW,
                 Height = cardH,
-                CornerRadius = new CornerRadius(7),
+                CornerRadius = new CornerRadius(8),
                 Background = Brushes.Transparent,
-                Padding = new Thickness(8, 4, 8, 4),
+                Padding = new Thickness(10, 4, 12, 4),
                 Cursor = Cursors.Hand,
                 Tag = idx
             };
@@ -791,11 +791,11 @@ public partial class MainWindow : Window
 
             var accentBar = new Border
             {
-                Width = 2.5,
-                Height = 18,
-                CornerRadius = new CornerRadius(1.25),
+                Width = 3.5,
+                Height = 24,
+                CornerRadius = new CornerRadius(1.75),
                 Background = new SolidColorBrush(Color.FromArgb(90, 161, 161, 170)),
-                Margin = new Thickness(0, 0, 9, 0),
+                Margin = new Thickness(0, 0, 11, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
             _calloutAccentBars[idx] = accentBar;
@@ -806,11 +806,11 @@ public partial class MainWindow : Window
             {
                 Text = meta.CodeLabel,
                 FontFamily = (FontFamily)FindResource("FontDisplay"),
-                FontSize = 12,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = (Brush)FindResource("BrushTextMuted"),
+                FontSize = 14,
+                FontWeight = FontWeights.Bold,
+                Foreground = (Brush)FindResource("BrushTextSecondary"),
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 9, 0)
+                Margin = new Thickness(0, 0, 11, 0)
             };
             Grid.SetColumn(codeLbl, 1);
             grid.Children.Add(codeLbl);
@@ -819,8 +819,8 @@ public partial class MainWindow : Window
             {
                 Text = "Sol Tık",
                 FontFamily = (FontFamily)FindResource("FontSans"),
-                FontSize = 13,
-                FontWeight = FontWeights.Medium,
+                FontSize = 16,
+                FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("BrushTextPrimary"),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
@@ -2105,7 +2105,7 @@ public partial class MainWindow : Window
                 _calloutBorders[i].Background = (Brush)FindResource("BrushBgSurface2");
                 _calloutAccentBars[i].Background = (Brush)FindResource("BrushActiveWhite");
                 _leaderLines[i].Stroke = (Brush)FindResource("BrushActiveWhite");
-                _leaderLines[i].StrokeThickness = 1.8;
+                _leaderLines[i].StrokeThickness = 2.4;
                 _anchorDots[i].Fill = (Brush)FindResource("BrushActiveWhite");
             }
             else if (isHovered)
@@ -2113,15 +2113,15 @@ public partial class MainWindow : Window
                 _calloutBorders[i].Background = (Brush)FindResource("BrushBgSurface1");
                 _calloutAccentBars[i].Background = (Brush)FindResource("BrushTextSecondary");
                 _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(180, 212, 212, 216));
-                _leaderLines[i].StrokeThickness = 1.5;
+                _leaderLines[i].StrokeThickness = 2.0;
                 _anchorDots[i].Fill = (Brush)FindResource("BrushActiveWhite");
             }
             else
             {
                 _calloutBorders[i].Background = Brushes.Transparent;
                 _calloutAccentBars[i].Background = new SolidColorBrush(Color.FromArgb(90, 161, 161, 170));
-                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(75, 161, 161, 170));
-                _leaderLines[i].StrokeThickness = 1.2;
+                _leaderLines[i].Stroke = new SolidColorBrush(Color.FromArgb(90, 161, 161, 170));
+                _leaderLines[i].StrokeThickness = 1.6;
                 _anchorDots[i].Fill = new SolidColorBrush(Color.FromRgb(161, 161, 170));
             }
         }

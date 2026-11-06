@@ -405,7 +405,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <Viewbox Stretch="Uniform" Margin="24,18,24,14" MaxWidth="1080" MaxHeight="600">
+                            <Viewbox Stretch="Uniform" Margin="24,18,24,14">
                                 <Canvas x:Name="MouseStageCanvas" Width="1040" Height="610"
                                         Background="Transparent"
                                         MouseMove="MouseStageCanvas_MouseMove"
