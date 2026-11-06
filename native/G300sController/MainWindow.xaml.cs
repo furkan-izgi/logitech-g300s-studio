@@ -2828,6 +2828,168 @@ public partial class MainWindow : Window
 
         switch (presetKey.ToLowerInvariant())
         {
+            case "minecraft":
+                presetTitle = "Minecraft (PvP & Hayatta Kalma)";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 500);
+                prof.SetDpiStage(1, 1000);
+                prof.SetDpiStage(2, 1500);
+                prof.SetDpiStage(3, 2000);
+                prof.SetLed(0, 1, 0); // Creeper Yeşili
+                prof.SetButtonAction(0, "mouse:1"); // G1: Sol Tık (Saldırı / Blok Kırma)
+                prof.SetButtonAction(1, "mouse:2"); // G2: Sağ Tık (Blok Koyma / Kalkan)
+                prof.SetButtonAction(2, "mouse:3"); // G3: Orta Tık (Blok Seç - Pick Block)
+                prof.SetButtonAction(3, "key:f");    // G4: Sol El / İkinci Ele Geçir (Kalkan/Meşale)
+                prof.SetButtonAction(4, "key:e");    // G5: Envanter Aç / Kapat
+                prof.SetButtonAction(5, "key:f5");   // G6: Kamera Görünümü (Perspektif F5)
+                prof.SetButtonAction(6, "key:c");    // G7: OptiFine / Zoom Yakınlaştırma
+                prof.SetButtonAction(7, "key:lctrl");// G8: Depar / Koşma (Sprint)
+                prof.SetButtonAction(8, "key:q");    // G9: Eşya At / Bırak (Drop Q)
+                break;
+
+            case "lol":
+            case "moba":
+                presetTitle = "League of Legends (LoL / MOBA)";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 1000);
+                prof.SetDpiStage(1, 1500);
+                prof.SetDpiStage(2, 2000);
+                prof.SetDpiStage(3, 2500);
+                prof.SetLed(0, 1, 1); // Hextech Camgöbeği (Cyan)
+                prof.SetButtonAction(0, "mouse:1"); // G1: Sol Tık (Seçim & UI)
+                prof.SetButtonAction(1, "mouse:2"); // G2: Sağ Tık (Hareket & Normal Saldırı)
+                prof.SetButtonAction(2, "mouse:3"); // G3: Kamera Odakla (Şampiyona Dön)
+                prof.SetButtonAction(3, "key:4");    // G4: Totem / Arayıcı Mercek (Ward 4)
+                prof.SetButtonAction(4, "key:a");    // G5: Saldırı Hareketi Tıklaması (Attack Move Kite)
+                prof.SetButtonAction(5, "key:b");    // G6: Üsse Dönüş (Recall B)
+                prof.SetButtonAction(6, "key:p");    // G7: Dükkan / Market Aç (Shop P)
+                prof.SetButtonAction(7, "key:g");    // G8: Akıllı İkaz / Hızlı Ping Çarkı
+                prof.SetButtonAction(8, "key:d");    // G9: Sihirdar Büyüsü (Sıçra / Flash D)
+                break;
+
+            case "cs2":
+            case "fps":
+                presetTitle = "Counter-Strike 2 (CS2 Rekabetçi)";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 500);
+                prof.SetDpiStage(1, 750);
+                prof.SetDpiStage(2, 1000);
+                prof.SetDpiStage(3, 1250);
+                prof.SetLed(1, 1, 0); // Sıcak Amber / Sarı
+                prof.SetButtonAction(0, "mouse:1");       // G1: Sol Tık (Ateş Et)
+                prof.SetButtonAction(1, "mouse:2");       // G2: Sağ Tık (Dürbün Aç / İkincil)
+                prof.SetButtonAction(2, "mouse:3");       // G3: Tehlike / Düşman İşaretle (Ping)
+                prof.SetButtonAction(3, "key:4");          // G4: Bomba Seçimi / Flaş Çevir
+                prof.SetButtonAction(4, "key:q");          // G5: Hızlı Silah Değiştir (AWP Quick Switch)
+                prof.SetButtonAction(5, "key:v");          // G6: Telsiz Bas-Konuş (Push-to-Talk)
+                prof.SetButtonAction(6, "key:g");          // G7: Silahı Yere At (Drop Weapon)
+                prof.SetButtonAction(7, "key:space");      // G8: Zıplama / Jump-throw Yardımcısı
+                prof.SetButtonAction(8, "dpi-alternate");  // G9: DPI Shift (Keskin Nişancı 500 DPI)
+                break;
+
+            case "valorant":
+                presetTitle = "Valorant (Taktiksel Nişancı)";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 500);
+                prof.SetDpiStage(1, 750);
+                prof.SetDpiStage(2, 1000);
+                prof.SetDpiStage(3, 1250);
+                prof.SetLed(1, 0, 0); // Radyanit Kırmızı
+                prof.SetButtonAction(0, "mouse:1");       // G1: Sol Tık (Ateş Et)
+                prof.SetButtonAction(1, "mouse:2");       // G2: Sağ Tık (Nişan Al - ADS)
+                prof.SetButtonAction(2, "mouse:3");       // G3: İşaretçi (Ping)
+                prof.SetButtonAction(3, "key:e");          // G4: İmza Yetenek (E)
+                prof.SetButtonAction(4, "key:c");          // G5: Temel Yetenek (C)
+                prof.SetButtonAction(5, "key:q");          // G6: Temel Yetenek (Q)
+                prof.SetButtonAction(6, "key:x");          // G7: Ultimate Yeteneği (X)
+                prof.SetButtonAction(7, "key:v");          // G8: Takım Telsizi Bas-Konuş (V)
+                prof.SetButtonAction(8, "dpi-alternate");  // G9: DPI Shift (Keskin Nişancı 500 DPI)
+                break;
+
+            case "apex":
+                presetTitle = "Apex Legends (Battle Royale)";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 750);
+                prof.SetDpiStage(1, 1000);
+                prof.SetDpiStage(2, 1250);
+                prof.SetDpiStage(3, 1750);
+                prof.SetLed(1, 0, 1); // Apex Moru
+                prof.SetButtonAction(0, "mouse:1"); // G1: Ateş Et
+                prof.SetButtonAction(1, "mouse:2"); // G2: Nişan Al
+                prof.SetButtonAction(2, "mouse:3"); // G3: Düşman İşaretle (Ping)
+                prof.SetButtonAction(3, "key:q");   // G4: Taktiksel Yetenek (Q)
+                prof.SetButtonAction(4, "key:z");   // G5: Ultimate Yetenek (Z)
+                prof.SetButtonAction(5, "key:4");   // G6: Sağlık & Kalkan Çarkı (4)
+                prof.SetButtonAction(6, "key:g");   // G7: El Bombası Seç (G)
+                prof.SetButtonAction(7, "key:3");   // G8: Silahı Kına Sok / Hızlı Depar (3)
+                prof.SetButtonAction(8, "key:v");   // G9: Yakın Dövüş Tekmesi (V)
+                break;
+
+            case "fortnite":
+                presetTitle = "Fortnite (İnşaat & Savaş)";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 750);
+                prof.SetDpiStage(1, 1000);
+                prof.SetDpiStage(2, 1250);
+                prof.SetDpiStage(3, 1750);
+                prof.SetLed(0, 1, 1); // Gökyüzü Camgöbeği
+                prof.SetButtonAction(0, "mouse:1"); // G1: Ateş / Yapı Koy
+                prof.SetButtonAction(1, "mouse:2"); // G2: Nişan Al
+                prof.SetButtonAction(2, "mouse:3"); // G3: Konum İşaretle
+                prof.SetButtonAction(3, "key:q");   // G4: Duvar İnşaatı (Wall Q)
+                prof.SetButtonAction(4, "key:c");   // G5: Merdiven İnşaatı (Ramp C)
+                prof.SetButtonAction(5, "key:f");   // G6: Zemin İnşaatı (Floor F)
+                prof.SetButtonAction(6, "key:g");   // G7: Yapı Düzenleme (Edit G)
+                prof.SetButtonAction(7, "key:e");   // G8: Kullan / Etkileşim (E)
+                prof.SetButtonAction(8, "key:1");   // G9: Kazma Seç (Pickaxe 1)
+                break;
+
+            case "gta":
+                presetTitle = "GTA V / FiveM";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 750);
+                prof.SetDpiStage(1, 1250);
+                prof.SetDpiStage(2, 1750);
+                prof.SetDpiStage(3, 2250);
+                prof.SetLed(0, 1, 0); // Zümrüt Yeşili
+                prof.SetButtonAction(0, "mouse:1");    // G1: Ateş / Vur
+                prof.SetButtonAction(1, "mouse:2");    // G2: Nişan Al
+                prof.SetButtonAction(2, "mouse:3");    // G3: Yakın Dövüş / El Freni
+                prof.SetButtonAction(3, "key:tab");    // G4: Silah Çarkı (Tab)
+                prof.SetButtonAction(4, "key:q");      // G5: Siper Al (Take Cover Q)
+                prof.SetButtonAction(5, "key:r");      // G6: Şarjör Değiştir (Reload R)
+                prof.SetButtonAction(6, "key:up");     // G7: Akıllı Telefonu Aç (Yukarı Ok)
+                prof.SetButtonAction(7, "key:e");      // G8: Korna / Far / Etkileşim (E)
+                prof.SetButtonAction(8, "dpi-cycle");  // G9: Hassasiyet Kademesi Değiştir
+                break;
+
+            case "mmo":
+                presetTitle = "MMORPG / World of Warcraft";
+                prof.PollingRateHz = 1000;
+                prof.DefaultDpiStage = 1;
+                prof.SetDpiStage(0, 1000);
+                prof.SetDpiStage(1, 1500);
+                prof.SetDpiStage(2, 2000);
+                prof.SetDpiStage(3, 2500);
+                prof.SetLed(1, 0, 1); // Destansı Mor
+                prof.SetButtonAction(0, "mouse:1");     // G1: Sol Tık (Seçim / Hedefle)
+                prof.SetButtonAction(1, "mouse:2");     // G2: Sağ Tık (Kamera / Etkileşim)
+                prof.SetButtonAction(2, "mouse:3");     // G3: Orta Tık (Yetenek 5)
+                prof.SetButtonAction(3, "key:1");       // G4: Yetenek 1
+                prof.SetButtonAction(4, "key:2");       // G5: Yetenek 2
+                prof.SetButtonAction(5, "key:3");       // G6: Yetenek 3
+                prof.SetButtonAction(6, "key:4");       // G7: Yetenek 4
+                prof.SetButtonAction(7, "key:tab");     // G8: En Yakın Düşmanı Hedefle (Tab)
+                prof.SetButtonAction(8, "key:numlock"); // G9: Otomatik Koşma (Auto-Run)
+                break;
+
             case "web":
                 presetTitle = "Web & Tarayıcı Gezinme";
                 prof.PollingRateHz = 1000;
@@ -2869,7 +3031,8 @@ public partial class MainWindow : Window
                 break;
 
             case "office":
-                presetTitle = "Ofis & Üretkenlik";
+            default:
+                presetTitle = "Ofis & Standart Masaüstü";
                 prof.PollingRateHz = 500;
                 prof.DefaultDpiStage = 1;
                 prof.SetDpiStage(0, 750);
@@ -2886,86 +3049,6 @@ public partial class MainWindow : Window
                 prof.SetButtonAction(6, "key:lctrl+v"); // G7: Yapıştır
                 prof.SetButtonAction(7, "key:lctrl+z"); // G8: Geri Al
                 prof.SetButtonAction(8, "dpi-cycle");   // G9: DPI Döngüsü
-                break;
-
-            case "fps":
-                presetTitle = "FPS Rekabetçi (CS2 / Valorant)";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 500);
-                prof.SetDpiStage(1, 750);
-                prof.SetDpiStage(2, 1250);
-                prof.SetDpiStage(3, 1750);
-                prof.SetLed(1, 0, 0); // Kırmızı
-                prof.SetButtonAction(0, "mouse:1");
-                prof.SetButtonAction(1, "mouse:2");
-                prof.SetButtonAction(2, "mouse:3");
-                prof.SetButtonAction(3, "mouse:5");
-                prof.SetButtonAction(4, "mouse:4");
-                prof.SetButtonAction(5, "key:f18"); // G-Shift Katmanı
-                prof.SetButtonAction(6, "key:f17"); // Recoil Dengeleme
-                prof.SetButtonAction(7, "dpi-cycle");
-                prof.SetButtonAction(8, "dpi-alternate"); // DPI Shift (Nişan)
-                break;
-
-            case "moba":
-                presetTitle = "MOBA & MMO (LoL / Dota 2)";
-                prof.PollingRateHz = 1000;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 1000);
-                prof.SetDpiStage(1, 1500);
-                prof.SetDpiStage(2, 2000);
-                prof.SetDpiStage(3, 2500);
-                prof.SetLed(1, 0, 1); // Eflatun
-                prof.SetButtonAction(0, "mouse:1");
-                prof.SetButtonAction(1, "mouse:2");
-                prof.SetButtonAction(2, "mouse:3");
-                prof.SetButtonAction(3, "key:1");
-                prof.SetButtonAction(4, "key:2");
-                prof.SetButtonAction(5, "key:3");
-                prof.SetButtonAction(6, "key:4");
-                prof.SetButtonAction(7, "dpi-cycle");
-                prof.SetButtonAction(8, "key:f15"); // Zamanlamalı Kombo
-                break;
-
-            case "media":
-                presetTitle = "Medya & Müzik Kontrolü";
-                prof.PollingRateHz = 500;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 750);
-                prof.SetDpiStage(1, 1250);
-                prof.SetDpiStage(2, 1750);
-                prof.SetDpiStage(3, 2250);
-                prof.SetLed(1, 1, 0); // Sarı
-                prof.SetButtonAction(0, "mouse:1");
-                prof.SetButtonAction(1, "mouse:2");
-                prof.SetButtonAction(2, "mouse:3");
-                prof.SetButtonAction(3, "key:right"); // İleri Sar
-                prof.SetButtonAction(4, "key:left");  // Geri Sar
-                prof.SetButtonAction(5, "key:space"); // Oynat / Durdur
-                prof.SetButtonAction(6, "key:m");     // Sesi Kapat (Mute)
-                prof.SetButtonAction(7, "key:up");    // Ses Artır
-                prof.SetButtonAction(8, "key:down");  // Ses Azalt
-                break;
-
-            default:
-                presetTitle = "Standart Masaüstü";
-                prof.PollingRateHz = 500;
-                prof.DefaultDpiStage = 1;
-                prof.SetDpiStage(0, 750);
-                prof.SetDpiStage(1, 1250);
-                prof.SetDpiStage(2, 1750);
-                prof.SetDpiStage(3, 2250);
-                prof.SetLed(0, 1, 1); // Turkuaz
-                prof.SetButtonAction(0, "mouse:1");
-                prof.SetButtonAction(1, "mouse:2");
-                prof.SetButtonAction(2, "mouse:3");
-                prof.SetButtonAction(3, "mouse:5");
-                prof.SetButtonAction(4, "mouse:4");
-                prof.SetButtonAction(5, "key:lctrl+c");
-                prof.SetButtonAction(6, "key:lctrl+v");
-                prof.SetButtonAction(7, "profile-cycle");
-                prof.SetButtonAction(8, "dpi-cycle");
                 break;
         }
 

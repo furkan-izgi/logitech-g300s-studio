@@ -349,16 +349,21 @@
                                     </StackPanel>
                                 </Border>
 
-                                <ComboBox x:Name="PresetTemplateCombo" Width="205" Height="30"
+                                <ComboBox x:Name="PresetTemplateCombo" Width="220" Height="30"
                                           SelectionChanged="PresetTemplateCombo_SelectionChanged"
-                                          ToolTip="Seçili profile yazılım, tasarım veya oyun şablonu uygula">
-                                    <ComboBoxItem Content="Hazır Şablon Yükle..." IsSelected="True" IsEnabled="False" />
-                                    <ComboBoxItem Content="🌐 Web &amp; Tarayıcı (Geri / İleri / Yenile / Sekmeler)" Tag="web" />
+                                          ToolTip="Seçili profile oyunlara özel hazır şablon uygula (Minecraft, LoL, CS2, Valorant vb.)">
+                                    <ComboBoxItem Content="🎮 Oyun Şablonu Yükle..." IsSelected="True" IsEnabled="False" />
+                                    <ComboBoxItem Content="⛏️ Minecraft (PvP / F5 / Zoom / Sol El)" Tag="minecraft" />
+                                    <ComboBoxItem Content="⚔️ League of Legends (LoL / Totem / Ping / Sıçra)" Tag="lol" />
+                                    <ComboBoxItem Content="🎯 Counter-Strike 2 (CS2 / Bomba / Hızlı Geçiş)" Tag="cs2" />
+                                    <ComboBoxItem Content="🔴 Valorant (Yetenekler E-C-Q / Ulti X / Telsiz)" Tag="valorant" />
+                                    <ComboBoxItem Content="⚡ Apex Legends (Taktik Q / Ulti Z / Sağlık / Koşu)" Tag="apex" />
+                                    <ComboBoxItem Content="🧱 Fortnite (Duvar / Merdiven / Zemin / Düzenle)" Tag="fortnite" />
+                                    <ComboBoxItem Content="🚗 GTA V / FiveM (Silah Çarkı / Siper / Telefon)" Tag="gta" />
+                                    <ComboBoxItem Content="🐉 MMORPG &amp; WoW (1-4 Yetenekler / Hedef / Koşu)" Tag="mmo" />
+                                    <ComboBoxItem Content="🌐 Web &amp; Tarayıcı (Geri / İleri / F5 / Sekmeler)" Tag="web" />
                                     <ComboBoxItem Content="💻 Yazılım Geliştirme (VS Code / Terminal / Git)" Tag="dev" />
-                                    <ComboBoxItem Content="📄 Ofis &amp; Üretkenlik (Geri Al / Yapıştır / Bul)" Tag="office" />
-                                    <ComboBoxItem Content="🎯 FPS Rekabetçi (CS2 / Valorant / Apex)" Tag="fps" />
-                                    <ComboBoxItem Content="⚔️ MOBA &amp; MMO (LoL / Dota 2)" Tag="moba" />
-                                    <ComboBoxItem Content="🎵 Medya &amp; Müzik Kontrolü (Oynat / Ses)" Tag="media" />
+                                    <ComboBoxItem Content="📄 Standart Masaüstü (Geri Al / Kopyala / Yapıştır)" Tag="office" />
                                 </ComboBox>
 
                                 <ComboBox x:Name="CopyProfileCombo" Width="155" Height="30" Margin="8,0,0,0"
@@ -812,7 +817,7 @@
                                          BorderBrush="{DynamicResource BrushBorderNormal}"
                                          BorderThickness="1"
                                          KeyDown="RenameProfileTextBox_KeyDown" />
-                                <TextBlock Text="Örnek: Rekabetçi FPS, Web &amp; Gezinme, CS2, Ofis &amp; Kodlama"
+                                <TextBlock Text="Örnek: Minecraft PvP, LoL MOBA, CS2 Rekabetçi, Valorant"
                                            FontSize="11.5" Foreground="{DynamicResource BrushTextMuted}" Margin="2,6,0,0" />
                             </StackPanel>
 

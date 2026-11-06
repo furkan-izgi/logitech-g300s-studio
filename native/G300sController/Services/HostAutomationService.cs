@@ -101,10 +101,12 @@ public sealed class HostAutomationService : IDisposable
     private void InitializeDefaults()
     {
         AppRules.Clear();
-        AppRules.Add(new AppProfileRule { ExecutableName = "cs2.exe", ProfileIndex = 1 });
+        AppRules.Add(new AppProfileRule { ExecutableName = "cs2.exe", ProfileIndex = 0 });
+        AppRules.Add(new AppProfileRule { ExecutableName = "javaw.exe", ProfileIndex = 0 });
+        AppRules.Add(new AppProfileRule { ExecutableName = "League of Legends.exe", ProfileIndex = 1 });
         AppRules.Add(new AppProfileRule { ExecutableName = "valorant-win64-shipping.exe", ProfileIndex = 1 });
         AppRules.Add(new AppProfileRule { ExecutableName = "blender.exe", ProfileIndex = 2 });
-        AppRules.Add(new AppProfileRule { ExecutableName = "code.exe", ProfileIndex = 0 });
+        AppRules.Add(new AppProfileRule { ExecutableName = "code.exe", ProfileIndex = 2 });
 
         Macros["f13"] = new MacroBindingItem { TriggerKey = "f13", Mode = "shortcut", ShortcutKeys = "ctrl+c" };
         Macros["f14"] = new MacroBindingItem { TriggerKey = "f14", Mode = "shortcut", ShortcutKeys = "ctrl+v" };
